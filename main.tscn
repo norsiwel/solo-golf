@@ -1,0 +1,151 @@
+[gd_scene format=3 uid="uid://dvcp2wpqd25c6"]
+
+[ext_resource type="Script" uid="uid://bagc1rj48iic7" path="res://player.gd" id="1_player"]
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_ground"]
+size = Vector2(400, 400)
+
+[sub_resource type="StandardMaterial3D" id="Material_grass"]
+albedo_color = Color(0.2, 0.55, 0.15, 1)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_ground"]
+size = Vector3(400, 0.2, 400)
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_player"]
+radius = 0.4
+height = 1.8
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_trunk"]
+top_radius = 0.2
+bottom_radius = 0.3
+height = 4.0
+
+[sub_resource type="StandardMaterial3D" id="Material_bark"]
+albedo_color = Color(0.4, 0.25, 0.1, 1)
+
+[sub_resource type="SphereMesh" id="SphereMesh_leaves"]
+radius = 2.5
+height = 5.0
+
+[sub_resource type="StandardMaterial3D" id="Material_leaves"]
+albedo_color = Color(0.1, 0.4, 0.1, 1)
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_flagpole"]
+top_radius = 0.03
+bottom_radius = 0.03
+height = 3.0
+
+[sub_resource type="StandardMaterial3D" id="Material_pole"]
+albedo_color = Color(0.9, 0.9, 0.9, 1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_flag"]
+size = Vector3(0.6, 0.4, 0.02)
+
+[sub_resource type="StandardMaterial3D" id="Material_flag"]
+albedo_color = Color(1.0, 0.1, 0.1, 1)
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_hole"]
+top_radius = 0.27
+bottom_radius = 0.27
+height = 0.05
+
+[sub_resource type="StandardMaterial3D" id="Material_hole"]
+albedo_color = Color(0.05, 0.05, 0.05, 1)
+
+[node name="Main" type="Node3D"]
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.866, -0.5, 0, 0.25, 0.433, -0.866, 0.433, 0.75, 0.5, 50, 80, 50)
+light_energy = 1.2
+shadow_enabled = true
+
+[node name="Ground" type="StaticBody3D" parent="."]
+
+[node name="GroundMesh" type="MeshInstance3D" parent="Ground"]
+mesh = SubResource("PlaneMesh_ground")
+surface_material_override/0 = SubResource("Material_grass")
+
+[node name="GroundCollision" type="CollisionShape3D" parent="Ground"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.1, 0)
+shape = SubResource("BoxShape3D_ground")
+
+[node name="Player" type="CharacterBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.0, 0)
+script = ExtResource("1_player")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Player"]
+shape = SubResource("CapsuleShape3D_player")
+
+[node name="Camera3D" type="Camera3D" parent="Player"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.7, 0)
+current = true
+
+[node name="Tree1" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 15, 0, -30)
+
+[node name="Trunk" type="MeshInstance3D" parent="Tree1"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.0, 0)
+mesh = SubResource("CylinderMesh_trunk")
+surface_material_override/0 = SubResource("Material_bark")
+
+[node name="Leaves" type="MeshInstance3D" parent="Tree1"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 5.5, 0)
+mesh = SubResource("SphereMesh_leaves")
+surface_material_override/0 = SubResource("Material_leaves")
+
+[node name="Tree2" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20, 0, -50)
+
+[node name="Trunk" type="MeshInstance3D" parent="Tree2"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.0, 0)
+mesh = SubResource("CylinderMesh_trunk")
+surface_material_override/0 = SubResource("Material_bark")
+
+[node name="Leaves" type="MeshInstance3D" parent="Tree2"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 5.5, 0)
+mesh = SubResource("SphereMesh_leaves")
+surface_material_override/0 = SubResource("Material_leaves")
+
+[node name="Tree3" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10, 0, -20)
+
+[node name="Trunk" type="MeshInstance3D" parent="Tree3"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.0, 0)
+mesh = SubResource("CylinderMesh_trunk")
+surface_material_override/0 = SubResource("Material_bark")
+
+[node name="Leaves" type="MeshInstance3D" parent="Tree3"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 5.5, 0)
+mesh = SubResource("SphereMesh_leaves")
+surface_material_override/0 = SubResource("Material_leaves")
+
+[node name="Tree4" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 25, 0, -60)
+
+[node name="Trunk" type="MeshInstance3D" parent="Tree4"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.0, 0)
+mesh = SubResource("CylinderMesh_trunk")
+surface_material_override/0 = SubResource("Material_bark")
+
+[node name="Leaves" type="MeshInstance3D" parent="Tree4"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 5.5, 0)
+mesh = SubResource("SphereMesh_leaves")
+surface_material_override/0 = SubResource("Material_leaves")
+
+[node name="Flagstick" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -80)
+
+[node name="Pole" type="MeshInstance3D" parent="Flagstick"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 0)
+mesh = SubResource("CylinderMesh_flagpole")
+surface_material_override/0 = SubResource("Material_pole")
+
+[node name="Flag" type="MeshInstance3D" parent="Flagstick"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.35, 2.9, 0)
+mesh = SubResource("BoxMesh_flag")
+surface_material_override/0 = SubResource("Material_flag")
+
+[node name="HoleCup" type="MeshInstance3D" parent="Flagstick"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.01, 0)
+mesh = SubResource("CylinderMesh_hole")
+surface_material_override/0 = SubResource("Material_hole")
