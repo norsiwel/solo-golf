@@ -37,19 +37,10 @@ func _setup_sky():
 	get_viewport().get_camera_3d().environment = env
 
 func _setup_hud():
-	# Main HUD canvas
 	var canvas = CanvasLayer.new()
 	canvas.name = "HUD"
 	add_child(canvas)
 
-	# Viewfinder frame (hidden by default)
-	var vf_frame = ColorRect.new()
-	vf_frame.name = "VFFrame"
-	vf_frame.color = Color(0, 0, 0, 0)
-	vf_frame.set_anchors_preset(Control.PRESET_FULL_RECT)
-	canvas.add_child(vf_frame)
-
-	# Viewfinder border box - center of screen
 	var vf_border = Panel.new()
 	vf_border.name = "VFBorder"
 	vf_border.visible = false
@@ -67,7 +58,6 @@ func _setup_hud():
 	vf_border.add_theme_stylebox_override("panel", style)
 	canvas.add_child(vf_border)
 
-	# Crosshair center dot
 	var crosshair = Label.new()
 	crosshair.name = "Crosshair"
 	crosshair.text = "+"
@@ -78,7 +68,6 @@ func _setup_hud():
 	crosshair.add_theme_color_override("font_color", Color(1.0, 0.9, 0.3, 1.0))
 	canvas.add_child(crosshair)
 
-	# Yardage display
 	var yardage_label = Label.new()
 	yardage_label.name = "YardageLabel"
 	yardage_label.text = "--- yds"
@@ -89,7 +78,16 @@ func _setup_hud():
 	yardage_label.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 1.0))
 	canvas.add_child(yardage_label)
 
-	# Aim locked indicator
+	var vf_hint = Label.new()
+	vf_hint.name = "VFHint"
+	vf_hint.text = "Move mouse to aim  |  Left click to lock"
+	vf_hint.visible = false
+	vf_hint.set_anchor(SIDE_LEFT, 0.5)
+	vf_hint.set_anchor(SIDE_TOP, 0.68)
+	vf_hint.add_theme_font_size_override("font_size", 14)
+	vf_hint.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9, 0.8))
+	canvas.add_child(vf_hint)
+
 	var aim_label = Label.new()
 	aim_label.name = "AimLabel"
 	aim_label.text = ""
@@ -102,26 +100,31 @@ func _setup_hud():
 func _input(event):
 	if event is InputEventMouseMotion:
 		if viewfinder_active:
-			# Viewfinder look - free aim, doesn't move body
+			# Mouse always moves view when viewfinder is open
 			vf_yaw -= event.relative.x * mouse_sensitivity
 			vf_pitch -= event.relative.y * mouse_sensitivity
 			vf_pitch = clamp(vf_pitch, -1.0, 0.3)
-			$Camera3D.rotation.x = vf_pitch
 			rotation.y = vf_yaw
+			$Camera3D.rotation.x = vf_pitch
 		else:
+			# Normal walking look
 			yaw -= event.relative.x * mouse_sensitivity
 			pitch -= event.relative.y * mouse_sensitivity
 			pitch = clamp(pitch, -1.2, 1.2)
 			rotation.y = yaw
 			$Camera3D.rotation.x = pitch
 
+	if event is InputEventMouseButton:
+		if event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+			if viewfinder_active:
+				_lock_aim()
+
 	if event is InputEventKey:
 		if event.keycode == KEY_V:
-			if event.pressed:
+			if event.pressed and not viewfinder_active:
 				_open_viewfinder()
-			else:
+			elif not event.pressed and viewfinder_active:
 				_close_viewfinder()
-
 		if event.pressed:
 			if event.keycode == KEY_ESCAPE:
 				Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
@@ -133,26 +136,35 @@ func _open_viewfinder():
 	$HUD/VFBorder.visible = true
 	$HUD/Crosshair.visible = true
 	$HUD/YardageLabel.visible = true
+	$HUD/VFHint.visible = true
 
-func _close_viewfinder():
-	viewfinder_active = false
-	# Lock in the aim direction
+func _lock_aim():
 	aim_locked = true
 	var hud_aim = $HUD/AimLabel
 	if aim_yardage > 0:
 		hud_aim.text = "AIM SET: %d yds" % int(aim_yardage)
 	else:
 		hud_aim.text = "AIM SET"
+	var style = StyleBoxFlat.new()
+	style.bg_color = Color(0, 0, 0, 0.3)
+	style.border_color = Color(0.3, 1.0, 0.3, 1.0)
+	style.border_width_left = 3
+	style.border_width_right = 3
+	style.border_width_top = 3
+	style.border_width_bottom = 3
+	$HUD/VFBorder.add_theme_stylebox_override("panel", style)
+
+func _close_viewfinder():
+	viewfinder_active = false
 	$HUD/VFBorder.visible = false
 	$HUD/Crosshair.visible = false
 	$HUD/YardageLabel.visible = false
-	# Keep yaw where viewfinder left it - that IS your aim direction
+	$HUD/VFHint.visible = false
 	yaw = vf_yaw
 	pitch = 0.0
 	$Camera3D.rotation.x = 0.0
 
 func _physics_process(delta):
-	# Yardage raycast while viewfinder is active
 	if viewfinder_active:
 		_update_yardage()
 
@@ -188,7 +200,7 @@ func _update_yardage():
 	var result = space_state.intersect_ray(query)
 	if result:
 		var dist_meters = global_position.distance_to(result.position)
-		aim_yardage = dist_meters * 1.094  # meters to yards
+		aim_yardage = dist_meters * 1.094
 		aim_point = result.position
 		$HUD/YardageLabel.text = "%d yds" % int(aim_yardage)
 	else:
