@@ -18,7 +18,7 @@ var vf_pitch := 0.0
 # Address screen
 var address_screen: CanvasLayer
 var addressing := false
-var ball_mesh: MeshInstance3D
+var ball: Node3D
 
 func _ready():
 	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
@@ -46,6 +46,19 @@ func _setup_address_screen():
 	address_screen = preload("res://address_screen.gd").new()
 	add_child(address_screen)
 	address_screen.connect("shot_confirmed", _on_shot_confirmed)
+	# Set up ball node
+	ball = preload("res://ball.gd").new()
+	var sphere = SphereMesh.new()
+	sphere.radius = 0.08
+	sphere.height = 0.16
+	var mat = StandardMaterial3D.new()
+	mat.albedo_color = Color(1, 1, 1, 1)
+	sphere.surface_set_material(0, mat)
+	var ball_vis = MeshInstance3D.new()
+	ball_vis.mesh = sphere
+	ball.add_child(ball_vis)
+	get_parent().call_deferred("add_child", ball)
+	ball.visible = false
 
 func _setup_hud():
 	var canvas = CanvasLayer.new()
@@ -186,37 +199,40 @@ func _close_viewfinder():
 
 func _open_address():
 	addressing = true
-	# Spawn ball 1.2m in front of player on the ground
-	if ball_mesh == null:
-		ball_mesh = MeshInstance3D.new()
-		var sphere = SphereMesh.new()
-		sphere.radius = 0.08
-		sphere.height = 0.16
-		var mat = StandardMaterial3D.new()
-		mat.albedo_color = Color(1, 1, 1, 1)
-		sphere.surface_set_material(0, mat)
-		ball_mesh.mesh = sphere
-		get_parent().add_child(ball_mesh)
-	var forward = -global_transform.basis.z
-	ball_mesh.global_position = global_position + forward * 1.2
-	ball_mesh.global_position.y = 0.025
-	ball_mesh.visible = true
+	var shot_dir = aim_point - global_position
+	shot_dir.y = 0.0
+	if shot_dir.length() < 0.01:
+		shot_dir = -global_transform.basis.z
+		shot_dir.y = 0.0
+	shot_dir = shot_dir.normalized()
+	ball.global_position = global_position + shot_dir * 1.2
+	ball.global_position.y = 0.025
+	ball.visible = true
 	address_screen.open_screen()
 
 func _close_address():
 	addressing = false
 	address_screen.close_screen()
 
-func _on_shot_confirmed(power: float, accuracy: float, draw_fade: float, loft: float):
+func _on_shot_confirmed(p_power: float, p_accuracy: float, p_draw_fade: float, p_loft: float, club: Dictionary):
 	_close_address()
-	# Ball flight will be added next
+	var launch_pos = ball.global_position
+	ball.connect("ball_stopped", _on_ball_stopped, CONNECT_ONE_SHOT)
+	var club_yards = float(club.get("full_yards", 240))
+	ball.launch(launch_pos, p_power, p_accuracy, p_draw_fade, p_loft, aim_point, club_yards)
 	var msg = $HUD/AimLabel
-	msg.text = "Shot! Pwr:%d%% Acc:%d%% %s Loft:%s" % [
-		int(power * 100),
-		int(accuracy * 100),
-		"Draw" if draw_fade < -0.1 else ("Fade" if draw_fade > 0.1 else "Straight"),
-		"Hi" if loft > 0.1 else ("Lo" if loft < -0.1 else "Mid")
+	msg.text = "Shot! %s %dy  Pwr:%d%% Acc:%d%% %s Loft:%s" % [
+		str(club.get("name", "Club")),
+		int(club_yards),
+		int(p_power * 100),
+		int(p_accuracy * 100),
+		"Draw" if p_draw_fade < -0.1 else ("Fade" if p_draw_fade > 0.1 else "Straight"),
+		"Hi" if p_loft > 0.1 else ("Lo" if p_loft < -0.1 else "Mid")
 	]
+
+func _on_ball_stopped(pos: Vector3):
+	var dist_yards = global_position.distance_to(pos) * 1.094
+	$HUD/AimLabel.text = "Ball stopped - %.0f yds away  |  Press W to walk" % dist_yards
 
 func _physics_process(delta):
 	if viewfinder_active:
