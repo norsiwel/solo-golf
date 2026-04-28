@@ -67,6 +67,22 @@ size = Vector2(6, 5)
 [sub_resource type="StandardMaterial3D" id="Material_sand"]
 albedo_color = Color(0.85, 0.78, 0.5, 1)
 
+[sub_resource type="CylinderMesh" id="CylinderMesh_tee"]
+top_radius = 0.02
+bottom_radius = 0.04
+height = 0.05
+
+[sub_resource type="StandardMaterial3D" id="Material_tee"]
+albedo_color = Color(0.8, 0.3, 0.1, 1)
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_teebox"]
+top_radius = 4.0
+bottom_radius = 4.0
+height = 0.01
+
+[sub_resource type="StandardMaterial3D" id="Material_teebox"]
+albedo_color = Color(0.15, 0.5, 0.12, 1)
+
 [node name="Main" type="Node3D"]
 
 [node name="Sun" type="DirectionalLight3D" parent="."]
@@ -179,3 +195,13 @@ surface_material_override/0 = SubResource("Material_sand")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12, 0.02, -85)
 mesh = SubResource("PlaneMesh_bunker2")
 surface_material_override/0 = SubResource("Material_sand")
+
+[node name="TeeBox" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.01, 0)
+mesh = SubResource("CylinderMesh_teebox")
+surface_material_override/0 = SubResource("Material_teebox")
+
+[node name="Tee" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.03, -1.0)
+mesh = SubResource("CylinderMesh_tee")
+surface_material_override/0 = SubResource("Material_tee")

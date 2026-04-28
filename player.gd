@@ -15,10 +15,16 @@ var aim_locked := false
 var vf_yaw := 0.0
 var vf_pitch := 0.0
 
+# Address screen
+var address_screen: CanvasLayer
+var addressing := false
+var ball_mesh: MeshInstance3D
+
 func _ready():
 	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
 	_setup_sky()
 	_setup_hud()
+	_setup_address_screen()
 
 func _setup_sky():
 	var env = Environment.new()
@@ -35,6 +41,11 @@ func _setup_sky():
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
 	env.ambient_light_energy = 0.5
 	get_viewport().get_camera_3d().environment = env
+
+func _setup_address_screen():
+	address_screen = preload("res://address_screen.gd").new()
+	add_child(address_screen)
+	address_screen.connect("shot_confirmed", _on_shot_confirmed)
 
 func _setup_hud():
 	var canvas = CanvasLayer.new()
@@ -98,16 +109,17 @@ func _setup_hud():
 	canvas.add_child(aim_label)
 
 func _input(event):
+	if addressing:
+		return
+
 	if event is InputEventMouseMotion:
 		if viewfinder_active:
-			# Mouse always moves view when viewfinder is open
 			vf_yaw -= event.relative.x * mouse_sensitivity
 			vf_pitch -= event.relative.y * mouse_sensitivity
 			vf_pitch = clamp(vf_pitch, -1.0, 0.3)
 			rotation.y = vf_yaw
 			$Camera3D.rotation.x = vf_pitch
 		else:
-			# Normal walking look
 			yaw -= event.relative.x * mouse_sensitivity
 			pitch -= event.relative.y * mouse_sensitivity
 			pitch = clamp(pitch, -1.2, 1.2)
@@ -126,8 +138,16 @@ func _input(event):
 			elif not event.pressed and viewfinder_active:
 				_close_viewfinder()
 		if event.pressed:
+			if event.keycode == KEY_SPACE and not viewfinder_active:
+				if aim_locked:
+					_open_address()
+				else:
+					$HUD/AimLabel.text = "Use V to aim first!"
 			if event.keycode == KEY_ESCAPE:
-				Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
+				if addressing:
+					_close_address()
+				else:
+					Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
 
 func _open_viewfinder():
 	viewfinder_active = true
@@ -164,9 +184,46 @@ func _close_viewfinder():
 	pitch = 0.0
 	$Camera3D.rotation.x = 0.0
 
+func _open_address():
+	addressing = true
+	# Spawn ball 1.2m in front of player on the ground
+	if ball_mesh == null:
+		ball_mesh = MeshInstance3D.new()
+		var sphere = SphereMesh.new()
+		sphere.radius = 0.08
+		sphere.height = 0.16
+		var mat = StandardMaterial3D.new()
+		mat.albedo_color = Color(1, 1, 1, 1)
+		sphere.surface_set_material(0, mat)
+		ball_mesh.mesh = sphere
+		get_parent().add_child(ball_mesh)
+	var forward = -global_transform.basis.z
+	ball_mesh.global_position = global_position + forward * 1.2
+	ball_mesh.global_position.y = 0.025
+	ball_mesh.visible = true
+	address_screen.open_screen()
+
+func _close_address():
+	addressing = false
+	address_screen.close_screen()
+
+func _on_shot_confirmed(power: float, accuracy: float, draw_fade: float, loft: float):
+	_close_address()
+	# Ball flight will be added next
+	var msg = $HUD/AimLabel
+	msg.text = "Shot! Pwr:%d%% Acc:%d%% %s Loft:%s" % [
+		int(power * 100),
+		int(accuracy * 100),
+		"Draw" if draw_fade < -0.1 else ("Fade" if draw_fade > 0.1 else "Straight"),
+		"Hi" if loft > 0.1 else ("Lo" if loft < -0.1 else "Mid")
+	]
+
 func _physics_process(delta):
 	if viewfinder_active:
 		_update_yardage()
+
+	if addressing:
+		return
 
 	var input_dir := Vector2.ZERO
 	if Input.is_key_pressed(KEY_W):
