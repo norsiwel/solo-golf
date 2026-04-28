@@ -374,3 +374,23 @@ func _update_meter_visual(val: float):
 		var marker_y = bar_bottom - (bar_h * power)
 		power_marker.position = Vector2(bar_left - 4, marker_y - 2)
 		power_marker.size = Vector2(bar_right - bar_left + 8, 4)
+
+func set_putting_mode(enabled: bool, stimp: float = 8.0):
+	if enabled:
+		# Select putter automatically
+		for i in range(CLUBS.size()):
+			if CLUBS[i].name == "Putter":
+				selected_club_index = i
+				break
+		# Slow meter way down for putting feel
+		meter_speed = 0.25 + (stimp / 13.0) * 0.3  # stimp 8 = ~0.47 speed
+		# Hide draw/fade slider - putts go straight
+		if draw_slider:
+			draw_slider.visible = false
+		# Update labels
+		if selected_club_label:
+			selected_club_label.text = "Putter  |  Stimp: %.0f" % stimp
+	else:
+		meter_speed = 0.8
+		if draw_slider:
+			draw_slider.visible = true

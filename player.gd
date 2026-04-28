@@ -19,12 +19,18 @@ var vf_pitch := 0.0
 var address_screen: CanvasLayer
 var addressing := false
 var ball: Node3D
+var on_green := false
+var stroke_count := 0
+var green_node = null
+var scorecard: CanvasLayer
 
 func _ready():
 	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
 	_setup_sky()
 	_setup_hud()
 	_setup_address_screen()
+	# Connect green after scene is ready
+	call_deferred("_connect_green")
 
 func _setup_sky():
 	var env = Environment.new()
@@ -59,6 +65,11 @@ func _setup_address_screen():
 	ball.add_child(ball_vis)
 	get_parent().call_deferred("add_child", ball)
 	ball.visible = false
+	# Set up scorecard
+	scorecard = preload("res://scorecard.gd").new()
+	add_child(scorecard)
+	scorecard.connect("play_again", _on_play_again)
+	scorecard.connect("next_hole", _on_next_hole)
 
 func _setup_hud():
 	var canvas = CanvasLayer.new()
@@ -214,14 +225,52 @@ func _close_address():
 	addressing = false
 	address_screen.close_screen()
 
+func _connect_green():
+	green_node = get_parent().get_node_or_null("GreenArea")
+	if green_node:
+		green_node.connected_player = self
+		green_node.connect("ball_holed_out", _on_ball_holed_out)
+
+func on_ball_entered_green(stimp: float, cup_pos: Vector3):
+	on_green = true
+	$HUD/AimLabel.text = "On the green!  Stimp: %.0f  |  Putter selected  |  Press Space to putt" % stimp
+	address_screen.set_putting_mode(true, stimp)
+
+func _on_ball_holed_out(strokes: int):
+	on_green = false
+	ball.visible = false
+	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
+	scorecard.show_scorecard(1, 3, 180, strokes)
+
+func _on_play_again():
+	stroke_count = 0
+	on_green = false
+	aim_locked = false
+	ball.reset()
+	ball.visible = false
+	$HUD/AimLabel.text = ""
+	address_screen.set_putting_mode(false)
+	global_position = Vector3(0, 2.0, 0)
+	yaw = 0.0
+	pitch = 0.0
+	rotation.y = 0.0
+	$Camera3D.rotation.x = 0.0
+	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+
+func _on_next_hole():
+	# Placeholder for future holes
+	_on_play_again()
+
 func _on_shot_confirmed(p_power: float, p_accuracy: float, p_draw_fade: float, p_loft: float, club: Dictionary):
 	_close_address()
+	stroke_count += 1
 	var launch_pos = ball.global_position
 	ball.connect("ball_stopped", _on_ball_stopped, CONNECT_ONE_SHOT)
 	var club_yards = float(club.get("full_yards", 240))
 	ball.launch(launch_pos, p_power, p_accuracy, p_draw_fade, p_loft, aim_point, club_yards)
 	var msg = $HUD/AimLabel
-	msg.text = "Shot! %s %dy  Pwr:%d%% Acc:%d%% %s Loft:%s" % [
+	msg.text = "Shot %d! %s %dy  Pwr:%d%%  Acc:%d%%  %s  Loft:%s" % [
+		stroke_count,
 		str(club.get("name", "Club")),
 		int(club_yards),
 		int(p_power * 100),
@@ -233,6 +282,9 @@ func _on_shot_confirmed(p_power: float, p_accuracy: float, p_draw_fade: float, p
 func _on_ball_stopped(pos: Vector3):
 	var dist_yards = global_position.distance_to(pos) * 1.094
 	$HUD/AimLabel.text = "Ball stopped - %.0f yds away  |  Press W to walk" % dist_yards
+	# Check for hole out
+	if green_node and on_green:
+		green_node.check_hole_out(pos, stroke_count)
 
 func _physics_process(delta):
 	if viewfinder_active:

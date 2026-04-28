@@ -1,6 +1,7 @@
 [gd_scene format=3 uid="uid://dvcp2wpqd25c6"]
 
 [ext_resource type="Script" uid="uid://bagc1rj48iic7" path="res://player.gd" id="1_player"]
+[ext_resource type="Script" path="res://green.gd" id="2_green"]
 
 [sub_resource type="PlaneMesh" id="PlaneMesh_ground"]
 size = Vector2(400, 400)
@@ -58,6 +59,9 @@ size = Vector2(22, 16)
 [sub_resource type="StandardMaterial3D" id="Material_green"]
 albedo_color = Color(0.08, 0.42, 0.08, 1)
 
+[sub_resource type="BoxShape3D" id="BoxShape3D_green"]
+size = Vector3(22, 0.3, 16)
+
 [sub_resource type="PlaneMesh" id="PlaneMesh_bunker1"]
 size = Vector2(8, 5)
 
@@ -66,6 +70,14 @@ size = Vector2(6, 5)
 
 [sub_resource type="StandardMaterial3D" id="Material_sand"]
 albedo_color = Color(0.85, 0.78, 0.5, 1)
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_cup"]
+top_radius = 0.27
+bottom_radius = 0.27
+height = 0.1
+
+[sub_resource type="StandardMaterial3D" id="Material_cup"]
+albedo_color = Color(0.02, 0.02, 0.02, 1)
 
 [sub_resource type="CylinderMesh" id="CylinderMesh_tee"]
 top_radius = 0.02
@@ -111,8 +123,18 @@ shape = SubResource("CapsuleShape3D_player")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.7, 0)
 current = true
 
+[node name="TeeBox" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.01, 0)
+mesh = SubResource("CylinderMesh_teebox")
+surface_material_override/0 = SubResource("Material_teebox")
+
+[node name="Tee" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.03, -1.0)
+mesh = SubResource("CylinderMesh_tee")
+surface_material_override/0 = SubResource("Material_tee")
+
 [node name="Tree1" type="Node3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 15, 0, -30)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20, 0, -50)
 
 [node name="Trunk" type="MeshInstance3D" parent="Tree1"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.0, 0)
@@ -125,7 +147,7 @@ mesh = SubResource("SphereMesh_leaves")
 surface_material_override/0 = SubResource("Material_leaves")
 
 [node name="Tree2" type="Node3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20, 0, -50)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -22, 0, -85)
 
 [node name="Trunk" type="MeshInstance3D" parent="Tree2"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.0, 0)
@@ -138,7 +160,7 @@ mesh = SubResource("SphereMesh_leaves")
 surface_material_override/0 = SubResource("Material_leaves")
 
 [node name="Tree3" type="Node3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10, 0, -20)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 18, 0, -110)
 
 [node name="Trunk" type="MeshInstance3D" parent="Tree3"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.0, 0)
@@ -151,7 +173,7 @@ mesh = SubResource("SphereMesh_leaves")
 surface_material_override/0 = SubResource("Material_leaves")
 
 [node name="Tree4" type="Node3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 25, 0, -60)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20, 0, -140)
 
 [node name="Trunk" type="MeshInstance3D" parent="Tree4"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.0, 0)
@@ -163,8 +185,21 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 5.5, 0)
 mesh = SubResource("SphereMesh_leaves")
 surface_material_override/0 = SubResource("Material_leaves")
 
+[node name="Tree5" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24, 0, -155)
+
+[node name="Trunk" type="MeshInstance3D" parent="Tree5"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.0, 0)
+mesh = SubResource("CylinderMesh_trunk")
+surface_material_override/0 = SubResource("Material_bark")
+
+[node name="Leaves" type="MeshInstance3D" parent="Tree5"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 5.5, 0)
+mesh = SubResource("SphereMesh_leaves")
+surface_material_override/0 = SubResource("Material_leaves")
+
 [node name="Flagstick" type="Node3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -80)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -165)
 
 [node name="Pole" type="MeshInstance3D" parent="Flagstick"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 0)
@@ -182,26 +217,28 @@ mesh = SubResource("CylinderMesh_hole")
 surface_material_override/0 = SubResource("Material_hole")
 
 [node name="Green" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.02, -80)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.02, -165)
 mesh = SubResource("PlaneMesh_green")
 surface_material_override/0 = SubResource("Material_green")
 
+[node name="GreenArea" type="Area3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.02, -165)
+script = ExtResource("2_green")
+
+[node name="GreenCollision" type="CollisionShape3D" parent="GreenArea"]
+shape = SubResource("BoxShape3D_green")
+
+[node name="Cup" type="MeshInstance3D" parent="GreenArea"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.01, 0)
+mesh = SubResource("CylinderMesh_cup")
+surface_material_override/0 = SubResource("Material_cup")
+
 [node name="Bunker1" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -14, 0.02, -78)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16, 0.02, -163)
 mesh = SubResource("PlaneMesh_bunker1")
 surface_material_override/0 = SubResource("Material_sand")
 
 [node name="Bunker2" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12, 0.02, -85)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14, 0.02, -170)
 mesh = SubResource("PlaneMesh_bunker2")
 surface_material_override/0 = SubResource("Material_sand")
-
-[node name="TeeBox" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.01, 0)
-mesh = SubResource("CylinderMesh_teebox")
-surface_material_override/0 = SubResource("Material_teebox")
-
-[node name="Tee" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.03, -1.0)
-mesh = SubResource("CylinderMesh_tee")
-surface_material_override/0 = SubResource("Material_tee")
