@@ -121,6 +121,10 @@ func _process(delta):
 			rollout_pct = 0.18
 		elif loft > 0.15:
 			rollout_pct = 0.04
+		# Check if landed in bunker - reduces rollout significantly
+		var in_bunker = _check_bunker()
+		if in_bunker:
+			rollout_pct = 0.02  # sand kills the roll
 		var roll_distance = power * current_max_distance_meters * rollout_pct
 		var roll_speed = roll_distance * 0.8
 
@@ -132,6 +136,20 @@ func _process(delta):
 			state = BallState.STOPPED
 			scale = Vector3(2.0, 2.0, 2.0)
 			emit_signal("ball_stopped", global_position)
+
+func _check_bunker() -> bool:
+	var scene = get_tree().current_scene
+	for bunker_name in ["Bunker1Area", "Bunker2Area"]:
+		var bunker = scene.get_node_or_null(bunker_name)
+		if bunker:
+			var bunker_pos = bunker.global_position
+			var bunker_col = bunker.get_node_or_null("Bunker1Collision") if bunker_name == "Bunker1Area" else bunker.get_node_or_null("Bunker2Collision")
+			if bunker_col and bunker_col.shape:
+				var shape_size = bunker_col.shape.size
+				var local_pos = global_position - bunker_pos
+				if abs(local_pos.x) < shape_size.x / 2.0 and abs(local_pos.z) < shape_size.z / 2.0:
+					return true
+	return false
 
 func _draw_tracer():
 	if tracer_mesh == null or tracer_instance == null:

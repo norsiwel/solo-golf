@@ -177,6 +177,8 @@ func _open_viewfinder():
 	viewfinder_active = true
 	vf_yaw = yaw
 	vf_pitch = pitch
+	# Zoom in like a real rangefinder
+	$Camera3D.fov = 25.0
 	$HUD/VFBorder.visible = true
 	$HUD/Crosshair.visible = true
 	$HUD/YardageLabel.visible = true
@@ -200,6 +202,8 @@ func _lock_aim():
 
 func _close_viewfinder():
 	viewfinder_active = false
+	# Restore normal FOV
+	$Camera3D.fov = 75.0
 	$HUD/VFBorder.visible = false
 	$HUD/Crosshair.visible = false
 	$HUD/YardageLabel.visible = false
@@ -319,15 +323,38 @@ func _update_yardage():
 	var camera = $Camera3D
 	var space_state = get_world_3d().direct_space_state
 	var from = camera.global_position
-	var to = from + (-camera.global_transform.basis.z * 500.0)
+	var forward = -camera.global_transform.basis.z
+	var to = from + forward * 500.0
 	var query = PhysicsRayQueryParameters3D.create(from, to)
 	query.exclude = [self]
 	var result = space_state.intersect_ray(query)
-	if result:
-		var dist_meters = global_position.distance_to(result.position)
-		aim_yardage = dist_meters * 1.094
-		aim_point = result.position
-		$HUD/YardageLabel.text = "%d yds" % int(aim_yardage)
-	else:
-		aim_yardage = 0.0
-		$HUD/YardageLabel.text = "--- yds"
+
+	# Check if crosshair is near the flagstick - snap to it
+	var flag_node = get_parent().get_node_or_null("Flagstick")
+	var snapped_to_flag := false
+	if flag_node:
+		var flag_pos = flag_node.global_position
+		# Project flag position onto screen and check distance to center
+		var flag_screen = camera.unproject_position(flag_pos)
+		var screen_center = get_viewport().get_visible_rect().size / 2.0
+		var screen_dist = flag_screen.distance_to(screen_center)
+		if screen_dist < 60.0:  # within 60 pixels of crosshair
+			var dist_meters = global_position.distance_to(flag_pos)
+			aim_yardage = dist_meters * 1.094
+			aim_point = flag_pos
+			aim_point.y = 0.0
+			snapped_to_flag = true
+			$HUD/YardageLabel.text = "📍 FLAG  %d yds" % int(aim_yardage)
+			# Turn crosshair red to show snap
+			$HUD/Crosshair.add_theme_color_override("font_color", Color(1.0, 0.2, 0.2, 1.0))
+
+	if not snapped_to_flag:
+		$HUD/Crosshair.add_theme_color_override("font_color", Color(1.0, 0.9, 0.3, 1.0))
+		if result:
+			var dist_meters = global_position.distance_to(result.position)
+			aim_yardage = dist_meters * 1.094
+			aim_point = result.position
+			$HUD/YardageLabel.text = "%d yds" % int(aim_yardage)
+		else:
+			aim_yardage = 0.0
+			$HUD/YardageLabel.text = "--- yds"
