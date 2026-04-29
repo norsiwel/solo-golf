@@ -1,3 +1,16 @@
 # Godot 4+ specific ignores
 .godot/
 /android/
+
+# Large binary files - don't commit these
+*.unity3d
+*.zip
+sunsetvalleygc_fnl3_1/
+
+# Duplicate/temp ball images - keep only assets/ folder
+ball_asset1.png
+ball_asset2.png
+ball_texture1.png
+ball_texture2.png
+ball_white.png
+ball_yellow.png
