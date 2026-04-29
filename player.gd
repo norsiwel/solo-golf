@@ -283,10 +283,12 @@ func _on_shot_confirmed(p_power: float, p_accuracy: float, p_draw_fade: float, p
 		"Hi" if p_loft > 0.1 else ("Lo" if p_loft < -0.1 else "Mid")
 	]
 
-func _on_ball_stopped(pos: Vector3):
+func _on_ball_stopped(pos: Vector3, in_bunker: bool):
 	var dist_yards = global_position.distance_to(pos) * 1.094
-	$HUD/AimLabel.text = "Ball stopped - %.0f yds away  |  Press W to walk" % dist_yards
-	# Check for hole out
+	if in_bunker:
+		$HUD/AimLabel.text = "In the bunker! %.0f yds away  |  Press W to walk" % dist_yards
+	else:
+		$HUD/AimLabel.text = "Ball stopped - %.0f yds away  |  Press W to walk" % dist_yards
 	if green_node and on_green:
 		green_node.check_hole_out(pos, stroke_count)
 

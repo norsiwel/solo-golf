@@ -27,7 +27,7 @@ const YARDS_TO_METERS := 0.9144
 const BASE_ROLLOUT := 0.10
 const FLIGHT_SPEED := 2.5           # how fast we animate the flight
 
-signal ball_stopped(position: Vector3)
+signal ball_stopped(position: Vector3, in_bunker: bool)
 
 func _ready():
 	_setup_tracer()
@@ -135,7 +135,7 @@ func _process(delta):
 		if dist_rolled >= roll_distance or roll_speed <= 0.01:
 			state = BallState.STOPPED
 			scale = Vector3(2.0, 2.0, 2.0)
-			emit_signal("ball_stopped", global_position)
+			emit_signal("ball_stopped", global_position, in_bunker)
 
 func _check_bunker() -> bool:
 	var scene = get_tree().current_scene
