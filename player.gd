@@ -65,6 +65,7 @@ func _setup_address_screen():
 	ball.add_child(ball_vis)
 	get_parent().call_deferred("add_child", ball)
 	ball.visible = false
+	ball.connect("ball_holed", _on_ball_holed)
 	# Set up scorecard
 	scorecard = preload("res://scorecard.gd").new()
 	add_child(scorecard)
@@ -235,8 +236,11 @@ func _connect_green():
 		green_node.connected_player = self
 		green_node.connect("ball_holed_out", _on_ball_holed_out)
 
-func on_ball_entered_green(stimp: float, cup_pos: Vector3):
+func on_ball_entered_green(stimp: float, cup_world_pos: Vector3):
 	on_green = true
+	# Tell the ball where the cup is so it can roll in
+	if ball:
+		ball.cup_pos = cup_world_pos
 	$HUD/AimLabel.text = "On the green!  Stimp: %.0f  |  Putter selected  |  Press Space to putt" % stimp
 	address_screen.set_putting_mode(true, stimp)
 
@@ -246,11 +250,18 @@ func _on_ball_holed_out(strokes: int):
 	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
 	scorecard.show_scorecard(1, 3, 180, strokes)
 
+func _on_ball_holed():
+	# Ball animation finished dropping into cup
+	on_green = false
+	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
+	scorecard.show_scorecard(1, 3, 180, stroke_count)
+
 func _on_play_again():
 	stroke_count = 0
 	on_green = false
 	aim_locked = false
 	ball.reset()
+	ball.cup_pos = Vector3.ZERO
 	ball.visible = false
 	$HUD/AimLabel.text = ""
 	address_screen.set_putting_mode(false)

@@ -8,7 +8,7 @@ var loft := 0.0        # -1 low, 0 normal, 1 high
 var club_yards := 240.0
 
 # Internal state
-enum BallState { IDLE, FLYING, ROLLING, STOPPED }
+enum BallState { IDLE, FLYING, ROLLING, HOLING, STOPPED }
 var state := BallState.IDLE
 var velocity := Vector3.ZERO
 var time_in_flight := 0.0
@@ -16,6 +16,9 @@ var start_pos := Vector3.ZERO
 var land_pos := Vector3.ZERO
 var roll_dir := Vector3.ZERO
 var current_max_distance_meters := 220.0
+var cup_pos := Vector3.ZERO       # set from green node
+var hole_timer := 0.0             # animation timer for drop
+signal ball_holed
 
 # Tracer
 var tracer_points: Array[Vector3] = []
@@ -133,9 +136,32 @@ func _process(delta):
 
 		var dist_rolled = global_position.distance_to(land_pos)
 		if dist_rolled >= roll_distance or roll_speed <= 0.01:
+			# Check if near the cup before fully stopping
+			if cup_pos != Vector3.ZERO:
+				var dist_to_cup = Vector2(global_position.x, global_position.z).distance_to(
+					Vector2(cup_pos.x, cup_pos.z))
+				if dist_to_cup < 1.5:
+					# Close enough - roll into cup!
+					state = BallState.HOLING
+					hole_timer = 0.0
+					return
 			state = BallState.STOPPED
 			scale = Vector3(2.0, 2.0, 2.0)
 			emit_signal("ball_stopped", global_position, in_bunker)
+
+	elif state == BallState.HOLING:
+		hole_timer += delta
+		# Slide toward cup center
+		var t = clamp(hole_timer / 0.6, 0.0, 1.0)
+		global_position = global_position.lerp(cup_pos, t * delta * 5.0)
+		# Shrink and drop into hole
+		var s = clamp(1.0 - (hole_timer / 0.5), 0.05, 2.0) * 2.0
+		scale = Vector3(s, s, s)
+		global_position.y = cup_pos.y - (hole_timer * 0.3)
+		if hole_timer >= 0.7:
+			visible = false
+			state = BallState.STOPPED
+			emit_signal("ball_holed")
 
 func _check_bunker() -> bool:
 	var scene = get_tree().current_scene
