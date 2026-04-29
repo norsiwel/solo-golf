@@ -39,6 +39,18 @@ var click_hint: Label
 var power_label: Label
 var draw_slider: HSlider
 var loft_slider: HSlider
+var ball_image: TextureRect
+
+# Layout constants - right side panel
+const PANEL_LEFT  := 0.62
+const PANEL_RIGHT := 1.00
+const PANEL_TOP   := 0.00
+const PANEL_BOT   := 1.00
+# Meter within the panel (in screen space)
+const METER_L := 0.635
+const METER_R := 0.675
+const METER_T := 0.22
+const METER_B := 0.65
 
 func _ready():
 	layer = 10
@@ -46,138 +58,165 @@ func _ready():
 	_build_ui()
 
 func _build_ui():
-	var bg = ColorRect.new()
-	bg.color = Color(0, 0, 0, 0.55)
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
-	add_child(bg)
-
+	# Semi-transparent right side panel only - course still visible on left
 	var panel = Panel.new()
-	panel.set_anchor(SIDE_LEFT, 0.20)
-	panel.set_anchor(SIDE_TOP, 0.07)
-	panel.set_anchor(SIDE_RIGHT, 0.82)
-	panel.set_anchor(SIDE_BOTTOM, 0.94)
+	panel.set_anchor(SIDE_LEFT,  PANEL_LEFT)
+	panel.set_anchor(SIDE_TOP,   PANEL_TOP)
+	panel.set_anchor(SIDE_RIGHT, PANEL_RIGHT)
+	panel.set_anchor(SIDE_BOTTOM,PANEL_BOT)
 	var ps = StyleBoxFlat.new()
-	ps.bg_color = Color(0.08, 0.08, 0.08, 0.9)
-	ps.border_color = Color(0.8, 0.8, 0.8, 0.6)
+	ps.bg_color = Color(0.05, 0.05, 0.08, 0.88)
+	ps.border_color = Color(0.6, 0.6, 0.4, 0.7)
 	ps.border_width_left = 2
-	ps.border_width_right = 2
-	ps.border_width_top = 2
-	ps.border_width_bottom = 2
-	ps.corner_radius_top_left = 8
-	ps.corner_radius_top_right = 8
-	ps.corner_radius_bottom_left = 8
-	ps.corner_radius_bottom_right = 8
+	ps.border_width_top = 0
+	ps.border_width_right = 0
+	ps.border_width_bottom = 0
 	panel.add_theme_stylebox_override("panel", ps)
 	add_child(panel)
 
+	# Title
 	var title = Label.new()
-	title.text = "ADDRESS THE BALL"
+	title.text = "ADDRESS"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.set_anchor(SIDE_LEFT, 0.20)
-	title.set_anchor(SIDE_TOP, 0.09)
-	title.set_anchor(SIDE_RIGHT, 0.82)
-	title.set_anchor(SIDE_BOTTOM, 0.14)
-	title.add_theme_font_size_override("font_size", 20)
-	title.add_theme_color_override("font_color", Color(1, 1, 1, 0.9))
+	title.set_anchor(SIDE_LEFT,  PANEL_LEFT)
+	title.set_anchor(SIDE_TOP,   0.02)
+	title.set_anchor(SIDE_RIGHT, PANEL_RIGHT)
+	title.set_anchor(SIDE_BOTTOM,0.07)
+	title.add_theme_font_size_override("font_size", 18)
+	title.add_theme_color_override("font_color", Color(1, 1, 0.6, 1))
 	add_child(title)
 
-	# Club bag display, full-meter yardage shown for every club.
+	# Ball image - top of panel
+	ball_image = TextureRect.new()
+	ball_image.set_anchor(SIDE_LEFT,  0.73)
+	ball_image.set_anchor(SIDE_TOP,   0.02)
+	ball_image.set_anchor(SIDE_RIGHT, 0.98)
+	ball_image.set_anchor(SIDE_BOTTOM,0.16)
+	ball_image.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+	ball_image.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	var tex = load("res://assets/ball_white.png")
+	if tex:
+		ball_image.texture = tex
+	add_child(ball_image)
+
+	# Meter background
+	meter_bar = ColorRect.new()
+	meter_bar.color = Color(0.15, 0.15, 0.15, 1.0)
+	meter_bar.set_anchor(SIDE_LEFT,  METER_L)
+	meter_bar.set_anchor(SIDE_TOP,   METER_T)
+	meter_bar.set_anchor(SIDE_RIGHT, METER_R)
+	meter_bar.set_anchor(SIDE_BOTTOM,METER_B)
+	add_child(meter_bar)
+
+	# Meter fill
+	meter_fill = ColorRect.new()
+	meter_fill.color = Color(0.2, 0.85, 0.2, 1.0)
+	meter_fill.set_anchor(SIDE_LEFT,  METER_L)
+	meter_fill.set_anchor(SIDE_TOP,   METER_B)
+	meter_fill.set_anchor(SIDE_RIGHT, METER_R)
+	meter_fill.set_anchor(SIDE_BOTTOM,METER_B)
+	add_child(meter_fill)
+
+	# Power marker
+	power_marker = ColorRect.new()
+	power_marker.color = Color(1.0, 0.9, 0.1, 1.0)
+	power_marker.set_anchor(SIDE_LEFT,  METER_L - 0.005)
+	power_marker.set_anchor(SIDE_RIGHT, METER_R + 0.005)
+	power_marker.set_anchor(SIDE_TOP,   METER_B)
+	power_marker.set_anchor(SIDE_BOTTOM,METER_B + 0.004)
+	power_marker.visible = false
+	add_child(power_marker)
+
+	# Meter % labels
+	for pct in [100, 75, 50, 25]:
+		var lbl = Label.new()
+		lbl.text = "%d" % pct
+		var anchor_y = METER_B - (pct / 100.0) * (METER_B - METER_T)
+		lbl.set_anchor(SIDE_LEFT,  METER_R + 0.005)
+		lbl.set_anchor(SIDE_TOP,   anchor_y - 0.015)
+		lbl.set_anchor(SIDE_RIGHT, METER_R + 0.04)
+		lbl.set_anchor(SIDE_BOTTOM,anchor_y + 0.015)
+		lbl.add_theme_font_size_override("font_size", 10)
+		lbl.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6, 1))
+		add_child(lbl)
+
+	# Click hint
+	click_hint = Label.new()
+	click_hint.text = "CLICK to start"
+	click_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	click_hint.set_anchor(SIDE_LEFT,  PANEL_LEFT)
+	click_hint.set_anchor(SIDE_TOP,   0.66)
+	click_hint.set_anchor(SIDE_RIGHT, PANEL_RIGHT)
+	click_hint.set_anchor(SIDE_BOTTOM,0.71)
+	click_hint.add_theme_font_size_override("font_size", 14)
+	click_hint.add_theme_color_override("font_color", Color(1, 1, 0.3, 1))
+	add_child(click_hint)
+
+	# Power/status label
+	power_label = Label.new()
+	power_label.text = ""
+	power_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	power_label.set_anchor(SIDE_LEFT,  PANEL_LEFT)
+	power_label.set_anchor(SIDE_TOP,   0.71)
+	power_label.set_anchor(SIDE_RIGHT, PANEL_RIGHT)
+	power_label.set_anchor(SIDE_BOTTOM,0.76)
+	power_label.add_theme_font_size_override("font_size", 13)
+	power_label.add_theme_color_override("font_color", Color(1, 1, 1, 1))
+	add_child(power_label)
+
+	# Club bag title
 	var bag_title = Label.new()
-	bag_title.text = "CLUB BAG  (Tab / Shift+Tab)"
+	bag_title.text = "CLUB  (Tab)"
 	bag_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	bag_title.set_anchor(SIDE_LEFT, 0.61)
-	bag_title.set_anchor(SIDE_TOP, 0.17)
-	bag_title.set_anchor(SIDE_RIGHT, 0.80)
-	bag_title.set_anchor(SIDE_BOTTOM, 0.21)
-	bag_title.add_theme_font_size_override("font_size", 14)
+	bag_title.set_anchor(SIDE_LEFT,  0.69)
+	bag_title.set_anchor(SIDE_TOP,   0.17)
+	bag_title.set_anchor(SIDE_RIGHT, PANEL_RIGHT)
+	bag_title.set_anchor(SIDE_BOTTOM,0.21)
+	bag_title.add_theme_font_size_override("font_size", 12)
 	bag_title.add_theme_color_override("font_color", Color(1, 1, 0.4, 1))
 	add_child(bag_title)
 
+	# Club grid
 	var club_grid = GridContainer.new()
 	club_grid.columns = 2
-	club_grid.set_anchor(SIDE_LEFT, 0.61)
-	club_grid.set_anchor(SIDE_TOP, 0.22)
-	club_grid.set_anchor(SIDE_RIGHT, 0.80)
-	club_grid.set_anchor(SIDE_BOTTOM, 0.78)
-	club_grid.add_theme_constant_override("h_separation", 6)
-	club_grid.add_theme_constant_override("v_separation", 5)
+	club_grid.set_anchor(SIDE_LEFT,  0.69)
+	club_grid.set_anchor(SIDE_TOP,   0.21)
+	club_grid.set_anchor(SIDE_RIGHT, PANEL_RIGHT)
+	club_grid.set_anchor(SIDE_BOTTOM,0.65)
+	club_grid.add_theme_constant_override("h_separation", 4)
+	club_grid.add_theme_constant_override("v_separation", 3)
 	add_child(club_grid)
 
 	for i in CLUBS.size():
 		var club = CLUBS[i]
 		var label = Label.new()
-		label.text = "%s  %dy" % [club["name"], club["full_yards"]]
-		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		label.custom_minimum_size = Vector2(82, 25)
-		label.add_theme_font_size_override("font_size", 13)
+		label.text = "%s %dy" % [club["name"], club["full_yards"]]
+		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+		label.custom_minimum_size = Vector2(70, 20)
+		label.add_theme_font_size_override("font_size", 11)
 		club_grid.add_child(label)
 		club_labels.append(label)
 
+	# Selected club display
 	selected_club_label = Label.new()
 	selected_club_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	selected_club_label.set_anchor(SIDE_LEFT, 0.60)
-	selected_club_label.set_anchor(SIDE_TOP, 0.80)
-	selected_club_label.set_anchor(SIDE_RIGHT, 0.81)
-	selected_club_label.set_anchor(SIDE_BOTTOM, 0.86)
-	selected_club_label.add_theme_font_size_override("font_size", 18)
+	selected_club_label.set_anchor(SIDE_LEFT,  PANEL_LEFT)
+	selected_club_label.set_anchor(SIDE_TOP,   0.10)
+	selected_club_label.set_anchor(SIDE_RIGHT, 0.68)
+	selected_club_label.set_anchor(SIDE_BOTTOM,0.16)
+	selected_club_label.add_theme_font_size_override("font_size", 16)
 	selected_club_label.add_theme_color_override("font_color", Color(0.3, 1.0, 0.3, 1))
 	add_child(selected_club_label)
 
-	meter_bar = ColorRect.new()
-	meter_bar.color = Color(0.15, 0.15, 0.15, 1.0)
-	meter_bar.set_anchor(SIDE_LEFT, 0.43)
-	meter_bar.set_anchor(SIDE_TOP, 0.19)
-	meter_bar.set_anchor(SIDE_RIGHT, 0.49)
-	meter_bar.set_anchor(SIDE_BOTTOM, 0.60)
-	add_child(meter_bar)
-
-	meter_fill = ColorRect.new()
-	meter_fill.color = Color(0.2, 0.85, 0.2, 1.0)
-	meter_fill.set_anchor(SIDE_LEFT, 0.43)
-	meter_fill.set_anchor(SIDE_TOP, 0.60)
-	meter_fill.set_anchor(SIDE_RIGHT, 0.49)
-	meter_fill.set_anchor(SIDE_BOTTOM, 0.60)
-	add_child(meter_fill)
-
-	power_marker = ColorRect.new()
-	power_marker.color = Color(1.0, 0.9, 0.1, 1.0)
-	power_marker.set_anchor(SIDE_LEFT, 0.42)
-	power_marker.set_anchor(SIDE_RIGHT, 0.50)
-	power_marker.set_anchor(SIDE_TOP, 0.60)
-	power_marker.set_anchor(SIDE_BOTTOM, 0.602)
-	power_marker.visible = false
-	add_child(power_marker)
-
-	click_hint = Label.new()
-	click_hint.text = "CLICK to start swing"
-	click_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	click_hint.set_anchor(SIDE_LEFT, 0.25)
-	click_hint.set_anchor(SIDE_TOP, 0.62)
-	click_hint.set_anchor(SIDE_RIGHT, 0.56)
-	click_hint.set_anchor(SIDE_BOTTOM, 0.67)
-	click_hint.add_theme_font_size_override("font_size", 16)
-	click_hint.add_theme_color_override("font_color", Color(1, 1, 0.3, 1))
-	add_child(click_hint)
-
-	power_label = Label.new()
-	power_label.text = ""
-	power_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	power_label.set_anchor(SIDE_LEFT, 0.25)
-	power_label.set_anchor(SIDE_TOP, 0.67)
-	power_label.set_anchor(SIDE_RIGHT, 0.56)
-	power_label.set_anchor(SIDE_BOTTOM, 0.72)
-	power_label.add_theme_font_size_override("font_size", 16)
-	power_label.add_theme_color_override("font_color", Color(1, 1, 1, 1))
-	add_child(power_label)
-
+	# Draw/fade label and slider
 	var draw_label = Label.new()
-	draw_label.text = "< LEFT = Draw  |  RIGHT = Fade >"
+	draw_label.text = "< DRAW  |  FADE >"
 	draw_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	draw_label.set_anchor(SIDE_LEFT, 0.24)
-	draw_label.set_anchor(SIDE_TOP, 0.73)
-	draw_label.set_anchor(SIDE_RIGHT, 0.57)
-	draw_label.set_anchor(SIDE_BOTTOM, 0.77)
-	draw_label.add_theme_font_size_override("font_size", 13)
+	draw_label.set_anchor(SIDE_LEFT,  PANEL_LEFT)
+	draw_label.set_anchor(SIDE_TOP,   0.77)
+	draw_label.set_anchor(SIDE_RIGHT, PANEL_RIGHT)
+	draw_label.set_anchor(SIDE_BOTTOM,0.81)
+	draw_label.add_theme_font_size_override("font_size", 12)
 	draw_label.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9, 1))
 	add_child(draw_label)
 
@@ -186,21 +225,22 @@ func _build_ui():
 	draw_slider.max_value = 1.0
 	draw_slider.step = 0.05
 	draw_slider.value = 0.0
-	draw_slider.set_anchor(SIDE_LEFT, 0.27)
-	draw_slider.set_anchor(SIDE_TOP, 0.78)
-	draw_slider.set_anchor(SIDE_RIGHT, 0.54)
-	draw_slider.set_anchor(SIDE_BOTTOM, 0.83)
+	draw_slider.set_anchor(SIDE_LEFT,  PANEL_LEFT + 0.02)
+	draw_slider.set_anchor(SIDE_TOP,   0.82)
+	draw_slider.set_anchor(SIDE_RIGHT, PANEL_RIGHT - 0.01)
+	draw_slider.set_anchor(SIDE_BOTTOM,0.86)
 	draw_slider.connect("value_changed", _on_draw_changed)
 	add_child(draw_slider)
 
+	# Loft label and slider
 	var loft_label = Label.new()
-	loft_label.text = "UP = High Loft  |  DOWN = Low Loft"
+	loft_label.text = "^ HI LOFT  |  LO LOFT v"
 	loft_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	loft_label.set_anchor(SIDE_LEFT, 0.24)
-	loft_label.set_anchor(SIDE_TOP, 0.84)
-	loft_label.set_anchor(SIDE_RIGHT, 0.57)
-	loft_label.set_anchor(SIDE_BOTTOM, 0.88)
-	loft_label.add_theme_font_size_override("font_size", 13)
+	loft_label.set_anchor(SIDE_LEFT,  PANEL_LEFT)
+	loft_label.set_anchor(SIDE_TOP,   0.87)
+	loft_label.set_anchor(SIDE_RIGHT, PANEL_RIGHT)
+	loft_label.set_anchor(SIDE_BOTTOM,0.91)
+	loft_label.add_theme_font_size_override("font_size", 12)
 	loft_label.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9, 1))
 	add_child(loft_label)
 
@@ -209,31 +249,29 @@ func _build_ui():
 	loft_slider.max_value = 1.0
 	loft_slider.step = 0.05
 	loft_slider.value = 0.0
-	loft_slider.set_anchor(SIDE_LEFT, 0.27)
-	loft_slider.set_anchor(SIDE_TOP, 0.88)
-	loft_slider.set_anchor(SIDE_RIGHT, 0.54)
-	loft_slider.set_anchor(SIDE_BOTTOM, 0.93)
+	loft_slider.set_anchor(SIDE_LEFT,  PANEL_LEFT + 0.02)
+	loft_slider.set_anchor(SIDE_TOP,   0.91)
+	loft_slider.set_anchor(SIDE_RIGHT, PANEL_RIGHT - 0.01)
+	loft_slider.set_anchor(SIDE_BOTTOM,0.95)
 	loft_slider.connect("value_changed", _on_loft_changed)
 	add_child(loft_slider)
 
+	# ESC hint
 	var esc_hint = Label.new()
-	esc_hint.text = "ESC to cancel"
+	esc_hint.text = "ESC = cancel"
 	esc_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	esc_hint.set_anchor(SIDE_LEFT, 0.20)
-	esc_hint.set_anchor(SIDE_TOP, 0.94)
-	esc_hint.set_anchor(SIDE_RIGHT, 0.82)
-	esc_hint.set_anchor(SIDE_BOTTOM, 0.98)
-	esc_hint.add_theme_font_size_override("font_size", 12)
-	esc_hint.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6, 1))
+	esc_hint.set_anchor(SIDE_LEFT,  PANEL_LEFT)
+	esc_hint.set_anchor(SIDE_TOP,   0.96)
+	esc_hint.set_anchor(SIDE_RIGHT, PANEL_RIGHT)
+	esc_hint.set_anchor(SIDE_BOTTOM,1.00)
+	esc_hint.add_theme_font_size_override("font_size", 11)
+	esc_hint.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5, 1))
 	add_child(esc_hint)
 
 	_update_club_highlight()
 
-func _on_draw_changed(val):
-	draw_fade = val
-
-func _on_loft_changed(val):
-	loft = val
+func _on_draw_changed(val): draw_fade = val
+func _on_loft_changed(val): loft = val
 
 func open_screen():
 	visible = true
@@ -242,7 +280,7 @@ func open_screen():
 	power = 0.0
 	accuracy = 0.0
 	power_marker.visible = false
-	click_hint.text = "CLICK to start swing"
+	click_hint.text = "CLICK to start"
 	power_label.text = ""
 	_update_meter_visual(0.0)
 	_update_club_highlight()
@@ -298,30 +336,27 @@ func _update_club_highlight():
 	for i in club_labels.size():
 		var label = club_labels[i]
 		if i == selected_club_index:
-			label.add_theme_color_override("font_color", Color(0.05, 0.05, 0.05, 1))
-			label.add_theme_color_override("font_outline_color", Color(1, 1, 0.25, 1))
-			label.add_theme_constant_override("outline_size", 8)
-			label.add_theme_font_size_override("font_size", 15)
-		else:
-			label.add_theme_color_override("font_color", Color(0.85, 0.85, 0.85, 1))
-			label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0))
-			label.add_theme_constant_override("outline_size", 0)
+			label.add_theme_color_override("font_color", Color(0.2, 1.0, 0.2, 1))
 			label.add_theme_font_size_override("font_size", 13)
+			label.add_theme_constant_override("outline_size", 0)
+		else:
+			label.add_theme_color_override("font_color", Color(0.75, 0.75, 0.75, 1))
+			label.add_theme_font_size_override("font_size", 11)
 	var club = CLUBS[selected_club_index]
 	if selected_club_label:
-		selected_club_label.text = "Selected: %s  %dy" % [club["name"], club["full_yards"]]
+		selected_club_label.text = "%s  %dy" % [club["name"], club["full_yards"]]
 
 func _update_slider_labels():
-	var draw_text = "STRAIGHT"
+	var draw_text = "Straight"
 	if draw_fade < -0.15:
-		draw_text = "DRAW %d%%" % int(abs(draw_fade) * 100)
+		draw_text = "Draw %d%%" % int(abs(draw_fade) * 100)
 	elif draw_fade > 0.15:
-		draw_text = "FADE %d%%" % int(draw_fade * 100)
-	var loft_text = "MID LOFT"
+		draw_text = "Fade %d%%" % int(draw_fade * 100)
+	var loft_text = "Mid"
 	if loft > 0.15:
-		loft_text = "HIGH LOFT %d%%" % int(loft * 100)
+		loft_text = "Hi Loft %d%%" % int(loft * 100)
 	elif loft < -0.15:
-		loft_text = "LOW LOFT %d%%" % int(abs(loft) * 100)
+		loft_text = "Lo Loft %d%%" % int(abs(loft) * 100)
 	power_label.text = draw_text + "  |  " + loft_text
 
 func _handle_click():
@@ -329,13 +364,13 @@ func _handle_click():
 		MeterState.IDLE:
 			state = MeterState.POWER
 			meter_value = 0.0
-			click_hint.text = "CLICK to set power"
+			click_hint.text = "CLICK — set power"
 		MeterState.POWER:
 			power = meter_value
 			state = MeterState.ACCURACY
 			meter_value = 0.0
 			power_label.text = "Power: %d%%" % int(power * 100)
-			click_hint.text = "CLICK for accuracy"
+			click_hint.text = "CLICK — accuracy"
 			power_marker.visible = true
 		MeterState.ACCURACY:
 			accuracy = 1.0 - abs(meter_value - power)
@@ -360,37 +395,40 @@ func _process(delta):
 func _update_meter_visual(val: float):
 	var screen_h = get_viewport().get_visible_rect().size.y
 	var screen_w = get_viewport().get_visible_rect().size.x
-	var bar_top = screen_h * 0.19
-	var bar_bottom = screen_h * 0.60
-	var bar_left = screen_w * 0.43
-	var bar_right = screen_w * 0.49
-	var bar_h = bar_bottom - bar_top
+	var bar_top    = screen_h * METER_T
+	var bar_bottom = screen_h * METER_B
+	var bar_left   = screen_w * METER_L
+	var bar_right  = screen_w * METER_R
+	var bar_h  = bar_bottom - bar_top
 	var fill_h = bar_h * val
-	meter_bar.position = Vector2(bar_left, bar_top)
-	meter_bar.size = Vector2(bar_right - bar_left, bar_h)
+	meter_bar.position  = Vector2(bar_left, bar_top)
+	meter_bar.size      = Vector2(bar_right - bar_left, bar_h)
 	meter_fill.position = Vector2(bar_left, bar_bottom - fill_h)
-	meter_fill.size = Vector2(bar_right - bar_left, fill_h)
+	meter_fill.size     = Vector2(bar_right - bar_left, max(fill_h, 1))
 	if power_marker.visible:
 		var marker_y = bar_bottom - (bar_h * power)
 		power_marker.position = Vector2(bar_left - 4, marker_y - 2)
-		power_marker.size = Vector2(bar_right - bar_left + 8, 4)
+		power_marker.size     = Vector2(bar_right - bar_left + 8, 4)
 
 func set_putting_mode(enabled: bool, stimp: float = 8.0):
 	if enabled:
-		# Select putter automatically
 		for i in range(CLUBS.size()):
 			if CLUBS[i].name == "Putter":
 				selected_club_index = i
 				break
-		# Slow meter way down for putting feel
-		meter_speed = 0.25 + (stimp / 13.0) * 0.3  # stimp 8 = ~0.47 speed
-		# Hide draw/fade slider - putts go straight
-		if draw_slider:
-			draw_slider.visible = false
-		# Update labels
+		meter_speed = 0.25 + (stimp / 13.0) * 0.3
+		if draw_slider: draw_slider.visible = false
 		if selected_club_label:
-			selected_club_label.text = "Putter  |  Stimp: %.0f" % stimp
+			selected_club_label.text = "Putter  Stimp:%.0f" % stimp
+		# Show yellow ball for putting
+		if ball_image:
+			var tex = load("res://assets/ball_yellow.png")
+			if tex: ball_image.texture = tex
 	else:
 		meter_speed = 0.8
-		if draw_slider:
-			draw_slider.visible = true
+		if draw_slider: draw_slider.visible = true
+		_update_club_highlight()
+		# Restore white ball
+		if ball_image:
+			var tex = load("res://assets/ball_white.png")
+			if tex: ball_image.texture = tex
