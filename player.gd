@@ -236,11 +236,18 @@ func _connect_green():
 		green_node.connected_player = self
 		green_node.connect("ball_holed_out", _on_ball_holed_out)
 
+func on_player_at_tee(hole: int, par: int, yardage: int):
+	# Reset putting mode when back on tee
+	on_green = false
+	address_screen.set_putting_mode(false)
+	$HUD/AimLabel.text = "Hole %d  Par %d  %d yds  |  V to aim  Space to address" % [hole, par, yardage]
+
 func on_ball_entered_green(stimp: float, cup_world_pos: Vector3):
 	on_green = true
 	# Tell the ball where the cup is so it can roll in
 	if ball:
 		ball.cup_pos = cup_world_pos
+		ball.stimp = stimp
 	$HUD/AimLabel.text = "On the green!  Stimp: %.0f  |  Putter selected  |  Press Space to putt" % stimp
 	address_screen.set_putting_mode(true, stimp)
 
@@ -282,17 +289,22 @@ func _on_shot_confirmed(p_power: float, p_accuracy: float, p_draw_fade: float, p
 	var launch_pos = ball.global_position
 	ball.connect("ball_stopped", _on_ball_stopped, CONNECT_ONE_SHOT)
 	var club_yards = float(club.get("full_yards", 240))
-	ball.launch(launch_pos, p_power, p_accuracy, p_draw_fade, p_loft, aim_point, club_yards)
+	var p_is_putt = club.get("name", "") == "Putter"
+	var p_stimp = ball.stimp if p_is_putt else 8.0
+	ball.launch(launch_pos, p_power, p_accuracy, p_draw_fade, p_loft, aim_point, club_yards, p_is_putt, p_stimp)
 	var msg = $HUD/AimLabel
-	msg.text = "Shot %d! %s %dy  Pwr:%d%%  Acc:%d%%  %s  Loft:%s" % [
-		stroke_count,
-		str(club.get("name", "Club")),
-		int(club_yards),
-		int(p_power * 100),
-		int(p_accuracy * 100),
-		"Draw" if p_draw_fade < -0.1 else ("Fade" if p_draw_fade > 0.1 else "Straight"),
-		"Hi" if p_loft > 0.1 else ("Lo" if p_loft < -0.1 else "Mid")
-	]
+	if p_is_putt:
+		msg.text = "Putt %d!  Pwr:%d%%  Acc:%d%%" % [stroke_count, int(p_power * 100), int(p_accuracy * 100)]
+	else:
+		msg.text = "Shot %d! %s %dy  Pwr:%d%%  Acc:%d%%  %s  Loft:%s" % [
+			stroke_count,
+			str(club.get("name", "Club")),
+			int(club_yards),
+			int(p_power * 100),
+			int(p_accuracy * 100),
+			"Draw" if p_draw_fade < -0.1 else ("Fade" if p_draw_fade > 0.1 else "Straight"),
+			"Hi" if p_loft > 0.1 else ("Lo" if p_loft < -0.1 else "Mid")
+		]
 
 func _on_ball_stopped(pos: Vector3, in_bunker: bool):
 	var dist_yards = global_position.distance_to(pos) * 1.094
