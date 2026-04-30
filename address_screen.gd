@@ -65,8 +65,8 @@ func _build_ui():
 	panel.set_anchor(SIDE_RIGHT, PANEL_RIGHT)
 	panel.set_anchor(SIDE_BOTTOM,PANEL_BOT)
 	var ps = StyleBoxFlat.new()
-	ps.bg_color = Color(0.05, 0.05, 0.08, 0.88)
-	ps.border_color = Color(0.6, 0.6, 0.4, 0.7)
+	ps.bg_color = Color(0, 0, 0, 0.0)
+	ps.border_color = Color(0.6, 0.6, 0.4, 0.3)
 	ps.border_width_left = 2
 	ps.border_width_top = 0
 	ps.border_width_right = 0
@@ -84,6 +84,8 @@ func _build_ui():
 	title.set_anchor(SIDE_BOTTOM,0.07)
 	title.add_theme_font_size_override("font_size", 18)
 	title.add_theme_color_override("font_color", Color(1, 1, 0.6, 1))
+	title.add_theme_color_override("font_outline_color", Color(0, 0, 0, 1))
+	title.add_theme_constant_override("outline_size", 4)
 	add_child(title)
 	meter_bar = ColorRect.new()
 	meter_bar.color = Color(0.15, 0.15, 0.15, 1.0)
@@ -135,6 +137,8 @@ func _build_ui():
 	click_hint.set_anchor(SIDE_BOTTOM,0.71)
 	click_hint.add_theme_font_size_override("font_size", 14)
 	click_hint.add_theme_color_override("font_color", Color(1, 1, 0.3, 1))
+	click_hint.add_theme_color_override("font_outline_color", Color(0, 0, 0, 1))
+	click_hint.add_theme_constant_override("outline_size", 4)
 	add_child(click_hint)
 
 	# Power/status label
@@ -147,6 +151,8 @@ func _build_ui():
 	power_label.set_anchor(SIDE_BOTTOM,0.76)
 	power_label.add_theme_font_size_override("font_size", 13)
 	power_label.add_theme_color_override("font_color", Color(1, 1, 1, 1))
+	power_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 1))
+	power_label.add_theme_constant_override("outline_size", 3)
 	add_child(power_label)
 
 	# Club bag title
@@ -159,6 +165,8 @@ func _build_ui():
 	bag_title.set_anchor(SIDE_BOTTOM,0.21)
 	bag_title.add_theme_font_size_override("font_size", 12)
 	bag_title.add_theme_color_override("font_color", Color(1, 1, 0.4, 1))
+	bag_title.add_theme_color_override("font_outline_color", Color(0, 0, 0, 1))
+	bag_title.add_theme_constant_override("outline_size", 3)
 	add_child(bag_title)
 
 	# Club grid
@@ -191,6 +199,8 @@ func _build_ui():
 	selected_club_label.set_anchor(SIDE_BOTTOM,0.16)
 	selected_club_label.add_theme_font_size_override("font_size", 16)
 	selected_club_label.add_theme_color_override("font_color", Color(0.3, 1.0, 0.3, 1))
+	selected_club_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 1))
+	selected_club_label.add_theme_constant_override("outline_size", 4)
 	add_child(selected_club_label)
 
 	# Draw/fade label and slider
@@ -203,6 +213,8 @@ func _build_ui():
 	draw_label.set_anchor(SIDE_BOTTOM,0.81)
 	draw_label.add_theme_font_size_override("font_size", 12)
 	draw_label.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9, 1))
+	draw_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 1))
+	draw_label.add_theme_constant_override("outline_size", 3)
 	add_child(draw_label)
 
 	draw_slider = HSlider.new()
