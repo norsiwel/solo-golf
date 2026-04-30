@@ -111,6 +111,11 @@ func launch(from: Vector3, p_power: float, p_accuracy: float, p_draw_fade: float
 		var total_lateral = curve_offset + (accuracy_error * (randf() - 0.5) * 2.0)
 		land_pos = from + forward * distance + right * total_lateral
 		land_pos.y = 0.025
+		# Apply wind effect to landing position
+		var wind = get_tree().current_scene.get_node_or_null("WindSystem")
+		if wind:
+			land_pos = wind.apply_to_ball(from, land_pos, power, loft)
+			land_pos.y = 0.025
 		roll_dir = (land_pos - from).normalized()
 		roll_dir.y = 0.0
 		state = BallState.FLYING

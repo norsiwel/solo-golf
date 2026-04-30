@@ -224,6 +224,10 @@ func _open_address():
 	ball.global_position = global_position + shot_dir * 1.2
 	ball.global_position.y = 0.025
 	ball.visible = true
+	# Show wind info in HUD before swing
+	var wind = get_parent().get_node_or_null("WindSystem")
+	if wind:
+		$HUD/AimLabel.text = "AIM: %d yds  |  %s" % [int(aim_yardage), wind.get_wind_description()]
 	address_screen.open_screen()
 
 func _close_address():

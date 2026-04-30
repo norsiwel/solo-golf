@@ -3,6 +3,9 @@
 [ext_resource type="Script" uid="uid://bagc1rj48iic7" path="res://player.gd" id="1_player"]
 [ext_resource type="Script" path="res://green.gd" id="2_green"]
 [ext_resource type="Script" path="res://tee.gd" id="3_tee"]
+[ext_resource type="Script" path="res://wind_system.gd" id="4_wind"]
+[ext_resource type="Script" path="res://wind_hud.gd" id="5_wind_hud"]
+[ext_resource type="Script" path="res://flag_animator.gd" id="6_flag"]
 
 [sub_resource type="PlaneMesh" id="PlaneMesh_ground"]
 size = Vector2(400, 400)
@@ -115,6 +118,12 @@ size = Vector3(8, 0.3, 5)
 size = Vector3(6, 0.3, 5)
 
 [node name="Main" type="Node3D"]
+
+[node name="WindSystem" type="Node3D" parent="."]
+script = ExtResource("4_wind")
+
+[node name="WindHUD" type="CanvasLayer" parent="."]
+script = ExtResource("5_wind_hud")
 
 [node name="Sun" type="DirectionalLight3D" parent="."]
 transform = Transform3D(0.866, -0.5, 0, 0.25, 0.433, -0.866, 0.433, 0.75, 0.5, 50, 80, 50)
@@ -266,6 +275,7 @@ surface_material_override/0 = SubResource("Material_pole")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.35, 2.9, 0)
 mesh = SubResource("BoxMesh_flag")
 surface_material_override/0 = SubResource("Material_flag")
+script = ExtResource("6_flag")
 
 [node name="HoleCup" type="MeshInstance3D" parent="Flagstick"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.01, 0)
