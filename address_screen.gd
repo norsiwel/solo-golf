@@ -85,21 +85,6 @@ func _build_ui():
 	title.add_theme_font_size_override("font_size", 18)
 	title.add_theme_color_override("font_color", Color(1, 1, 0.6, 1))
 	add_child(title)
-
-	# Ball image - top of panel
-	ball_image = TextureRect.new()
-	ball_image.set_anchor(SIDE_LEFT,  0.73)
-	ball_image.set_anchor(SIDE_TOP,   0.02)
-	ball_image.set_anchor(SIDE_RIGHT, 0.98)
-	ball_image.set_anchor(SIDE_BOTTOM,0.16)
-	ball_image.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
-	ball_image.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	var tex = load("res://assets/ball_white.png")
-	if tex:
-		ball_image.texture = tex
-	add_child(ball_image)
-
-	# Meter background
 	meter_bar = ColorRect.new()
 	meter_bar.color = Color(0.15, 0.15, 0.15, 1.0)
 	meter_bar.set_anchor(SIDE_LEFT,  METER_L)
