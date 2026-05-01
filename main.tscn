@@ -7,6 +7,8 @@
 [ext_resource type="Script" path="res://wind_hud.gd" id="5_wind_hud"]
 [ext_resource type="Script" path="res://flag_animator.gd" id="6_flag"]
 [ext_resource type="Script" path="res://hole_map.gd" id="7_map"]
+[ext_resource type="Script" path="res://course_manager.gd" id="8_cm"]
+[ext_resource type="Script" path="res://course_selector.gd" id="9_cs"]
 
 [sub_resource type="PlaneMesh" id="PlaneMesh_ground"]
 size = Vector2(400, 400)
@@ -128,6 +130,12 @@ script = ExtResource("5_wind_hud")
 
 [node name="HoleMap" type="CanvasLayer" parent="."]
 script = ExtResource("7_map")
+
+[node name="CourseManager" type="Node" parent="."]
+script = ExtResource("8_cm")
+
+[node name="CourseSelector" type="CanvasLayer" parent="."]
+script = ExtResource("9_cs")
 
 [node name="Sun" type="DirectionalLight3D" parent="."]
 transform = Transform3D(0.866, -0.5, 0, 0.25, 0.433, -0.866, 0.433, 0.75, 0.5, 50, 80, 50)

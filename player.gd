@@ -31,6 +31,7 @@ func _ready():
 	_setup_address_screen()
 	# Connect green after scene is ready
 	call_deferred("_connect_green")
+	call_deferred("_show_course_selector")
 
 func _setup_sky():
 	var env = Environment.new()
@@ -284,8 +285,42 @@ func _on_play_again():
 	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
 
 func _on_next_hole():
-	# Placeholder for future holes
-	_on_play_again()
+	# Show course selector for next hole or course change
+	_show_course_selector()
+
+func _show_course_selector():
+	var selector = get_parent().get_node_or_null("CourseSelector")
+	if selector:
+		selector.connect("course_selected", _on_course_selected, CONNECT_ONE_SHOT)
+		selector.show_selector()
+
+func _on_course_selected(course_name: String):
+	var cm = get_parent().get_node_or_null("CourseManager")
+	if not cm:
+		return
+	cm.load_course(course_name)
+	# Teleport to hole 1 tee
+	var hole = cm.go_to_hole(1)
+	if not hole.is_empty():
+		var tee = cm.get_tee_position(1)
+		global_position = Vector3(tee.x, tee.y + 1.8, tee.z)
+		$HUD/AimLabel.text = "%s  Hole 1  Par %d  %d yds  |  V to aim" % [
+			cm.get_course_name(),
+			hole.get("par", 4),
+			hole.get("yardage", 0)
+		]
+	# Reset game state
+	stroke_count = 0
+	on_green = false
+	aim_locked = false
+	ball.reset()
+	ball.cup_pos = Vector3.ZERO
+	address_screen.set_putting_mode(false)
+	yaw = 0.0
+	pitch = 0.0
+	rotation.y = 0.0
+	$Camera3D.rotation.x = 0.0
+	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
 
 func _on_shot_confirmed(p_power: float, p_accuracy: float, p_draw_fade: float, p_loft: float, club: Dictionary):
 	_close_address()
