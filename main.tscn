@@ -8,10 +8,81 @@
 [ext_resource type="Script" uid="uid://jqwulnyojnii" path="res://hole_map.gd" id="7_map"]
 [ext_resource type="Script" uid="uid://bfp36uxh8t7xy" path="res://course_manager.gd" id="8_cm"]
 [ext_resource type="Script" uid="uid://bwhtl5fornkmt" path="res://course_selector.gd" id="9_cs"]
+[ext_resource type="Script" path="res://green.gd" id="10_green"]
+[ext_resource type="Script" path="res://tee.gd" id="11_tee"]
+[ext_resource type="Script" path="res://flag_animator.gd" id="12_flag"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_player"]
 radius = 0.4
 height = 1.8
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_ground"]
+size = Vector2(2000, 2000)
+
+[sub_resource type="StandardMaterial3D" id="Material_grass"]
+albedo_color = Color(0.22, 0.52, 0.18, 1)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_ground"]
+size = Vector3(2000, 0.2, 2000)
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_flagpole"]
+top_radius = 0.03
+bottom_radius = 0.03
+height = 3.0
+
+[sub_resource type="StandardMaterial3D" id="Material_pole"]
+albedo_color = Color(0.9, 0.9, 0.9, 1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_flag"]
+size = Vector3(0.6, 0.4, 0.02)
+
+[sub_resource type="StandardMaterial3D" id="Material_flag"]
+albedo_color = Color(1.0, 0.1, 0.1, 1)
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_hole"]
+top_radius = 0.27
+bottom_radius = 0.27
+height = 0.05
+
+[sub_resource type="StandardMaterial3D" id="Material_hole"]
+albedo_color = Color(0.05, 0.05, 0.05, 1)
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_green"]
+size = Vector2(22, 16)
+
+[sub_resource type="StandardMaterial3D" id="Material_green"]
+albedo_color = Color(0.08, 0.42, 0.08, 1)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_green"]
+size = Vector3(22, 0.3, 16)
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_cup"]
+top_radius = 0.27
+bottom_radius = 0.27
+height = 0.1
+
+[sub_resource type="StandardMaterial3D" id="Material_cup"]
+albedo_color = Color(0.02, 0.02, 0.02, 1)
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_teebox"]
+top_radius = 5.0
+bottom_radius = 5.0
+height = 0.01
+
+[sub_resource type="StandardMaterial3D" id="Material_teebox"]
+albedo_color = Color(0.15, 0.52, 0.12, 1)
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_teebox"]
+radius = 5.0
+height = 0.5
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_tee"]
+top_radius = 0.02
+bottom_radius = 0.04
+height = 0.05
+
+[sub_resource type="StandardMaterial3D" id="Material_tee"]
+albedo_color = Color(0.8, 0.3, 0.1, 1)
 
 [node name="Main" type="Node3D" unique_id=1113980085]
 script = ExtResource("1_4c57u")
@@ -36,8 +107,79 @@ transform = Transform3D(0.866, -0.5, 0, 0.25, 0.433, -0.866, 0.433, 0.75, 0.5, 5
 light_energy = 1.2
 shadow_enabled = true
 
+[node name="Ground" type="StaticBody3D" parent="."]
+
+[node name="GroundMesh" type="MeshInstance3D" parent="Ground"]
+mesh = SubResource("PlaneMesh_ground")
+surface_material_override/0 = SubResource("Material_grass")
+
+[node name="GroundCollision" type="CollisionShape3D" parent="Ground"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.1, 0)
+shape = SubResource("BoxShape3D_ground")
+
+[node name="HoleGeometry" type="Node3D" parent="."]
+
+[node name="TeeBox" type="MeshInstance3D" parent="HoleGeometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.01, 0)
+mesh = SubResource("CylinderMesh_teebox")
+surface_material_override/0 = SubResource("Material_teebox")
+
+[node name="TeeArea" type="Area3D" parent="HoleGeometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.3, 0)
+script = ExtResource("11_tee")
+hole_number = 1
+par = 4
+yardage = 400
+
+[node name="TeeCollision" type="CollisionShape3D" parent="HoleGeometry/TeeArea"]
+shape = SubResource("CylinderShape3D_teebox")
+
+[node name="TeePeg" type="MeshInstance3D" parent="HoleGeometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.03, -1.0)
+mesh = SubResource("CylinderMesh_tee")
+surface_material_override/0 = SubResource("Material_tee")
+
+[node name="Green" type="MeshInstance3D" parent="HoleGeometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.02, -180)
+mesh = SubResource("PlaneMesh_green")
+surface_material_override/0 = SubResource("Material_green")
+
+[node name="GreenArea" type="Area3D" parent="HoleGeometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.02, -180)
+script = ExtResource("10_green")
+stimp = 8.0
+par = 4
+hole_number = 1
+
+[node name="GreenCollision" type="CollisionShape3D" parent="HoleGeometry/GreenArea"]
+shape = SubResource("BoxShape3D_green")
+
+[node name="Flagstick" type="Node3D" parent="HoleGeometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -180)
+
+[node name="Pole" type="MeshInstance3D" parent="HoleGeometry/Flagstick"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 0)
+mesh = SubResource("CylinderMesh_flagpole")
+surface_material_override/0 = SubResource("Material_pole")
+
+[node name="Flag" type="MeshInstance3D" parent="HoleGeometry/Flagstick"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.35, 2.9, 0)
+mesh = SubResource("BoxMesh_flag")
+surface_material_override/0 = SubResource("Material_flag")
+script = ExtResource("12_flag")
+
+[node name="HoleCup" type="MeshInstance3D" parent="HoleGeometry/Flagstick"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.01, 0)
+mesh = SubResource("CylinderMesh_hole")
+surface_material_override/0 = SubResource("Material_hole")
+
+[node name="Cup" type="MeshInstance3D" parent="HoleGeometry/GreenArea"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.01, 0)
+mesh = SubResource("CylinderMesh_cup")
+surface_material_override/0 = SubResource("Material_cup")
+
 [node name="Player" type="CharacterBody3D" parent="." unique_id=300885986]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 16.9, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.0, 0)
 script = ExtResource("1_player")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Player" unique_id=1614391253]

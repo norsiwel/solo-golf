@@ -237,10 +237,16 @@ func _close_address():
 	address_screen.close_screen()
 
 func _connect_green():
-	green_node = get_parent().get_node_or_null("GreenArea")
+	# Look for GreenArea under HoleGeometry
+	var hole_geo = get_parent().get_node_or_null("HoleGeometry")
+	if hole_geo:
+		green_node = hole_geo.get_node_or_null("GreenArea")
+	if not green_node:
+		green_node = get_parent().get_node_or_null("GreenArea")
 	if green_node:
 		green_node.connected_player = self
-		green_node.connect("ball_holed_out", _on_ball_holed_out)
+		if not green_node.is_connected("ball_holed_out", _on_ball_holed_out):
+			green_node.connect("ball_holed_out", _on_ball_holed_out)
 
 func connect_green_to_new_course(new_green):
 	# Disconnect from old green if any
@@ -419,7 +425,8 @@ func _update_yardage():
 	var result = space_state.intersect_ray(query)
 
 	# Check if crosshair is near the flagstick - snap to it
-	var flag_node = get_parent().get_node_or_null("Flagstick")
+	var hole_geo = get_parent().get_node_or_null("HoleGeometry")
+	var flag_node = hole_geo.get_node_or_null("Flagstick") if hole_geo else get_parent().get_node_or_null("Flagstick")
 	var snapped_to_flag := false
 	if flag_node:
 		var flag_pos = flag_node.global_position
