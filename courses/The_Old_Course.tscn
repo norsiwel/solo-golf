@@ -55,7 +55,27 @@ height = 0.05
 [sub_resource type="StandardMaterial3D" id="TeePegMat"]
 albedo_color = Color(0.8, 0.3, 0.1, 1)
 
+[sub_resource type="PlaneMesh" id="GroundMesh"]
+size = Vector2(2000, 2000)
+
+[sub_resource type="StandardMaterial3D" id="GroundMat"]
+albedo_color = Color(0.2, 0.55, 0.15, 1)
+
+[sub_resource type="BoxShape3D" id="GroundCollision"]
+size = Vector3(2000, 0.2, 2000)
+
 [node name="The_Old_Course" type="Node3D"]
+
+[node name="Ground" type="StaticBody3D" parent="."]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 0, 15, 0)
+
+[node name="GroundMesh" type="MeshInstance3D" parent="Ground"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 0, -0.1, 0)
+mesh = SubResource("GroundMesh")
+surface_material_override/0 = SubResource("GroundMat")
+
+[node name="GroundCollision" type="CollisionShape3D" parent="Ground"]
+shape = SubResource("GroundCollision")
 
 [node name="Hole1" type="Node3D" parent="."]
 # Hole 1 | Par 4 | 375 yds | SI 10

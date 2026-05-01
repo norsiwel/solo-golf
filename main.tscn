@@ -1,340 +1,48 @@
 [gd_scene format=3 uid="uid://dvcp2wpqd25c6"]
 
+[ext_resource type="Script" uid="uid://cch7i6fyywjos" path="res://main.gd" id="1_4c57u"]
 [ext_resource type="Script" uid="uid://bagc1rj48iic7" path="res://player.gd" id="1_player"]
-[ext_resource type="Script" path="res://green.gd" id="2_green"]
-[ext_resource type="Script" path="res://tee.gd" id="3_tee"]
-[ext_resource type="Script" path="res://wind_system.gd" id="4_wind"]
-[ext_resource type="Script" path="res://wind_hud.gd" id="5_wind_hud"]
-[ext_resource type="Script" path="res://flag_animator.gd" id="6_flag"]
-[ext_resource type="Script" path="res://hole_map.gd" id="7_map"]
-[ext_resource type="Script" path="res://course_manager.gd" id="8_cm"]
-[ext_resource type="Script" path="res://course_selector.gd" id="9_cs"]
-
-[sub_resource type="PlaneMesh" id="PlaneMesh_ground"]
-size = Vector2(400, 400)
-
-[sub_resource type="StandardMaterial3D" id="Material_grass"]
-albedo_color = Color(0.2, 0.55, 0.15, 1)
-
-[sub_resource type="BoxShape3D" id="BoxShape3D_ground"]
-size = Vector3(400, 0.2, 400)
+[ext_resource type="Script" uid="uid://e7pu8rvvhmku" path="res://wind_system.gd" id="4_wind"]
+[ext_resource type="Script" uid="uid://o7u3tpuf6tj0" path="res://wind_hud.gd" id="5_wind_hud"]
+[ext_resource type="Script" uid="uid://cvn4viqosvqe4" path="res://flag_animator.gd" id="6_flag"]
+[ext_resource type="Script" uid="uid://jqwulnyojnii" path="res://hole_map.gd" id="7_map"]
+[ext_resource type="Script" uid="uid://bfp36uxh8t7xy" path="res://course_manager.gd" id="8_cm"]
+[ext_resource type="Script" uid="uid://bwhtl5fornkmt" path="res://course_selector.gd" id="9_cs"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_player"]
 radius = 0.4
 height = 1.8
 
-[sub_resource type="CylinderMesh" id="CylinderMesh_trunk"]
-top_radius = 0.2
-bottom_radius = 0.3
-height = 4.0
+[node name="Main" type="Node3D" unique_id=1113980085]
+script = ExtResource("1_4c57u")
 
-[sub_resource type="StandardMaterial3D" id="Material_bark"]
-albedo_color = Color(0.4, 0.25, 0.1, 1)
-
-[sub_resource type="SphereMesh" id="SphereMesh_leaves"]
-radius = 2.5
-height = 5.0
-
-[sub_resource type="StandardMaterial3D" id="Material_leaves"]
-albedo_color = Color(0.1, 0.4, 0.1, 1)
-
-[sub_resource type="CylinderMesh" id="CylinderMesh_flagpole"]
-top_radius = 0.03
-bottom_radius = 0.03
-height = 3.0
-
-[sub_resource type="StandardMaterial3D" id="Material_pole"]
-albedo_color = Color(0.9, 0.9, 0.9, 1)
-
-[sub_resource type="BoxMesh" id="BoxMesh_flag"]
-size = Vector3(0.6, 0.4, 0.02)
-
-[sub_resource type="StandardMaterial3D" id="Material_flag"]
-albedo_color = Color(1.0, 0.1, 0.1, 1)
-
-[sub_resource type="CylinderMesh" id="CylinderMesh_hole"]
-top_radius = 0.27
-bottom_radius = 0.27
-height = 0.05
-
-[sub_resource type="StandardMaterial3D" id="Material_hole"]
-albedo_color = Color(0.05, 0.05, 0.05, 1)
-
-[sub_resource type="PlaneMesh" id="PlaneMesh_green"]
-size = Vector2(22, 16)
-
-[sub_resource type="StandardMaterial3D" id="Material_green"]
-albedo_color = Color(0.08, 0.42, 0.08, 1)
-
-[sub_resource type="BoxShape3D" id="BoxShape3D_green"]
-size = Vector3(22, 0.3, 16)
-
-[sub_resource type="PlaneMesh" id="PlaneMesh_bunker1"]
-size = Vector2(8, 5)
-
-[sub_resource type="PlaneMesh" id="PlaneMesh_bunker2"]
-size = Vector2(6, 5)
-
-[sub_resource type="StandardMaterial3D" id="Material_sand"]
-albedo_color = Color(0.85, 0.78, 0.5, 1)
-
-[sub_resource type="CylinderMesh" id="CylinderMesh_cup"]
-top_radius = 0.27
-bottom_radius = 0.27
-height = 0.1
-
-[sub_resource type="StandardMaterial3D" id="Material_cup"]
-albedo_color = Color(0.02, 0.02, 0.02, 1)
-
-[sub_resource type="CylinderMesh" id="CylinderMesh_tee"]
-top_radius = 0.02
-bottom_radius = 0.04
-height = 0.05
-
-[sub_resource type="StandardMaterial3D" id="Material_tee"]
-albedo_color = Color(0.8, 0.3, 0.1, 1)
-
-[sub_resource type="CylinderMesh" id="CylinderMesh_teebox"]
-top_radius = 4.0
-bottom_radius = 4.0
-height = 0.01
-
-[sub_resource type="StandardMaterial3D" id="Material_teebox"]
-albedo_color = Color(0.15, 0.5, 0.12, 1)
-
-[sub_resource type="CylinderShape3D" id="CylinderShape3D_teebox"]
-radius = 4.0
-height = 0.5
-
-[sub_resource type="CylinderShape3D" id="CylinderShape3D_trunk"]
-radius = 0.3
-height = 4.0
-
-[sub_resource type="CylinderShape3D" id="CylinderShape3D_flag"]
-radius = 0.05
-height = 3.0
-
-[sub_resource type="BoxShape3D" id="BoxShape3D_bunker1"]
-size = Vector3(8, 0.3, 5)
-
-[sub_resource type="BoxShape3D" id="BoxShape3D_bunker2"]
-size = Vector3(6, 0.3, 5)
-
-[node name="Main" type="Node3D"]
-
-[node name="WindSystem" type="Node3D" parent="."]
+[node name="WindSystem" type="Node3D" parent="." unique_id=77656627]
 script = ExtResource("4_wind")
 
-[node name="WindHUD" type="CanvasLayer" parent="."]
+[node name="WindHUD" type="CanvasLayer" parent="." unique_id=683011568]
 script = ExtResource("5_wind_hud")
 
-[node name="HoleMap" type="CanvasLayer" parent="."]
+[node name="HoleMap" type="CanvasLayer" parent="." unique_id=930689441]
 script = ExtResource("7_map")
 
-[node name="CourseManager" type="Node" parent="."]
+[node name="CourseManager" type="Node" parent="." unique_id=2106755217]
 script = ExtResource("8_cm")
 
-[node name="CourseSelector" type="CanvasLayer" parent="."]
+[node name="CourseSelector" type="CanvasLayer" parent="." unique_id=1019617956]
 script = ExtResource("9_cs")
 
-[node name="Sun" type="DirectionalLight3D" parent="."]
+[node name="Sun" type="DirectionalLight3D" parent="." unique_id=108492338]
 transform = Transform3D(0.866, -0.5, 0, 0.25, 0.433, -0.866, 0.433, 0.75, 0.5, 50, 80, 50)
 light_energy = 1.2
 shadow_enabled = true
 
-[node name="Ground" type="StaticBody3D" parent="."]
-
-[node name="GroundMesh" type="MeshInstance3D" parent="Ground"]
-mesh = SubResource("PlaneMesh_ground")
-surface_material_override/0 = SubResource("Material_grass")
-
-[node name="GroundCollision" type="CollisionShape3D" parent="Ground"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.1, 0)
-shape = SubResource("BoxShape3D_ground")
-
-[node name="Player" type="CharacterBody3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.0, 0)
+[node name="Player" type="CharacterBody3D" parent="." unique_id=300885986]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 16.9, 0)
 script = ExtResource("1_player")
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="Player"]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Player" unique_id=1614391253]
 shape = SubResource("CapsuleShape3D_player")
 
-[node name="Camera3D" type="Camera3D" parent="Player"]
+[node name="Camera3D" type="Camera3D" parent="Player" unique_id=108987800]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.7, 0)
 current = true
-
-[node name="TeeBox" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.01, 0)
-mesh = SubResource("CylinderMesh_teebox")
-surface_material_override/0 = SubResource("Material_teebox")
-
-[node name="TeeArea" type="Area3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.3, 0)
-script = ExtResource("3_tee")
-
-[node name="TeeCollision" type="CollisionShape3D" parent="TeeArea"]
-shape = SubResource("CylinderShape3D_teebox")
-
-[node name="Tee" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.03, -1.0)
-mesh = SubResource("CylinderMesh_tee")
-surface_material_override/0 = SubResource("Material_tee")
-
-[node name="Tree1" type="Node3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20, 0, -50)
-
-[node name="Trunk" type="MeshInstance3D" parent="Tree1"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.0, 0)
-mesh = SubResource("CylinderMesh_trunk")
-surface_material_override/0 = SubResource("Material_bark")
-
-[node name="Leaves" type="MeshInstance3D" parent="Tree1"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 5.5, 0)
-mesh = SubResource("SphereMesh_leaves")
-surface_material_override/0 = SubResource("Material_leaves")
-
-[node name="TrunkBody" type="StaticBody3D" parent="Tree1"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.0, 0)
-
-[node name="TrunkCollision" type="CollisionShape3D" parent="Tree1/TrunkBody"]
-shape = SubResource("CylinderShape3D_trunk")
-
-[node name="Tree2" type="Node3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -22, 0, -85)
-
-[node name="Trunk" type="MeshInstance3D" parent="Tree2"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.0, 0)
-mesh = SubResource("CylinderMesh_trunk")
-surface_material_override/0 = SubResource("Material_bark")
-
-[node name="Leaves" type="MeshInstance3D" parent="Tree2"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 5.5, 0)
-mesh = SubResource("SphereMesh_leaves")
-surface_material_override/0 = SubResource("Material_leaves")
-
-[node name="TrunkBody" type="StaticBody3D" parent="Tree2"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.0, 0)
-
-[node name="TrunkCollision" type="CollisionShape3D" parent="Tree2/TrunkBody"]
-shape = SubResource("CylinderShape3D_trunk")
-
-[node name="Tree3" type="Node3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 18, 0, -110)
-
-[node name="Trunk" type="MeshInstance3D" parent="Tree3"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.0, 0)
-mesh = SubResource("CylinderMesh_trunk")
-surface_material_override/0 = SubResource("Material_bark")
-
-[node name="Leaves" type="MeshInstance3D" parent="Tree3"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 5.5, 0)
-mesh = SubResource("SphereMesh_leaves")
-surface_material_override/0 = SubResource("Material_leaves")
-
-[node name="TrunkBody" type="StaticBody3D" parent="Tree3"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.0, 0)
-
-[node name="TrunkCollision" type="CollisionShape3D" parent="Tree3/TrunkBody"]
-shape = SubResource("CylinderShape3D_trunk")
-
-[node name="Tree4" type="Node3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20, 0, -140)
-
-[node name="Trunk" type="MeshInstance3D" parent="Tree4"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.0, 0)
-mesh = SubResource("CylinderMesh_trunk")
-surface_material_override/0 = SubResource("Material_bark")
-
-[node name="Leaves" type="MeshInstance3D" parent="Tree4"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 5.5, 0)
-mesh = SubResource("SphereMesh_leaves")
-surface_material_override/0 = SubResource("Material_leaves")
-
-[node name="TrunkBody" type="StaticBody3D" parent="Tree4"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.0, 0)
-
-[node name="TrunkCollision" type="CollisionShape3D" parent="Tree4/TrunkBody"]
-shape = SubResource("CylinderShape3D_trunk")
-
-[node name="Tree5" type="Node3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24, 0, -155)
-
-[node name="Trunk" type="MeshInstance3D" parent="Tree5"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.0, 0)
-mesh = SubResource("CylinderMesh_trunk")
-surface_material_override/0 = SubResource("Material_bark")
-
-[node name="Leaves" type="MeshInstance3D" parent="Tree5"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 5.5, 0)
-mesh = SubResource("SphereMesh_leaves")
-surface_material_override/0 = SubResource("Material_leaves")
-
-[node name="TrunkBody" type="StaticBody3D" parent="Tree5"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.0, 0)
-
-[node name="TrunkCollision" type="CollisionShape3D" parent="Tree5/TrunkBody"]
-shape = SubResource("CylinderShape3D_trunk")
-
-[node name="Flagstick" type="Node3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -165)
-
-[node name="Pole" type="MeshInstance3D" parent="Flagstick"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 0)
-mesh = SubResource("CylinderMesh_flagpole")
-surface_material_override/0 = SubResource("Material_pole")
-
-[node name="Flag" type="MeshInstance3D" parent="Flagstick"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.35, 2.9, 0)
-mesh = SubResource("BoxMesh_flag")
-surface_material_override/0 = SubResource("Material_flag")
-script = ExtResource("6_flag")
-
-[node name="HoleCup" type="MeshInstance3D" parent="Flagstick"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.01, 0)
-mesh = SubResource("CylinderMesh_hole")
-surface_material_override/0 = SubResource("Material_hole")
-
-[node name="FlagBody" type="StaticBody3D" parent="Flagstick"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 0)
-
-[node name="FlagCollision" type="CollisionShape3D" parent="Flagstick/FlagBody"]
-shape = SubResource("CylinderShape3D_flag")
-
-[node name="Green" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.02, -165)
-mesh = SubResource("PlaneMesh_green")
-surface_material_override/0 = SubResource("Material_green")
-
-[node name="GreenArea" type="Area3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.02, -165)
-script = ExtResource("2_green")
-
-[node name="GreenCollision" type="CollisionShape3D" parent="GreenArea"]
-shape = SubResource("BoxShape3D_green")
-
-[node name="Cup" type="MeshInstance3D" parent="GreenArea"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.01, 0)
-mesh = SubResource("CylinderMesh_cup")
-surface_material_override/0 = SubResource("Material_cup")
-
-[node name="Bunker1" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16, 0.02, -163)
-mesh = SubResource("PlaneMesh_bunker1")
-surface_material_override/0 = SubResource("Material_sand")
-
-[node name="Bunker1Area" type="Area3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16, 0.02, -163)
-
-[node name="Bunker1Collision" type="CollisionShape3D" parent="Bunker1Area"]
-shape = SubResource("BoxShape3D_bunker1")
-
-[node name="Bunker2" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14, 0.02, -170)
-mesh = SubResource("PlaneMesh_bunker2")
-surface_material_override/0 = SubResource("Material_sand")
-
-[node name="Bunker2Area" type="Area3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14, 0.02, -170)
-
-[node name="Bunker2Collision" type="CollisionShape3D" parent="Bunker2Area"]
-shape = SubResource("BoxShape3D_bunker2")

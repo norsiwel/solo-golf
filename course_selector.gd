@@ -68,9 +68,36 @@ func _build_ui():
 	list.set_anchor(SIDE_LEFT,   0.27)
 	list.set_anchor(SIDE_TOP,    0.26)
 	list.set_anchor(SIDE_RIGHT,  0.73)
-	list.set_anchor(SIDE_BOTTOM, 0.82)
+	list.set_anchor(SIDE_BOTTOM, 0.78)
 	list.add_theme_constant_override("separation", 10)
 	add_child(list)
+
+	# Quit button
+	var quit_btn = Button.new()
+	quit_btn.text = "Exit Game"
+	quit_btn.custom_minimum_size = Vector2(0, 50)
+	quit_btn.add_theme_font_size_override("font_size", 20)
+	quit_btn.set_anchor(SIDE_LEFT,   0.27)
+	quit_btn.set_anchor(SIDE_TOP,    0.82)
+	quit_btn.set_anchor(SIDE_RIGHT,  0.73)
+	quit_btn.set_anchor(SIDE_BOTTOM, 0.9)
+	var qbs = StyleBoxFlat.new()
+	qbs.bg_color = Color(0.2, 0.1, 0.1, 0.9)
+	qbs.border_color = Color(1.0, 0.4, 0.4, 0.8)
+	qbs.border_width_left = 1
+	qbs.border_width_right = 1
+	qbs.border_width_top = 1
+	qbs.border_width_bottom = 1
+	qbs.corner_radius_top_left = 6
+	qbs.corner_radius_top_right = 6
+	qbs.corner_radius_bottom_left = 6
+	qbs.corner_radius_bottom_right = 6
+	quit_btn.add_theme_stylebox_override("normal", qbs)
+	var qbs_hover = qbs.duplicate()
+	qbs_hover.bg_color = Color(0.3, 0.15, 0.15, 0.95)
+	quit_btn.add_theme_stylebox_override("hover", qbs_hover)
+	quit_btn.connect("pressed", _on_quit_pressed)
+	add_child(quit_btn)
 
 func _populate_courses():
 	var list = get_node("CourseList")
@@ -83,6 +110,9 @@ func _populate_courses():
 	if not course_manager:
 		_add_error_label("No CourseManager found in scene")
 		return
+
+	# Re-scan for courses in case new ones were added
+	course_manager.scan_courses()
 
 	var courses = course_manager.get_available_courses()
 	if courses.is_empty():
@@ -163,3 +193,6 @@ func _on_course_selected(course_name: String):
 	visible = false
 	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
 	emit_signal("course_selected", course_name)
+
+func _on_quit_pressed():
+	get_tree().quit()

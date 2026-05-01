@@ -30,6 +30,10 @@ func _scan_courses():
 		dir.list_dir_end()
 	print("CourseManager: Found %d courses: %s" % [available_courses.size(), str(available_courses)])
 
+func scan_courses():
+	_scan_courses()
+	return available_courses
+
 func get_available_courses() -> Array[String]:
 	return available_courses
 
@@ -57,6 +61,9 @@ func load_course(course_name: String) -> bool:
 		current_course_node.queue_free()
 		current_course_node = null
 
+	# Remove old hardcoded course objects from main scene (but keep player, camera, HUD, etc.)
+	_remove_old_course_objects()
+
 	# Load and add new course scene
 	var scene = load(scene_path)
 	if not scene:
@@ -70,7 +77,44 @@ func load_course(course_name: String) -> bool:
 
 	emit_signal("course_loaded", course_name, course_meta)
 	print("CourseManager: Loaded %s" % course_meta.get("name", course_name))
+	# Reconnect player to the new course's green
+	call_deferred("_reconnect_player_green")
 	return true
+
+
+func _reconnect_player_green():
+	# Find the GreenArea node in the new course and reconnect player
+	# New courses use GreenArea1, GreenArea2, etc.
+	var green_area = null
+	for child in get_tree().current_scene.get_children():
+		if child.name.begins_with("GreenArea") and child is Area3D:
+			green_area = child
+			break
+
+	if green_area:
+		var player = get_tree().current_scene.get_node_or_null("Player")
+		if player and player.has_method("connect_green_to_new_course"):
+			player.connect_green_to_new_course(green_area)
+
+
+func _remove_old_course_objects():
+	# Remove old course-specific nodes from main scene
+	# Keep: Player, Camera3D, WindSystem, WindHUD, HoleMap, CourseManager, CourseSelector, Sun
+	var nodes_to_remove = ["Ground", "GreenArea", "Green", "GreenCollision", "Flagstick",
+	                       "FlagBody", "FlagCollision", "TeeArea", "TeeBox", "TeeCollision", "Tee",
+	                       "Bunker1", "Bunker1Area", "Bunker1Collision", "Bunker2", "Bunker2Area", "Bunker2Collision",
+	                       "Tree1", "Tree2", "Tree3", "Tree4", "Tree5"]
+
+	for node_name in nodes_to_remove:
+		var node = get_tree().current_scene.get_node_or_null(node_name)
+		if node:
+			node.queue_free()
+
+	# Also remove any existing hole course nodes (Hole1, Hole2, etc.)
+	var scene = get_tree().current_scene
+	for child in scene.get_children():
+		if child.name.begins_with("Hole") and child is Node3D:
+			child.queue_free()
 
 func get_hole_data(hole_number: int) -> Dictionary:
 	if course_meta.is_empty():

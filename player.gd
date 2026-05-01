@@ -31,7 +31,6 @@ func _ready():
 	_setup_address_screen()
 	# Connect green after scene is ready
 	call_deferred("_connect_green")
-	call_deferred("_show_course_selector")
 
 func _setup_sky():
 	var env = Environment.new()
@@ -172,8 +171,10 @@ func _input(event):
 			if event.keycode == KEY_ESCAPE:
 				if addressing:
 					_close_address()
+				elif viewfinder_active:
+					_close_viewfinder()
 				else:
-					Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
+					_show_course_selector()
 
 func _open_viewfinder():
 	viewfinder_active = true
@@ -241,6 +242,16 @@ func _connect_green():
 		green_node.connected_player = self
 		green_node.connect("ball_holed_out", _on_ball_holed_out)
 
+func connect_green_to_new_course(new_green):
+	# Disconnect from old green if any
+	if green_node and green_node.is_connected("ball_holed_out", self, "_on_ball_holed_out"):
+		green_node.disconnect("ball_holed_out", self, "_on_ball_holed_out")
+	green_node = new_green
+	if green_node:
+		green_node.connected_player = self
+		if not green_node.is_connected("ball_holed_out", self, "_on_ball_holed_out"):
+			green_node.connect("ball_holed_out", self, "_on_ball_holed_out")
+
 func on_player_at_tee(hole: int, par: int, yardage: int):
 	# Reset putting mode when back on tee
 	on_green = false
@@ -285,8 +296,10 @@ func _on_play_again():
 	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
 
 func _on_next_hole():
-	# Show course selector for next hole or course change
-	_show_course_selector()
+	# Tell main.gd to show the course selector
+	var selector = get_parent().get_node_or_null("CourseSelector")
+	if selector:
+		selector.show_selector()
 
 func _show_course_selector():
 	var selector = get_parent().get_node_or_null("CourseSelector")
