@@ -2,10 +2,15 @@
 .godot/
 /android/
 
-# Large binary files - don't commit these
+# Large binary files
 *.unity3d
 *.zip
+
+# Extracted asset binary files - keep only converted/usable assets
+standrewsv1/extracted assets/
+sunsetvalleygc_fnl3_1/extracted assets/
 sunsetvalleygc_fnl3_1/
+standrewsv1/standrewsv1.unity3d
 
 # Duplicate/temp ball images - keep only assets/ folder
 ball_asset1.png
