@@ -348,9 +348,21 @@ func _on_shot_confirmed(p_power: float, p_accuracy: float, p_draw_fade: float, p
 func _on_ball_stopped(pos: Vector3, in_bunker: bool):
 	var dist_yards = global_position.distance_to(pos) * 1.094
 	if in_bunker:
-		$HUD/AimLabel.text = "In the bunker! %.0f yds away  |  Press W to walk" % dist_yards
+		$HUD/AimLabel.text = "In the bunker!  %.0f yds away  |  Press W to walk" % dist_yards
 	else:
-		$HUD/AimLabel.text = "Ball stopped - %.0f yds away  |  Press W to walk" % dist_yards
+		$HUD/AimLabel.text = "Ball stopped  %.0f yds away  |  Press W to walk" % dist_yards
+	# Check if ball is on green by distance to green node
+	if green_node and not on_green:
+		var green_pos = green_node.global_position
+		var dist_to_green = Vector2(pos.x, pos.z).distance_to(Vector2(green_pos.x, green_pos.z))
+		if dist_to_green < 12.0:  # within green radius
+			on_green = true
+			var cup_world = green_node.get_cup_world_pos()
+			ball.cup_pos = cup_world
+			ball.stimp = green_node.stimp
+			$HUD/AimLabel.text = "On the green!  Stimp: %.0f  |  Putter selected  |  Press Space to putt" % green_node.stimp
+			address_screen.set_putting_mode(true, green_node.stimp)
+			return
 	if green_node and on_green:
 		green_node.check_hole_out(pos, stroke_count)
 

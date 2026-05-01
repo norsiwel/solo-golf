@@ -26,7 +26,7 @@ var selected_club_label: Label
 enum MeterState { IDLE, POWER, ACCURACY, DONE }
 var state := MeterState.IDLE
 var meter_value := 0.0
-var meter_speed := 0.8
+var meter_speed := 0.53  # normal shot speed - 1/3 slower than before
 var power := 0.0
 var accuracy := 0.0
 var draw_fade := 0.0
@@ -413,7 +413,7 @@ func set_putting_mode(enabled: bool, stimp: float = 8.0):
 			if CLUBS[i].name == "Putter":
 				selected_club_index = i
 				break
-		meter_speed = 0.25 + (stimp / 13.0) * 0.3
+		meter_speed = 0.22 + (stimp / 13.0) * 0.15  # stimp 8 = ~0.31 putting speed
 		if draw_slider: draw_slider.visible = false
 		if selected_club_label:
 			selected_club_label.text = "Putter  Stimp:%.0f" % stimp
@@ -422,7 +422,7 @@ func set_putting_mode(enabled: bool, stimp: float = 8.0):
 			var tex = load("res://assets/ball_yellow.png")
 			if tex: ball_image.texture = tex
 	else:
-		meter_speed = 0.8
+		meter_speed = 0.53  # restore normal shot speed
 		if draw_slider: draw_slider.visible = true
 		_update_club_highlight()
 		# Restore white ball
