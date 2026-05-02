@@ -101,4 +101,9 @@ func _on_course_selected(course_name: String):
 		hole.get("yardage", 0)
 	]
 
+	# Update hole map with real course data
+	var hole_map = get_node_or_null("HoleMap")
+	if hole_map and hole_map.has_method("load_hole"):
+		hole_map.load_hole(1)
+
 	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
