@@ -16,8 +16,8 @@ const MIN_ELEVATION = 2.46
 const MAX_ELEVATION = 30.48
 
 func setup_terrain(terrain_node):
-    terrain_node.position = TERRAIN_ORIGIN
-    # Set size and height in Terrain3D inspector:
-    # storage.size = 1024
-    # storage.height_range = Vector2(2.5, 36.1)
-    print("Terrain setup for: ", COURSE_NAME)
+	terrain_node.position = TERRAIN_ORIGIN
+	# Set size and height in Terrain3D inspector:
+	# storage.size = 1024
+	# storage.height_range = Vector2(2.5, 36.1)
+	print("Terrain setup for: ", COURSE_NAME)

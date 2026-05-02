@@ -1,4 +1,4 @@
-[gd_scene load_steps=31 format=3 uid="uid://dvcp2wpqd25c6"]
+[gd_scene load_steps=38 format=3 uid="uid://dvcp2wpqd25c6"]
 
 [ext_resource type="Script" uid="uid://cch7i6fyywjos" path="res://main.gd" id="1_main"]
 [ext_resource type="Script" uid="uid://bagc1rj48iic7" path="res://player.gd" id="2_player"]
@@ -83,7 +83,71 @@ albedo_color = Color(0.05, 0.05, 0.05, 1)
 radius = 0.4
 height = 1.8
 
+[sub_resource type="Gradient" id="Gradient_4c57u"]
+offsets = PackedFloat32Array(0.2, 1)
+colors = PackedColorArray(1, 1, 1, 1, 0, 0, 0, 1)
+
+[sub_resource type="FastNoiseLite" id="FastNoiseLite_efxa6"]
+noise_type = 2
+frequency = 0.03
+cellular_jitter = 3.0
+cellular_return_type = 0
+domain_warp_enabled = true
+domain_warp_type = 1
+domain_warp_amplitude = 50.0
+domain_warp_fractal_type = 2
+domain_warp_fractal_lacunarity = 1.5
+domain_warp_fractal_gain = 1.0
+
+[sub_resource type="NoiseTexture2D" id="NoiseTexture2D_dg77c"]
+seamless = true
+color_ramp = SubResource("Gradient_4c57u")
+noise = SubResource("FastNoiseLite_efxa6")
+
+[sub_resource type="Terrain3DMaterial" id="Terrain3DMaterial_ycdy4"]
+_shader_parameters = {
+&"bias_distance": 512.0,
+&"blend_sharpness": 0.5,
+&"depth_blur": 0.0,
+&"enable_macro_variation": true,
+&"enable_projection": true,
+&"flat_terrain_normals": false,
+&"macro_variation1": Color(1, 1, 1, 1),
+&"macro_variation2": Color(1, 1, 1, 1),
+&"macro_variation_slope": 0.333,
+&"mipmap_bias": 1.0,
+&"noise1_angle": 0.0,
+&"noise1_offset": Vector2(0.5, 0.5),
+&"noise1_scale": 0.04,
+&"noise2_scale": 0.076,
+&"noise_texture": SubResource("NoiseTexture2D_dg77c"),
+&"projection_threshold": 0.8
+}
+show_checkered = true
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_w48qg"]
+transparency = 4
+cull_mode = 2
+vertex_color_use_as_albedo = true
+backlight_enabled = true
+backlight = Color(0.5, 0.5, 0.5, 1)
+distance_fade_mode = 1
+distance_fade_min_distance = 128.0
+distance_fade_max_distance = 96.0
+
+[sub_resource type="Terrain3DMeshAsset" id="Terrain3DMeshAsset_vivmo"]
+generated_type = 1
+height_offset = 0.5
+material_override = SubResource("StandardMaterial3D_w48qg")
+last_lod = 0
+last_shadow_lod = 0
+lod0_range = 128.0
+
+[sub_resource type="Terrain3DAssets" id="Terrain3DAssets_2cqfq"]
+mesh_list = Array[Terrain3DMeshAsset]([SubResource("Terrain3DMeshAsset_vivmo")])
+
 [node name="Main" type="Node3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.00112879, 0, -0.00213514)
 script = ExtResource("1_main")
 
 [node name="Sun" type="DirectionalLight3D" parent="."]
@@ -182,3 +246,10 @@ shape = SubResource("CapsuleShape3D_player")
 [node name="Camera3D" type="Camera3D" parent="Player"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.7, 0)
 current = true
+
+[node name="Terrain3D" type="Terrain3D" parent="."]
+data_directory = "res://courses/Sunset_Valley_Terrain_Data"
+material = SubResource("Terrain3DMaterial_ycdy4")
+assets = SubResource("Terrain3DAssets_2cqfq")
+visible = false
+top_level = true

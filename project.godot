@@ -25,4 +25,4 @@ enabled=PackedStringArray("res://addons/terrain_3d/plugin.cfg")
 
 [rendering]
 
-rendering_device/driver.windows="d3d12"
+rendering_device/driver.linux="vulkan"

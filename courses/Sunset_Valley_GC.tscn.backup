@@ -1,12 +1,10 @@
-[gd_scene load_steps=24 format=3 uid="uid://lt57p8uuh547"]
+[gd_scene load_steps=22 format=3 uid="uid://lt57p8uuh547"]
 
 [ext_resource type="Script" uid="uid://jnuydiewf0yg" path="res://green.gd" id="1_green"]
 [ext_resource type="Script" uid="uid://btr64vpnrmohl" path="res://tee.gd" id="2_tee"]
 [ext_resource type="PackedScene" uid="uid://dvcp2wpqd25c6" path="res://main.tscn" id="3_akeom"]
 [ext_resource type="Terrain3DAssets" uid="uid://dal3jhw6241qg" path="res://demo/data/assets.tres" id="3_oro0p"]
 [ext_resource type="PackedScene" uid="uid://lts2s5v81eyk" path="res://node_3d.tscn" id="4_1fec8"]
-[ext_resource type="PackedScene" uid="uid://chol2xlfbq7cu" path="res://demo/Demo.tscn" id="5_nv8v5"]
-[ext_resource type="PackedScene" uid="uid://cofnhdcclon1w" path="res://demo/CodeGeneratedDemo.tscn" id="6_pd4mo"]
 
 [sub_resource type="CylinderShape3D" id="TeeShape"]
 height = 1.0
@@ -197,14 +195,10 @@ surface_material_override/0 = SubResource("CupMat")
 [node name="Pin_Difficult_1_5" type="Node3D" parent="Hole1"]
 
 [node name="Main" parent="Hole1" instance=ExtResource("3_akeom")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 357.666, 408.346, 658.347)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 357.11, 408.227, 658.727)
 
 [node name="Node3D" parent="Hole1" instance=ExtResource("4_1fec8")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 357.853, 408.227, 659.568)
-
-[node name="Demo" parent="Hole1" instance=ExtResource("5_nv8v5")]
-
-[node name="CodeGenerated" parent="Hole1" instance=ExtResource("6_pd4mo")]
 
 [node name="Hole2" type="Node3D" parent="."]
 
