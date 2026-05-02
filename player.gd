@@ -249,14 +249,18 @@ func _connect_green():
 			green_node.connect("ball_holed_out", _on_ball_holed_out)
 
 func connect_green_to_new_course(new_green):
-	# Disconnect from old green if any
-	if green_node and green_node.is_connected("ball_holed_out", self, "_on_ball_holed_out"):
-		green_node.disconnect("ball_holed_out", self, "_on_ball_holed_out")
+	if green_node and green_node.has_signal("ball_holed_out"):
+		if green_node.ball_holed_out.is_connected(_on_ball_holed_out):
+			green_node.ball_holed_out.disconnect(_on_ball_holed_out)
+
 	green_node = new_green
+
 	if green_node:
 		green_node.connected_player = self
-		if not green_node.is_connected("ball_holed_out", self, "_on_ball_holed_out"):
-			green_node.connect("ball_holed_out", self, "_on_ball_holed_out")
+
+		if green_node.has_signal("ball_holed_out"):
+			if not green_node.ball_holed_out.is_connected(_on_ball_holed_out):
+				green_node.ball_holed_out.connect(_on_ball_holed_out)
 
 func on_player_at_tee(hole: int, par: int, yardage: int):
 	# Reset putting mode when back on tee

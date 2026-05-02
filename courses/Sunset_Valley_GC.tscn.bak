@@ -1,0 +1,2310 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://green.gd" id="1_green"]
+[ext_resource type="Script" path="res://tee.gd" id="2_tee"]
+
+# --- Shared Collision Shapes ---
+[sub_resource type="CylinderShape3D" id="TeeShape"]
+radius = 5.0
+height = 1.0
+
+[sub_resource type="BoxShape3D" id="GreenShape"]
+size = Vector3(22, 0.5, 16)
+
+[sub_resource type="CylinderMesh" id="TeeMesh"]
+top_radius = 5.0
+bottom_radius = 5.0
+height = 0.05
+
+[sub_resource type="StandardMaterial3D" id="TeeMat"]
+albedo_color = Color(0.15, 0.5, 0.12, 1)
+
+[sub_resource type="PlaneMesh" id="GreenMesh"]
+size = Vector2(22, 16)
+
+[sub_resource type="StandardMaterial3D" id="GreenMat"]
+albedo_color = Color(0.08, 0.42, 0.08, 1)
+
+[sub_resource type="CylinderMesh" id="FlagpoleMesh"]
+top_radius = 0.03
+bottom_radius = 0.03
+height = 3.0
+
+[sub_resource type="StandardMaterial3D" id="FlagpoleMat"]
+albedo_color = Color(0.9, 0.9, 0.9, 1)
+
+[sub_resource type="BoxMesh" id="FlagMesh"]
+size = Vector3(0.6, 0.4, 0.02)
+
+[sub_resource type="StandardMaterial3D" id="FlagMat"]
+albedo_color = Color(1.0, 0.1, 0.1, 1)
+
+[sub_resource type="CylinderMesh" id="CupMesh"]
+top_radius = 0.27
+bottom_radius = 0.27
+height = 0.05
+
+[sub_resource type="StandardMaterial3D" id="CupMat"]
+albedo_color = Color(0.05, 0.05, 0.05, 1)
+
+[sub_resource type="CylinderMesh" id="TeePegMesh"]
+top_radius = 0.02
+bottom_radius = 0.04
+height = 0.05
+
+[sub_resource type="StandardMaterial3D" id="TeePegMat"]
+albedo_color = Color(0.8, 0.3, 0.1, 1)
+
+[sub_resource type="PlaneMesh" id="GroundMesh"]
+size = Vector2(2000, 2000)
+
+[sub_resource type="StandardMaterial3D" id="GroundMat"]
+albedo_color = Color(0.2, 0.55, 0.15, 1)
+
+[sub_resource type="BoxShape3D" id="GroundCollision"]
+size = Vector3(2000, 0.2, 2000)
+
+[node name="Sunset_Valley_GC" type="Node3D"]
+
+[node name="Ground" type="StaticBody3D" parent="."]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 0, 15, 0)
+
+[node name="GroundMesh" type="MeshInstance3D" parent="Ground"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 0, -0.1, 0)
+mesh = SubResource("GroundMesh")
+surface_material_override/0 = SubResource("GroundMat")
+
+[node name="GroundCollision" type="CollisionShape3D" parent="Ground"]
+shape = SubResource("GroundCollision")
+
+[node name="Hole1" type="Node3D" parent="."]
+# Hole 1 | Par 4 | 357 yds | SI 13
+
+[node name="TeeBox1" type="MeshInstance3D" parent="Hole1"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 736.286, 20.162, -406.804)
+mesh = SubResource("TeeMesh")
+surface_material_override/0 = SubResource("TeeMat")
+
+[node name="TeeArea1" type="Area3D" parent="Hole1"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 736.286, 20.462, -406.804)
+script = ExtResource("2_tee")
+hole_number = 1
+par = 4
+yardage = 357
+
+[node name="TeeCollision1" type="CollisionShape3D" parent="Hole1/TeeArea1"]
+shape = SubResource("TeeShape")
+
+[node name="TeePeg1" type="MeshInstance3D" parent="Hole1"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 736.286, 20.192, -407.804)
+mesh = SubResource("TeePegMesh")
+surface_material_override/0 = SubResource("TeePegMat")
+
+[node name="Tee_Championship_1" type="Node3D" parent="Hole1"]
+# Championship tee - 357 yds
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 736.286, 20.162, -406.804)
+
+[node name="Tee_Tournament_1" type="Node3D" parent="Hole1"]
+# Tournament tee - 341 yds
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 721.419, 20.162, -407.832)
+
+[node name="Tee_Back_1" type="Node3D" parent="Hole1"]
+# Back tee - 321 yds
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 701.962, 17.980, -400.785)
+
+[node name="Tee_Member_1" type="Node3D" parent="Hole1"]
+# Member tee - 283 yds
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 667.486, 16.649, -399.518)
+
+[node name="Tee_Challenge_1" type="Node3D" parent="Hole1"]
+# Challenge tee - 60 yds
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 367.238, 17.404, -394.703)
+
+[node name="Green1" type="MeshInstance3D" parent="Hole1"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 409.851, 17.524, -429.845)
+mesh = SubResource("GreenMesh")
+surface_material_override/0 = SubResource("GreenMat")
+
+[node name="GreenArea1" type="Area3D" parent="Hole1"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 409.851, 17.524, -429.845)
+script = ExtResource("1_green")
+stimp = 8.0
+par = 4
+hole_number = 1
+
+[node name="GreenCollision1" type="CollisionShape3D" parent="Hole1/GreenArea1"]
+shape = SubResource("GreenShape")
+
+[node name="Flagstick1" type="Node3D" parent="Hole1"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 409.851, 17.504, -429.845)
+
+[node name="Pole1" type="MeshInstance3D" parent="Hole1/Flagstick1"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 0, 1.5, 0)
+mesh = SubResource("FlagpoleMesh")
+surface_material_override/0 = SubResource("FlagpoleMat")
+
+[node name="Flag1" type="MeshInstance3D" parent="Hole1/Flagstick1"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 0.35, 2.9, 0)
+mesh = SubResource("FlagMesh")
+surface_material_override/0 = SubResource("FlagMat")
+
+[node name="Cup1" type="MeshInstance3D" parent="Hole1/Flagstick1"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 0, 0.01, 0)
+mesh = SubResource("CupMesh")
+surface_material_override/0 = SubResource("CupMat")
+
+[node name="Pin_Easy_1_0" type="Node3D" parent="Hole1"]
+# Easy pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 412.386, 17.494, -432.972)
+
+[node name="Pin_Difficult_1_8" type="Node3D" parent="Hole1"]
+# Difficult pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 412.959, 18.109, -447.621)
+
+[node name="Pin_Medium_1_7" type="Node3D" parent="Hole1"]
+# Medium pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 409.851, 17.504, -429.845)
+
+[node name="Pin_Medium_1_1" type="Node3D" parent="Hole1"]
+# Medium pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 412.068, 17.921, -443.437)
+
+[node name="Pin_Easy_1_9" type="Node3D" parent="Hole1"]
+# Easy pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 417.944, 17.720, -444.986)
+
+[node name="Pin_Medium_1_10" type="Node3D" parent="Hole1"]
+# Medium pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 407.151, 18.088, -441.913)
+
+[node name="Pin_Medium_1_4" type="Node3D" parent="Hole1"]
+# Medium pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 405.263, 17.803, -430.610)
+
+[node name="Pin_Easy_1_3" type="Node3D" parent="Hole1"]
+# Easy pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 410.282, 17.728, -436.850)
+
+[node name="Pin_Difficult_1_11" type="Node3D" parent="Hole1"]
+# Difficult pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 403.312, 18.158, -437.512)
+
+[node name="Pin_Difficult_1_2" type="Node3D" parent="Hole1"]
+# Difficult pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 405.507, 18.340, -446.309)
+
+[node name="Pin_Easy_1_6" type="Node3D" parent="Hole1"]
+# Easy pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 415.141, 17.551, -438.911)
+
+[node name="Pin_Difficult_1_5" type="Node3D" parent="Hole1"]
+# Difficult pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 401.093, 18.199, -433.166)
+
+[node name="Hole2" type="Node3D" parent="."]
+# Hole 2 | Par 5 | 489 yds | SI 1
+
+[node name="TeeBox2" type="MeshInstance3D" parent="Hole2"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 355.969, 17.404, -383.560)
+mesh = SubResource("TeeMesh")
+surface_material_override/0 = SubResource("TeeMat")
+
+[node name="TeeArea2" type="Area3D" parent="Hole2"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 355.969, 17.704, -383.560)
+script = ExtResource("2_tee")
+hole_number = 2
+par = 5
+yardage = 489
+
+[node name="TeeCollision2" type="CollisionShape3D" parent="Hole2/TeeArea2"]
+shape = SubResource("TeeShape")
+
+[node name="TeePeg2" type="MeshInstance3D" parent="Hole2"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 355.969, 17.434, -384.560)
+mesh = SubResource("TeePegMesh")
+surface_material_override/0 = SubResource("TeePegMat")
+
+[node name="Tee_Challenge_2" type="Node3D" parent="Hole2"]
+# Challenge tee - 47 yds
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 762.461, 21.213, -368.297)
+
+[node name="Tee_Championship_2" type="Node3D" parent="Hole2"]
+# Championship tee - 489 yds
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 355.969, 17.404, -383.560)
+
+[node name="Tee_Tournament_2" type="Node3D" parent="Hole2"]
+# Tournament tee - 484 yds
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 361.496, 17.404, -390.104)
+
+[node name="Tee_Back_2" type="Node3D" parent="Hole2"]
+# Back tee - 481 yds
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 363.701, 17.404, -384.493)
+
+[node name="Tee_Member_2" type="Node3D" parent="Hole2"]
+# Member tee - 386 yds
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 450.181, 14.674, -382.206)
+
+[node name="Green2" type="MeshInstance3D" parent="Hole2"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 802.763, 25.445, -352.111)
+mesh = SubResource("GreenMesh")
+surface_material_override/0 = SubResource("GreenMat")
+
+[node name="GreenArea2" type="Area3D" parent="Hole2"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 802.763, 25.445, -352.111)
+script = ExtResource("1_green")
+stimp = 8.0
+par = 5
+hole_number = 2
+
+[node name="GreenCollision2" type="CollisionShape3D" parent="Hole2/GreenArea2"]
+shape = SubResource("GreenShape")
+
+[node name="Flagstick2" type="Node3D" parent="Hole2"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 802.763, 25.425, -352.111)
+
+[node name="Pole2" type="MeshInstance3D" parent="Hole2/Flagstick2"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 0, 1.5, 0)
+mesh = SubResource("FlagpoleMesh")
+surface_material_override/0 = SubResource("FlagpoleMat")
+
+[node name="Flag2" type="MeshInstance3D" parent="Hole2/Flagstick2"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 0.35, 2.9, 0)
+mesh = SubResource("FlagMesh")
+surface_material_override/0 = SubResource("FlagMat")
+
+[node name="Cup2" type="MeshInstance3D" parent="Hole2/Flagstick2"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 0, 0.01, 0)
+mesh = SubResource("CupMesh")
+surface_material_override/0 = SubResource("CupMat")
+
+[node name="Pin_Medium_2_4" type="Node3D" parent="Hole2"]
+# Medium pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 802.763, 25.425, -352.111)
+
+[node name="Pin_Difficult_2_8" type="Node3D" parent="Hole2"]
+# Difficult pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 807.179, 25.629, -361.700)
+
+[node name="Pin_Difficult_2_11" type="Node3D" parent="Hole2"]
+# Difficult pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 799.185, 25.294, -353.342)
+
+[node name="Pin_Easy_2_6" type="Node3D" parent="Hole2"]
+# Easy pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 805.549, 25.491, -354.883)
+
+[node name="Pin_Difficult_2_5" type="Node3D" parent="Hole2"]
+# Difficult pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 800.010, 25.448, -372.984)
+
+[node name="Pin_Easy_2_0" type="Node3D" parent="Hole2"]
+# Easy pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 803.105, 25.426, -370.565)
+
+[node name="Pin_Medium_2_1" type="Node3D" parent="Hole2"]
+# Medium pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 801.394, 25.423, -356.958)
+
+[node name="Pin_Medium_2_7" type="Node3D" parent="Hole2"]
+# Medium pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 806.988, 25.463, -369.033)
+
+[node name="Pin_Difficult_2_2" type="Node3D" parent="Hole2"]
+# Difficult pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 804.551, 25.306, -376.635)
+
+[node name="Pin_Easy_2_3" type="Node3D" parent="Hole2"]
+# Easy pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 802.700, 25.506, -362.521)
+
+[node name="Pin_Easy_2_9" type="Node3D" parent="Hole2"]
+# Easy pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 798.829, 25.394, -359.422)
+
+[node name="Pin_Medium_2_10" type="Node3D" parent="Hole2"]
+# Medium pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 798.649, 25.499, -366.561)
+
+[node name="Hole3" type="Node3D" parent="."]
+# Hole 3 | Par 3 | 194 yds | SI 15
+
+[node name="TeeBox3" type="MeshInstance3D" parent="Hole3"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 743.326, 26.233, -305.472)
+mesh = SubResource("TeeMesh")
+surface_material_override/0 = SubResource("TeeMat")
+
+[node name="TeeArea3" type="Area3D" parent="Hole3"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 743.326, 26.533, -305.472)
+script = ExtResource("2_tee")
+hole_number = 3
+par = 3
+yardage = 194
+
+[node name="TeeCollision3" type="CollisionShape3D" parent="Hole3/TeeArea3"]
+shape = SubResource("TeeShape")
+
+[node name="TeePeg3" type="MeshInstance3D" parent="Hole3"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 743.326, 26.263, -306.472)
+mesh = SubResource("TeePegMesh")
+surface_material_override/0 = SubResource("TeePegMat")
+
+[node name="Tee_Back_3" type="Node3D" parent="Hole3"]
+# Back tee - 160 yds
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 716.037, 24.470, -289.295)
+
+[node name="Tee_Tournament_3" type="Node3D" parent="Hole3"]
+# Tournament tee - 167 yds
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 722.798, 24.470, -290.450)
+
+[node name="Tee_Championship_3" type="Node3D" parent="Hole3"]
+# Championship tee - 194 yds
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 743.326, 26.233, -305.472)
+
+[node name="Tee_Member_3" type="Node3D" parent="Hole3"]
+# Member tee - 145 yds
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 704.121, 23.201, -283.694)
+
+[node name="Tee_Challenge_3" type="Node3D" parent="Hole3"]
+# Challenge tee - 105 yds
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 676.413, 22.837, -246.103)
+
+[node name="Green3" type="MeshInstance3D" parent="Hole3"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 580.472, 14.626, -233.439)
+mesh = SubResource("GreenMesh")
+surface_material_override/0 = SubResource("GreenMat")
+
+[node name="GreenArea3" type="Area3D" parent="Hole3"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 580.472, 14.626, -233.439)
+script = ExtResource("1_green")
+stimp = 8.0
+par = 3
+hole_number = 3
+
+[node name="GreenCollision3" type="CollisionShape3D" parent="Hole3/GreenArea3"]
+shape = SubResource("GreenShape")
+
+[node name="Flagstick3" type="Node3D" parent="Hole3"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 580.472, 14.606, -233.439)
+
+[node name="Pole3" type="MeshInstance3D" parent="Hole3/Flagstick3"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 0, 1.5, 0)
+mesh = SubResource("FlagpoleMesh")
+surface_material_override/0 = SubResource("FlagpoleMat")
+
+[node name="Flag3" type="MeshInstance3D" parent="Hole3/Flagstick3"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 0.35, 2.9, 0)
+mesh = SubResource("FlagMesh")
+surface_material_override/0 = SubResource("FlagMat")
+
+[node name="Cup3" type="MeshInstance3D" parent="Hole3/Flagstick3"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 0, 0.01, 0)
+mesh = SubResource("CupMesh")
+surface_material_override/0 = SubResource("CupMat")
+
+[node name="Pin_Medium_3_1" type="Node3D" parent="Hole3"]
+# Medium pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 580.472, 14.606, -233.439)
+
+[node name="Pin_Medium_3_7" type="Node3D" parent="Hole3"]
+# Medium pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 572.106, 14.310, -217.225)
+
+[node name="Pin_Difficult_3_5" type="Node3D" parent="Hole3"]
+# Difficult pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 583.243, 14.638, -236.910)
+
+[node name="Pin_Difficult_3_11" type="Node3D" parent="Hole3"]
+# Difficult pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 588.914, 14.856, -228.714)
+
+[node name="Pin_Easy_3_0" type="Node3D" parent="Hole3"]
+# Easy pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 581.742, 14.693, -224.331)
+
+[node name="Pin_Easy_3_6" type="Node3D" parent="Hole3"]
+# Easy pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 574.446, 14.345, -230.004)
+
+[node name="Pin_Medium_3_4" type="Node3D" parent="Hole3"]
+# Medium pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 587.945, 14.744, -234.446)
+
+[node name="Pin_Easy_3_3" type="Node3D" parent="Hole3"]
+# Easy pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 585.809, 14.839, -226.166)
+
+[node name="Pin_Medium_3_10" type="Node3D" parent="Hole3"]
+# Medium pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 576.087, 14.367, -223.882)
+
+[node name="Pin_Difficult_3_2" type="Node3D" parent="Hole3"]
+# Difficult pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 569.949, 14.208, -224.249)
+
+[node name="Pin_Easy_3_9" type="Node3D" parent="Hole3"]
+# Easy pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 581.025, 14.611, -229.712)
+
+[node name="Pin_Difficult_3_8" type="Node3D" parent="Hole3"]
+# Difficult pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 579.529, 14.475, -218.402)
+
+[node name="Hole4" type="Node3D" parent="."]
+# Hole 4 | Par 4 | 394 yds | SI 3
+
+[node name="TeeBox4" type="MeshInstance3D" parent="Hole4"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 530.348, 10.180, -189.290)
+mesh = SubResource("TeeMesh")
+surface_material_override/0 = SubResource("TeeMat")
+
+[node name="TeeArea4" type="Area3D" parent="Hole4"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 530.348, 10.480, -189.290)
+script = ExtResource("2_tee")
+hole_number = 4
+par = 4
+yardage = 394
+
+[node name="TeeCollision4" type="CollisionShape3D" parent="Hole4/TeeArea4"]
+shape = SubResource("TeeShape")
+
+[node name="TeePeg4" type="MeshInstance3D" parent="Hole4"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 530.348, 10.210, -190.290)
+mesh = SubResource("TeePegMesh")
+surface_material_override/0 = SubResource("TeePegMat")
+
+[node name="Tee_Championship_4" type="Node3D" parent="Hole4"]
+# Championship tee - 394 yds
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 530.348, 10.180, -189.290)
+
+[node name="Tee_Challenge_4" type="Node3D" parent="Hole4"]
+# Challenge tee - 152 yds
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 309.788, 11.374, -215.902)
+
+[node name="Tee_Back_4" type="Node3D" parent="Hole4"]
+# Back tee - 351 yds
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 491.519, 10.180, -191.834)
+
+[node name="Tee_Member_4" type="Node3D" parent="Hole4"]
+# Member tee - 310 yds
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 454.357, 9.931, -197.620)
+
+[node name="Tee_Tournament_4" type="Node3D" parent="Hole4"]
+# Tournament tee - 374 yds
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 512.559, 10.180, -190.539)
+
+[node name="Green4" type="MeshInstance3D" parent="Hole4"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 170.498, 17.405, -213.268)
+mesh = SubResource("GreenMesh")
+surface_material_override/0 = SubResource("GreenMat")
+
+[node name="GreenArea4" type="Area3D" parent="Hole4"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 170.498, 17.405, -213.268)
+script = ExtResource("1_green")
+stimp = 8.0
+par = 4
+hole_number = 4
+
+[node name="GreenCollision4" type="CollisionShape3D" parent="Hole4/GreenArea4"]
+shape = SubResource("GreenShape")
+
+[node name="Flagstick4" type="Node3D" parent="Hole4"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 170.498, 17.385, -213.268)
+
+[node name="Pole4" type="MeshInstance3D" parent="Hole4/Flagstick4"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 0, 1.5, 0)
+mesh = SubResource("FlagpoleMesh")
+surface_material_override/0 = SubResource("FlagpoleMat")
+
+[node name="Flag4" type="MeshInstance3D" parent="Hole4/Flagstick4"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 0.35, 2.9, 0)
+mesh = SubResource("FlagMesh")
+surface_material_override/0 = SubResource("FlagMat")
+
+[node name="Cup4" type="MeshInstance3D" parent="Hole4/Flagstick4"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 0, 0.01, 0)
+mesh = SubResource("CupMesh")
+surface_material_override/0 = SubResource("CupMat")
+
+[node name="Pin_Difficult_4_5" type="Node3D" parent="Hole4"]
+# Difficult pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 170.307, 17.587, -218.772)
+
+[node name="Pin_Easy_4_3" type="Node3D" parent="Hole4"]
+# Easy pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 163.569, 17.680, -212.464)
+
+[node name="Pin_Medium_4_1" type="Node3D" parent="Hole4"]
+# Medium pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 170.498, 17.385, -213.268)
+
+[node name="Pin_Medium_4_7" type="Node3D" parent="Hole4"]
+# Medium pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 165.424, 17.716, -215.924)
+
+[node name="Pin_Easy_4_9" type="Node3D" parent="Hole4"]
+# Easy pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 152.500, 17.900, -207.525)
+
+[node name="Pin_Medium_4_10" type="Node3D" parent="Hole4"]
+# Medium pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 147.442, 18.116, -209.635)
+
+[node name="Pin_Easy_4_6" type="Node3D" parent="Hole4"]
+# Easy pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 161.596, 17.586, -208.126)
+
+[node name="Pin_Difficult_4_8" type="Node3D" parent="Hole4"]
+# Difficult pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 157.599, 17.831, -210.329)
+
+[node name="Pin_Difficult_4_11" type="Node3D" parent="Hole4"]
+# Difficult pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 174.791, 17.261, -214.827)
+
+[node name="Pin_Medium_4_4" type="Node3D" parent="Hole4"]
+# Medium pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 168.617, 17.352, -209.782)
+
+[node name="Pin_Easy_4_0" type="Node3D" parent="Hole4"]
+# Easy pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 150.817, 18.154, -212.180)
+
+[node name="Pin_Difficult_4_2" type="Node3D" parent="Hole4"]
+# Difficult pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 157.264, 18.063, -214.194)
+
+[node name="Hole5" type="Node3D" parent="."]
+# Hole 5 | Par 4 | 392 yds | SI 7
+
+[node name="TeeBox5" type="MeshInstance3D" parent="Hole5"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 148.693, 24.463, -250.818)
+mesh = SubResource("TeeMesh")
+surface_material_override/0 = SubResource("TeeMat")
+
+[node name="TeeArea5" type="Area3D" parent="Hole5"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 148.693, 24.763, -250.818)
+script = ExtResource("2_tee")
+hole_number = 5
+par = 4
+yardage = 392
+
+[node name="TeeCollision5" type="CollisionShape3D" parent="Hole5/TeeArea5"]
+shape = SubResource("TeeShape")
+
+[node name="TeePeg5" type="MeshInstance3D" parent="Hole5"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 148.693, 24.493, -251.818)
+mesh = SubResource("TeePegMesh")
+surface_material_override/0 = SubResource("TeePegMat")
+
+[node name="Tee_Back_5" type="Node3D" parent="Hole5"]
+# Back tee - 362 yds
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 176.591, 22.796, -257.249)
+
+[node name="Tee_Tournament_5" type="Node3D" parent="Hole5"]
+# Tournament tee - 373 yds
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 166.858, 22.796, -255.637)
+
+[node name="Tee_Championship_5" type="Node3D" parent="Hole5"]
+# Championship tee - 392 yds
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 148.693, 24.463, -250.818)
+
+[node name="Tee_Challenge_5" type="Node3D" parent="Hole5"]
+# Challenge tee - 63 yds
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 467.943, 10.550, -278.996)
+
+[node name="Tee_Member_5" type="Node3D" parent="Hole5"]
+# Member tee - 339 yds
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 198.948, 21.794, -266.152)
+
+[node name="Green5" type="MeshInstance3D" parent="Hole5"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 507.774, 10.760, -236.964)
+mesh = SubResource("GreenMesh")
+surface_material_override/0 = SubResource("GreenMat")
+
+[node name="GreenArea5" type="Area3D" parent="Hole5"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 507.774, 10.760, -236.964)
+script = ExtResource("1_green")
+stimp = 8.0
+par = 4
+hole_number = 5
+
+[node name="GreenCollision5" type="CollisionShape3D" parent="Hole5/GreenArea5"]
+shape = SubResource("GreenShape")
+
+[node name="Flagstick5" type="Node3D" parent="Hole5"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 507.774, 10.740, -236.964)
+
+[node name="Pole5" type="MeshInstance3D" parent="Hole5/Flagstick5"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 0, 1.5, 0)
+mesh = SubResource("FlagpoleMesh")
+surface_material_override/0 = SubResource("FlagpoleMat")
+
+[node name="Flag5" type="MeshInstance3D" parent="Hole5/Flagstick5"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 0.35, 2.9, 0)
+mesh = SubResource("FlagMesh")
+surface_material_override/0 = SubResource("FlagMat")
+
+[node name="Cup5" type="MeshInstance3D" parent="Hole5/Flagstick5"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 0, 0.01, 0)
+mesh = SubResource("CupMesh")
+surface_material_override/0 = SubResource("CupMat")
+
+[node name="Pin_Easy_5_6" type="Node3D" parent="Hole5"]
+# Easy pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 522.329, 10.843, -237.111)
+
+[node name="Pin_Medium_5_7" type="Node3D" parent="Hole5"]
+# Medium pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 507.774, 10.740, -236.964)
+
+[node name="Pin_Difficult_5_11" type="Node3D" parent="Hole5"]
+# Difficult pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 502.283, 10.681, -224.428)
+
+[node name="Pin_Difficult_5_2" type="Node3D" parent="Hole5"]
+# Difficult pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 506.046, 10.887, -242.333)
+
+[node name="Pin_Easy_5_9" type="Node3D" parent="Hole5"]
+# Easy pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 511.516, 10.622, -230.564)
+
+[node name="Pin_Easy_5_0" type="Node3D" parent="Hole5"]
+# Easy pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 513.026, 10.747, -238.208)
+
+[node name="Pin_Medium_5_4" type="Node3D" parent="Hole5"]
+# Medium pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 505.430, 10.670, -230.309)
+
+[node name="Pin_Easy_5_3" type="Node3D" parent="Hole5"]
+# Easy pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 519.816, 10.633, -226.274)
+
+[node name="Pin_Difficult_5_5" type="Node3D" parent="Hole5"]
+# Difficult pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 514.009, 10.496, -222.900)
+
+[node name="Pin_Medium_5_10" type="Node3D" parent="Hole5"]
+# Medium pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 518.513, 10.688, -233.539)
+
+[node name="Pin_Difficult_5_8" type="Node3D" parent="Hole5"]
+# Difficult pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 507.525, 10.523, -220.169)
+
+[node name="Pin_Medium_5_1" type="Node3D" parent="Hole5"]
+# Medium pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 515.781, 10.831, -242.445)
+
+[node name="Hole6" type="Node3D" parent="."]
+# Hole 6 | Par 3 | 172 yds | SI 17
+
+[node name="TeeBox6" type="MeshInstance3D" parent="Hole6"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 468.788, 13.315, -331.302)
+mesh = SubResource("TeeMesh")
+surface_material_override/0 = SubResource("TeeMat")
+
+[node name="TeeArea6" type="Area3D" parent="Hole6"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 468.788, 13.615, -331.302)
+script = ExtResource("2_tee")
+hole_number = 6
+par = 3
+yardage = 172
+
+[node name="TeeCollision6" type="CollisionShape3D" parent="Hole6/TeeArea6"]
+shape = SubResource("TeeShape")
+
+[node name="TeePeg6" type="MeshInstance3D" parent="Hole6"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 468.788, 13.345, -332.302)
+mesh = SubResource("TeePegMesh")
+surface_material_override/0 = SubResource("TeePegMat")
+
+[node name="Tee_Tournament_6" type="Node3D" parent="Hole6"]
+# Tournament tee - 147 yds
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 445.120, 12.842, -316.793)
+
+[node name="Tee_Member_6" type="Node3D" parent="Hole6"]
+# Member tee - 102 yds
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 404.334, 12.993, -325.789)
+
+[node name="Tee_Challenge_6" type="Node3D" parent="Hole6"]
+# Challenge tee - 115 yds
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 415.841, 12.842, -321.267)
+
+[node name="Tee_Back_6" type="Node3D" parent="Hole6"]
+# Back tee - 129 yds
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 428.493, 12.842, -319.661)
+
+[node name="Tee_Championship_6" type="Node3D" parent="Hole6"]
+# Championship tee - 172 yds
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 468.788, 13.315, -331.302)
+
+[node name="Green6" type="MeshInstance3D" parent="Hole6"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 310.721, 17.557, -330.065)
+mesh = SubResource("GreenMesh")
+surface_material_override/0 = SubResource("GreenMat")
+
+[node name="GreenArea6" type="Area3D" parent="Hole6"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 310.721, 17.557, -330.065)
+script = ExtResource("1_green")
+stimp = 8.0
+par = 3
+hole_number = 6
+
+[node name="GreenCollision6" type="CollisionShape3D" parent="Hole6/GreenArea6"]
+shape = SubResource("GreenShape")
+
+[node name="Flagstick6" type="Node3D" parent="Hole6"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 310.721, 17.537, -330.065)
+
+[node name="Pole6" type="MeshInstance3D" parent="Hole6/Flagstick6"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 0, 1.5, 0)
+mesh = SubResource("FlagpoleMesh")
+surface_material_override/0 = SubResource("FlagpoleMat")
+
+[node name="Flag6" type="MeshInstance3D" parent="Hole6/Flagstick6"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 0.35, 2.9, 0)
+mesh = SubResource("FlagMesh")
+surface_material_override/0 = SubResource("FlagMat")
+
+[node name="Cup6" type="MeshInstance3D" parent="Hole6/Flagstick6"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 0, 0.01, 0)
+mesh = SubResource("CupMesh")
+surface_material_override/0 = SubResource("CupMat")
+
+[node name="Pin_Easy_6_6" type="Node3D" parent="Hole6"]
+# Easy pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 307.021, 17.587, -327.063)
+
+[node name="Pin_Medium_6_1" type="Node3D" parent="Hole6"]
+# Medium pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 310.721, 17.537, -330.065)
+
+[node name="Pin_Medium_6_7" type="Node3D" parent="Hole6"]
+# Medium pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 305.585, 18.178, -338.899)
+
+[node name="Pin_Difficult_6_8" type="Node3D" parent="Hole6"]
+# Difficult pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 293.232, 18.216, -324.902)
+
+[node name="Pin_Easy_6_0" type="Node3D" parent="Hole6"]
+# Easy pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 299.421, 17.688, -320.808)
+
+[node name="Pin_Easy_6_3" type="Node3D" parent="Hole6"]
+# Easy pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 307.747, 17.824, -333.727)
+
+[node name="Pin_Difficult_6_11" type="Node3D" parent="Hole6"]
+# Difficult pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 300.011, 18.342, -336.752)
+
+[node name="Pin_Difficult_6_5" type="Node3D" parent="Hole6"]
+# Difficult pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 295.005, 18.270, -330.950)
+
+[node name="Pin_Medium_6_10" type="Node3D" parent="Hole6"]
+# Medium pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 300.891, 17.804, -327.213)
+
+[node name="Pin_Medium_6_4" type="Node3D" parent="Hole6"]
+# Medium pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 310.769, 17.967, -338.521)
+
+[node name="Pin_Difficult_6_2" type="Node3D" parent="Hole6"]
+# Difficult pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 303.031, 17.921, -331.760)
+
+[node name="Pin_Easy_6_9" type="Node3D" parent="Hole6"]
+# Easy pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 305.244, 17.492, -323.064)
+
+[node name="Hole7" type="Node3D" parent="."]
+# Hole 7 | Par 4 | 343 yds | SI 5
+
+[node name="TeeBox7" type="MeshInstance3D" parent="Hole7"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 311.880, 28.051, -417.138)
+mesh = SubResource("TeeMesh")
+surface_material_override/0 = SubResource("TeeMat")
+
+[node name="TeeArea7" type="Area3D" parent="Hole7"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 311.880, 28.351, -417.138)
+script = ExtResource("2_tee")
+hole_number = 7
+par = 4
+yardage = 343
+
+[node name="TeeCollision7" type="CollisionShape3D" parent="Hole7/TeeArea7"]
+shape = SubResource("TeeShape")
+
+[node name="TeePeg7" type="MeshInstance3D" parent="Hole7"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 311.880, 28.081, -418.138)
+mesh = SubResource("TeePegMesh")
+surface_material_override/0 = SubResource("TeePegMat")
+
+[node name="Tee_Member_7" type="Node3D" parent="Hole7"]
+# Member tee - 268 yds
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 334.528, 23.379, -482.030)
+
+[node name="Tee_Back_7" type="Node3D" parent="Hole7"]
+# Back tee - 317 yds
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 323.360, 27.687, -438.104)
+
+[node name="Tee_Tournament_7" type="Node3D" parent="Hole7"]
+# Tournament tee - 331 yds
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 316.795, 28.051, -427.085)
+
+[node name="Tee_Challenge_7" type="Node3D" parent="Hole7"]
+# Challenge tee - 31 yds
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 438.326, 25.405, -672.895)
+
+[node name="Tee_Championship_7" type="Node3D" parent="Hole7"]
+# Championship tee - 343 yds
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 311.880, 28.051, -417.138)
+
+[node name="Green7" type="MeshInstance3D" parent="Hole7"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 453.154, 27.921, -697.400)
+mesh = SubResource("GreenMesh")
+surface_material_override/0 = SubResource("GreenMat")
+
+[node name="GreenArea7" type="Area3D" parent="Hole7"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 453.154, 27.921, -697.400)
+script = ExtResource("1_green")
+stimp = 8.0
+par = 4
+hole_number = 7
+
+[node name="GreenCollision7" type="CollisionShape3D" parent="Hole7/GreenArea7"]
+shape = SubResource("GreenShape")
+
+[node name="Flagstick7" type="Node3D" parent="Hole7"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 453.154, 27.901, -697.400)
+
+[node name="Pole7" type="MeshInstance3D" parent="Hole7/Flagstick7"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 0, 1.5, 0)
+mesh = SubResource("FlagpoleMesh")
+surface_material_override/0 = SubResource("FlagpoleMat")
+
+[node name="Flag7" type="MeshInstance3D" parent="Hole7/Flagstick7"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 0.35, 2.9, 0)
+mesh = SubResource("FlagMesh")
+surface_material_override/0 = SubResource("FlagMat")
+
+[node name="Cup7" type="MeshInstance3D" parent="Hole7/Flagstick7"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 0, 0.01, 0)
+mesh = SubResource("CupMesh")
+surface_material_override/0 = SubResource("CupMat")
+
+[node name="Pin_Easy_7_0" type="Node3D" parent="Hole7"]
+# Easy pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 452.474, 27.943, -700.957)
+
+[node name="Pin_Difficult_7_2" type="Node3D" parent="Hole7"]
+# Difficult pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 461.459, 28.675, -717.191)
+
+[node name="Pin_Medium_7_1" type="Node3D" parent="Hole7"]
+# Medium pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 453.154, 27.901, -697.400)
+
+[node name="Pin_Easy_7_6" type="Node3D" parent="Hole7"]
+# Easy pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 448.773, 27.934, -695.663)
+
+[node name="Pin_Easy_7_3" type="Node3D" parent="Hole7"]
+# Easy pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 444.644, 27.913, -697.003)
+
+[node name="Pin_Difficult_7_11" type="Node3D" parent="Hole7"]
+# Difficult pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 456.812, 27.894, -700.709)
+
+[node name="Pin_Easy_7_9" type="Node3D" parent="Hole7"]
+# Easy pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 447.859, 27.945, -701.159)
+
+[node name="Pin_Difficult_7_5" type="Node3D" parent="Hole7"]
+# Difficult pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 453.383, 28.037, -704.951)
+
+[node name="Pin_Medium_7_4" type="Node3D" parent="Hole7"]
+# Medium pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 441.263, 27.722, -690.625)
+
+[node name="Pin_Medium_7_10" type="Node3D" parent="Hole7"]
+# Medium pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 464.062, 28.635, -718.340)
+
+[node name="Pin_Difficult_7_8" type="Node3D" parent="Hole7"]
+# Difficult pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 461.852, 28.618, -712.556)
+
+[node name="Pin_Medium_7_7" type="Node3D" parent="Hole7"]
+# Medium pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 445.347, 27.809, -692.258)
+
+[node name="Hole8" type="Node3D" parent="."]
+# Hole 8 | Par 4 | 343 yds | SI 9
+
+[node name="TeeBox8" type="MeshInstance3D" parent="Hole8"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 554.977, 28.984, -843.484)
+mesh = SubResource("TeeMesh")
+surface_material_override/0 = SubResource("TeeMat")
+
+[node name="TeeArea8" type="Area3D" parent="Hole8"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 554.977, 29.284, -843.484)
+script = ExtResource("2_tee")
+hole_number = 8
+par = 4
+yardage = 343
+
+[node name="TeeCollision8" type="CollisionShape3D" parent="Hole8/TeeArea8"]
+shape = SubResource("TeeShape")
+
+[node name="TeePeg8" type="MeshInstance3D" parent="Hole8"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 554.977, 29.014, -844.484)
+mesh = SubResource("TeePegMesh")
+surface_material_override/0 = SubResource("TeePegMat")
+
+[node name="Tee_Challenge_8" type="Node3D" parent="Hole8"]
+# Challenge tee - 112 yds
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 378.374, 28.394, -607.915)
+
+[node name="Tee_Back_8" type="Node3D" parent="Hole8"]
+# Back tee - 302 yds
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 548.904, 27.598, -806.377)
+
+[node name="Tee_Tournament_8" type="Node3D" parent="Hole8"]
+# Tournament tee - 311 yds
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 551.021, 27.598, -814.240)
+
+[node name="Tee_Championship_8" type="Node3D" parent="Hole8"]
+# Championship tee - 343 yds
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 554.977, 28.984, -843.484)
+
+[node name="Tee_Member_8" type="Node3D" parent="Hole8"]
+# Member tee - 281 yds
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 546.536, 25.588, -786.702)
+
+[node name="Green8" type="MeshInstance3D" parent="Hole8"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 459.571, 19.437, -544.391)
+mesh = SubResource("GreenMesh")
+surface_material_override/0 = SubResource("GreenMat")
+
+[node name="GreenArea8" type="Area3D" parent="Hole8"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 459.571, 19.437, -544.391)
+script = ExtResource("1_green")
+stimp = 8.0
+par = 4
+hole_number = 8
+
+[node name="GreenCollision8" type="CollisionShape3D" parent="Hole8/GreenArea8"]
+shape = SubResource("GreenShape")
+
+[node name="Flagstick8" type="Node3D" parent="Hole8"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 459.571, 19.417, -544.391)
+
+[node name="Pole8" type="MeshInstance3D" parent="Hole8/Flagstick8"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 0, 1.5, 0)
+mesh = SubResource("FlagpoleMesh")
+surface_material_override/0 = SubResource("FlagpoleMat")
+
+[node name="Flag8" type="MeshInstance3D" parent="Hole8/Flagstick8"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 0.35, 2.9, 0)
+mesh = SubResource("FlagMesh")
+surface_material_override/0 = SubResource("FlagMat")
+
+[node name="Cup8" type="MeshInstance3D" parent="Hole8/Flagstick8"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 0, 0.01, 0)
+mesh = SubResource("CupMesh")
+surface_material_override/0 = SubResource("CupMat")
+
+[node name="Pin_Easy_8_6" type="Node3D" parent="Hole8"]
+# Easy pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 452.491, 19.505, -548.857)
+
+[node name="Pin_Difficult_8_11" type="Node3D" parent="Hole8"]
+# Difficult pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 455.232, 19.509, -533.205)
+
+[node name="Pin_Easy_8_3" type="Node3D" parent="Hole8"]
+# Easy pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 448.786, 19.537, -534.776)
+
+[node name="Pin_Medium_8_4" type="Node3D" parent="Hole8"]
+# Medium pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 459.571, 19.417, -544.391)
+
+[node name="Pin_Medium_8_7" type="Node3D" parent="Hole8"]
+# Medium pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 440.897, 19.577, -538.932)
+
+[node name="Pin_Medium_8_1" type="Node3D" parent="Hole8"]
+# Medium pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 453.199, 19.551, -543.799)
+
+[node name="Pin_Difficult_8_8" type="Node3D" parent="Hole8"]
+# Difficult pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 447.479, 19.450, -528.549)
+
+[node name="Pin_Difficult_8_2" type="Node3D" parent="Hole8"]
+# Difficult pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 444.205, 19.708, -545.468)
+
+[node name="Pin_Easy_8_0" type="Node3D" parent="Hole8"]
+# Easy pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 455.973, 19.523, -538.236)
+
+[node name="Pin_Difficult_8_5" type="Node3D" parent="Hole8"]
+# Difficult pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 462.642, 19.390, -536.953)
+
+[node name="Pin_Medium_8_10" type="Node3D" parent="Hole8"]
+# Medium pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 441.345, 19.495, -531.894)
+
+[node name="Pin_Easy_8_9" type="Node3D" parent="Hole8"]
+# Easy pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 448.685, 19.602, -540.364)
+
+[node name="Hole9" type="Node3D" parent="."]
+# Hole 9 | Par 4 | 366 yds | SI 11
+
+[node name="TeeBox9" type="MeshInstance3D" parent="Hole9"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 395.594, 19.085, -511.154)
+mesh = SubResource("TeeMesh")
+surface_material_override/0 = SubResource("TeeMat")
+
+[node name="TeeArea9" type="Area3D" parent="Hole9"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 395.594, 19.385, -511.154)
+script = ExtResource("2_tee")
+hole_number = 9
+par = 4
+yardage = 366
+
+[node name="TeeCollision9" type="CollisionShape3D" parent="Hole9/TeeArea9"]
+shape = SubResource("TeeShape")
+
+[node name="TeePeg9" type="MeshInstance3D" parent="Hole9"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 395.594, 19.115, -512.154)
+mesh = SubResource("TeePegMesh")
+surface_material_override/0 = SubResource("TeePegMat")
+
+[node name="Tee_Member_9" type="Node3D" parent="Hole9"]
+# Member tee - 310 yds
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 442.981, 17.925, -489.875)
+
+[node name="Tee_Tournament_9" type="Node3D" parent="Hole9"]
+# Tournament tee - 349 yds
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 410.946, 19.085, -508.555)
+
+[node name="Tee_Challenge_9" type="Node3D" parent="Hole9"]
+# Challenge tee - 110 yds
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 630.751, 14.029, -481.649)
+
+[node name="Tee_Championship_9" type="Node3D" parent="Hole9"]
+# Championship tee - 366 yds
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 395.594, 19.085, -511.154)
+
+[node name="Tee_Back_9" type="Node3D" parent="Hole9"]
+# Back tee - 324 yds
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 432.794, 18.447, -501.766)
+
+[node name="Green9" type="MeshInstance3D" parent="Hole9"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 722.848, 18.690, -439.831)
+mesh = SubResource("GreenMesh")
+surface_material_override/0 = SubResource("GreenMat")
+
+[node name="GreenArea9" type="Area3D" parent="Hole9"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 722.848, 18.690, -439.831)
+script = ExtResource("1_green")
+stimp = 8.0
+par = 4
+hole_number = 9
+
+[node name="GreenCollision9" type="CollisionShape3D" parent="Hole9/GreenArea9"]
+shape = SubResource("GreenShape")
+
+[node name="Flagstick9" type="Node3D" parent="Hole9"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 722.848, 18.670, -439.831)
+
+[node name="Pole9" type="MeshInstance3D" parent="Hole9/Flagstick9"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 0, 1.5, 0)
+mesh = SubResource("FlagpoleMesh")
+surface_material_override/0 = SubResource("FlagpoleMat")
+
+[node name="Flag9" type="MeshInstance3D" parent="Hole9/Flagstick9"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 0.35, 2.9, 0)
+mesh = SubResource("FlagMesh")
+surface_material_override/0 = SubResource("FlagMat")
+
+[node name="Cup9" type="MeshInstance3D" parent="Hole9/Flagstick9"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 0, 0.01, 0)
+mesh = SubResource("CupMesh")
+surface_material_override/0 = SubResource("CupMat")
+
+[node name="Pin_Medium_9_10" type="Node3D" parent="Hole9"]
+# Medium pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 722.848, 18.670, -439.831)
+
+[node name="Pin_Difficult_9_5" type="Node3D" parent="Hole9"]
+# Difficult pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 738.093, 19.055, -445.269)
+
+[node name="Pin_Medium_9_1" type="Node3D" parent="Hole9"]
+# Medium pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 715.813, 18.607, -443.921)
+
+[node name="Pin_Medium_9_4" type="Node3D" parent="Hole9"]
+# Medium pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 718.992, 18.822, -449.726)
+
+[node name="Pin_Difficult_9_11" type="Node3D" parent="Hole9"]
+# Difficult pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 711.164, 18.329, -439.203)
+
+[node name="Pin_Difficult_9_8" type="Node3D" parent="Hole9"]
+# Difficult pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 712.047, 18.523, -444.623)
+
+[node name="Pin_Difficult_9_2" type="Node3D" parent="Hole9"]
+# Difficult pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 727.040, 18.762, -453.308)
+
+[node name="Pin_Easy_9_6" type="Node3D" parent="Hole9"]
+# Easy pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 728.966, 18.849, -447.155)
+
+[node name="Pin_Easy_9_0" type="Node3D" parent="Hole9"]
+# Easy pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 721.859, 18.755, -445.118)
+
+[node name="Pin_Easy_9_9" type="Node3D" parent="Hole9"]
+# Easy pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 714.358, 18.469, -436.502)
+
+[node name="Pin_Medium_9_7" type="Node3D" parent="Hole9"]
+# Medium pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 730.722, 18.738, -438.842)
+
+[node name="Pin_Easy_9_3" type="Node3D" parent="Hole9"]
+# Easy pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 719.450, 18.577, -436.355)
+
+[node name="Hole10" type="Node3D" parent="."]
+# Hole 10 | Par 4 | 349 yds | SI 10
+
+[node name="TeeBox10" type="MeshInstance3D" parent="Hole10"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 722.635, 19.345, -479.044)
+mesh = SubResource("TeeMesh")
+surface_material_override/0 = SubResource("TeeMat")
+
+[node name="TeeArea10" type="Area3D" parent="Hole10"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 722.635, 19.645, -479.044)
+script = ExtResource("2_tee")
+hole_number = 10
+par = 4
+yardage = 349
+
+[node name="TeeCollision10" type="CollisionShape3D" parent="Hole10/TeeArea10"]
+shape = SubResource("TeeShape")
+
+[node name="TeePeg10" type="MeshInstance3D" parent="Hole10"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 722.635, 19.375, -480.044)
+mesh = SubResource("TeePegMesh")
+surface_material_override/0 = SubResource("TeePegMat")
+
+[node name="Tee_Challenge_10" type="Node3D" parent="Hole10"]
+# Challenge tee - 56 yds
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 571.824, 26.672, -817.252)
+
+[node name="Tee_Member_10" type="Node3D" parent="Hole10"]
+# Member tee - 290 yds
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 685.497, 15.380, -521.945)
+
+[node name="Tee_Tournament_10" type="Node3D" parent="Hole10"]
+# Tournament tee - 336 yds
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 715.770, 19.345, -488.413)
+
+[node name="Tee_Championship_10" type="Node3D" parent="Hole10"]
+# Championship tee - 349 yds
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 722.635, 19.345, -479.044)
+
+[node name="Tee_Back_10" type="Node3D" parent="Hole10"]
+# Back tee - 310 yds
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 699.678, 16.697, -507.841)
+
+[node name="Green10" type="MeshInstance3D" parent="Hole10"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 587.526, 17.905, -768.485)
+mesh = SubResource("GreenMesh")
+surface_material_override/0 = SubResource("GreenMat")
+
+[node name="GreenArea10" type="Area3D" parent="Hole10"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 587.526, 17.905, -768.485)
+script = ExtResource("1_green")
+stimp = 8.0
+par = 4
+hole_number = 10
+
+[node name="GreenCollision10" type="CollisionShape3D" parent="Hole10/GreenArea10"]
+shape = SubResource("GreenShape")
+
+[node name="Flagstick10" type="Node3D" parent="Hole10"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 587.526, 17.885, -768.485)
+
+[node name="Pole10" type="MeshInstance3D" parent="Hole10/Flagstick10"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 0, 1.5, 0)
+mesh = SubResource("FlagpoleMesh")
+surface_material_override/0 = SubResource("FlagpoleMat")
+
+[node name="Flag10" type="MeshInstance3D" parent="Hole10/Flagstick10"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 0.35, 2.9, 0)
+mesh = SubResource("FlagMesh")
+surface_material_override/0 = SubResource("FlagMat")
+
+[node name="Cup10" type="MeshInstance3D" parent="Hole10/Flagstick10"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 0, 0.01, 0)
+mesh = SubResource("CupMesh")
+surface_material_override/0 = SubResource("CupMat")
+
+[node name="Pin_Easy_10_6" type="Node3D" parent="Hole10"]
+# Easy pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 609.336, 17.827, -787.255)
+
+[node name="Pin_Difficult_10_11" type="Node3D" parent="Hole10"]
+# Difficult pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 595.244, 18.082, -782.354)
+
+[node name="Pin_Easy_10_9" type="Node3D" parent="Hole10"]
+# Easy pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 605.570, 17.697, -782.573)
+
+[node name="Pin_Medium_10_4" type="Node3D" parent="Hole10"]
+# Medium pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 587.526, 17.885, -768.485)
+
+[node name="Pin_Medium_10_1" type="Node3D" parent="Hole10"]
+# Medium pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 601.611, 17.974, -785.501)
+
+[node name="Pin_Medium_10_7" type="Node3D" parent="Hole10"]
+# Medium pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 592.907, 17.757, -769.115)
+
+[node name="Pin_Easy_10_0" type="Node3D" parent="Hole10"]
+# Easy pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 591.146, 17.933, -774.301)
+
+[node name="Pin_Difficult_10_5" type="Node3D" parent="Hole10"]
+# Difficult pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 603.564, 18.193, -790.230)
+
+[node name="Pin_Difficult_10_8" type="Node3D" parent="Hole10"]
+# Difficult pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 587.560, 18.109, -775.764)
+
+[node name="Pin_Easy_10_3" type="Node3D" parent="Hole10"]
+# Easy pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 597.832, 17.720, -774.254)
+
+[node name="Pin_Difficult_10_2" type="Node3D" parent="Hole10"]
+# Difficult pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 609.392, 18.153, -792.732)
+
+[node name="Pin_Medium_10_10" type="Node3D" parent="Hole10"]
+# Medium pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 597.192, 17.879, -779.155)
+
+[node name="Hole11" type="Node3D" parent="."]
+# Hole 11 | Par 4 | 314 yds | SI 14
+
+[node name="TeeBox11" type="MeshInstance3D" parent="Hole11"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 586.389, 30.301, -852.754)
+mesh = SubResource("TeeMesh")
+surface_material_override/0 = SubResource("TeeMat")
+
+[node name="TeeArea11" type="Area3D" parent="Hole11"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 586.389, 30.601, -852.754)
+script = ExtResource("2_tee")
+hole_number = 11
+par = 4
+yardage = 314
+
+[node name="TeeCollision11" type="CollisionShape3D" parent="Hole11/TeeArea11"]
+shape = SubResource("TeeShape")
+
+[node name="TeePeg11" type="MeshInstance3D" parent="Hole11"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 586.389, 30.331, -853.754)
+mesh = SubResource("TeePegMesh")
+surface_material_override/0 = SubResource("TeePegMat")
+
+[node name="Tee_Tournament_11" type="Node3D" parent="Hole11"]
+# Tournament tee - 296 yds
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 599.025, 30.301, -862.433)
+
+[node name="Tee_Championship_11" type="Node3D" parent="Hole11"]
+# Championship tee - 314 yds
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 586.389, 30.301, -852.754)
+
+[node name="Tee_Back_11" type="Node3D" parent="Hole11"]
+# Back tee - 279 yds
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 611.680, 30.301, -872.377)
+
+[node name="Tee_Challenge_11" type="Node3D" parent="Hole11"]
+# Challenge tee - 100 yds
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 739.603, 11.576, -974.271)
+
+[node name="Tee_Member_11" type="Node3D" parent="Hole11"]
+# Member tee - 257 yds
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 631.934, 30.479, -879.015)
+
+[node name="Green11" type="MeshInstance3D" parent="Hole11"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 813.766, 8.325, -1028.541)
+mesh = SubResource("GreenMesh")
+surface_material_override/0 = SubResource("GreenMat")
+
+[node name="GreenArea11" type="Area3D" parent="Hole11"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 813.766, 8.325, -1028.541)
+script = ExtResource("1_green")
+stimp = 8.0
+par = 4
+hole_number = 11
+
+[node name="GreenCollision11" type="CollisionShape3D" parent="Hole11/GreenArea11"]
+shape = SubResource("GreenShape")
+
+[node name="Flagstick11" type="Node3D" parent="Hole11"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 813.766, 8.305, -1028.541)
+
+[node name="Pole11" type="MeshInstance3D" parent="Hole11/Flagstick11"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 0, 1.5, 0)
+mesh = SubResource("FlagpoleMesh")
+surface_material_override/0 = SubResource("FlagpoleMat")
+
+[node name="Flag11" type="MeshInstance3D" parent="Hole11/Flagstick11"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 0.35, 2.9, 0)
+mesh = SubResource("FlagMesh")
+surface_material_override/0 = SubResource("FlagMat")
+
+[node name="Cup11" type="MeshInstance3D" parent="Hole11/Flagstick11"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 0, 0.01, 0)
+mesh = SubResource("CupMesh")
+surface_material_override/0 = SubResource("CupMat")
+
+[node name="Pin_Difficult_11_8" type="Node3D" parent="Hole11"]
+# Difficult pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 819.907, 7.715, -1015.998)
+
+[node name="Pin_Easy_11_3" type="Node3D" parent="Hole11"]
+# Easy pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 823.458, 7.983, -1035.074)
+
+[node name="Pin_Medium_11_10" type="Node3D" parent="Hole11"]
+# Medium pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 813.766, 8.305, -1028.541)
+
+[node name="Pin_Easy_11_0" type="Node3D" parent="Hole11"]
+# Easy pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 817.870, 7.944, -1023.275)
+
+[node name="Pin_Difficult_11_11" type="Node3D" parent="Hole11"]
+# Difficult pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 815.467, 8.427, -1035.409)
+
+[node name="Pin_Difficult_11_2" type="Node3D" parent="Hole11"]
+# Difficult pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 822.136, 7.796, -1027.335)
+
+[node name="Pin_Medium_11_4" type="Node3D" parent="Hole11"]
+# Medium pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 820.964, 8.201, -1037.882)
+
+[node name="Pin_Easy_11_6" type="Node3D" parent="Hole11"]
+# Easy pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 823.422, 7.634, -1021.617)
+
+[node name="Pin_Difficult_11_5" type="Node3D" parent="Hole11"]
+# Difficult pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 807.833, 8.816, -1030.779)
+
+[node name="Pin_Medium_11_7" type="Node3D" parent="Hole11"]
+# Medium pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 818.152, 8.557, -1042.358)
+
+[node name="Pin_Easy_11_9" type="Node3D" parent="Hole11"]
+# Easy pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 809.500, 8.416, -1022.860)
+
+[node name="Pin_Medium_11_1" type="Node3D" parent="Hole11"]
+# Medium pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 814.228, 8.080, -1018.861)
+
+[node name="Hole12" type="Node3D" parent="."]
+# Hole 12 | Par 3 | 193 yds | SI 16
+
+[node name="TeeBox12" type="MeshInstance3D" parent="Hole12"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 810.833, 10.715, -1134.647)
+mesh = SubResource("TeeMesh")
+surface_material_override/0 = SubResource("TeeMat")
+
+[node name="TeeArea12" type="Area3D" parent="Hole12"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 810.833, 11.015, -1134.647)
+script = ExtResource("2_tee")
+hole_number = 12
+par = 3
+yardage = 193
+
+[node name="TeeCollision12" type="CollisionShape3D" parent="Hole12/TeeArea12"]
+shape = SubResource("TeeShape")
+
+[node name="TeePeg12" type="MeshInstance3D" parent="Hole12"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 810.833, 10.745, -1135.647)
+mesh = SubResource("TeePegMesh")
+surface_material_override/0 = SubResource("TeePegMat")
+
+[node name="Tee_Tournament_12" type="Node3D" parent="Hole12"]
+# Tournament tee - 186 yds
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 816.768, 10.715, -1134.225)
+
+[node name="Tee_Member_12" type="Node3D" parent="Hole12"]
+# Member tee - 164 yds
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 837.754, 9.741, -1134.540)
+
+[node name="Tee_Back_12" type="Node3D" parent="Hole12"]
+# Back tee - 178 yds
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 824.667, 10.715, -1133.890)
+
+[node name="Tee_Championship_12" type="Node3D" parent="Hole12"]
+# Championship tee - 193 yds
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 810.833, 10.715, -1134.647)
+
+[node name="Tee_Challenge_12" type="Node3D" parent="Hole12"]
+# Challenge tee - 52 yds
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 995.569, 2.463, -1056.957)
+
+[node name="Green12" type="MeshInstance3D" parent="Hole12"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 984.854, 3.708, -1104.218)
+mesh = SubResource("GreenMesh")
+surface_material_override/0 = SubResource("GreenMat")
+
+[node name="GreenArea12" type="Area3D" parent="Hole12"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 984.854, 3.708, -1104.218)
+script = ExtResource("1_green")
+stimp = 8.0
+par = 3
+hole_number = 12
+
+[node name="GreenCollision12" type="CollisionShape3D" parent="Hole12/GreenArea12"]
+shape = SubResource("GreenShape")
+
+[node name="Flagstick12" type="Node3D" parent="Hole12"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 984.854, 3.688, -1104.218)
+
+[node name="Pole12" type="MeshInstance3D" parent="Hole12/Flagstick12"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 0, 1.5, 0)
+mesh = SubResource("FlagpoleMesh")
+surface_material_override/0 = SubResource("FlagpoleMat")
+
+[node name="Flag12" type="MeshInstance3D" parent="Hole12/Flagstick12"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 0.35, 2.9, 0)
+mesh = SubResource("FlagMesh")
+surface_material_override/0 = SubResource("FlagMat")
+
+[node name="Cup12" type="MeshInstance3D" parent="Hole12/Flagstick12"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 0, 0.01, 0)
+mesh = SubResource("CupMesh")
+surface_material_override/0 = SubResource("CupMat")
+
+[node name="Pin_Medium_12_1" type="Node3D" parent="Hole12"]
+# Medium pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 984.854, 3.688, -1104.218)
+
+[node name="Pin_Medium_12_10" type="Node3D" parent="Hole12"]
+# Medium pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 978.560, 3.820, -1103.859)
+
+[node name="Pin_Difficult_12_8" type="Node3D" parent="Hole12"]
+# Difficult pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 974.585, 3.975, -1111.810)
+
+[node name="Pin_Easy_12_0" type="Node3D" parent="Hole12"]
+# Easy pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 983.665, 3.640, -1111.714)
+
+[node name="Pin_Easy_12_9" type="Node3D" parent="Hole12"]
+# Easy pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 989.142, 3.524, -1107.528)
+
+[node name="Pin_Medium_12_4" type="Node3D" parent="Hole12"]
+# Medium pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 979.017, 3.798, -1108.495)
+
+[node name="Pin_Medium_12_7" type="Node3D" parent="Hole12"]
+# Medium pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 991.841, 3.604, -1100.358)
+
+[node name="Pin_Easy_12_3" type="Node3D" parent="Hole12"]
+# Easy pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 997.264, 3.552, -1108.019)
+
+[node name="Pin_Difficult_12_11" type="Node3D" parent="Hole12"]
+# Difficult pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 989.956, 3.453, -1113.838)
+
+[node name="Pin_Easy_12_6" type="Node3D" parent="Hole12"]
+# Easy pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 978.060, 3.808, -1116.982)
+
+[node name="Pin_Difficult_12_5" type="Node3D" parent="Hole12"]
+# Difficult pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 999.464, 3.608, -1101.720)
+
+[node name="Pin_Difficult_12_2" type="Node3D" parent="Hole12"]
+# Difficult pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 972.462, 3.940, -1118.442)
+
+[node name="Hole13" type="Node3D" parent="."]
+# Hole 13 | Par 4 | 357 yds | SI 12
+
+[node name="TeeBox13" type="MeshInstance3D" parent="Hole13"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 963.864, 3.897, -1038.379)
+mesh = SubResource("TeeMesh")
+surface_material_override/0 = SubResource("TeeMat")
+
+[node name="TeeArea13" type="Area3D" parent="Hole13"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 963.864, 4.197, -1038.379)
+script = ExtResource("2_tee")
+hole_number = 13
+par = 4
+yardage = 357
+
+[node name="TeeCollision13" type="CollisionShape3D" parent="Hole13/TeeArea13"]
+shape = SubResource("TeeShape")
+
+[node name="TeePeg13" type="MeshInstance3D" parent="Hole13"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 963.864, 3.927, -1039.379)
+mesh = SubResource("TeePegMesh")
+surface_material_override/0 = SubResource("TeePegMat")
+
+[node name="Tee_Championship_13" type="Node3D" parent="Hole13"]
+# Championship tee - 357 yds
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 963.864, 3.897, -1038.379)
+
+[node name="Tee_Back_13" type="Node3D" parent="Hole13"]
+# Back tee - 332 yds
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 963.048, 3.897, -1015.877)
+
+[node name="Tee_Challenge_13" type="Node3D" parent="Hole13"]
+# Challenge tee - 44 yds
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 993.514, 15.758, -751.926)
+
+[node name="Tee_Member_13" type="Node3D" parent="Hole13"]
+# Member tee - 313 yds
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 960.811, 4.425, -998.278)
+
+[node name="Tee_Tournament_13" type="Node3D" parent="Hole13"]
+# Tournament tee - 347 yds
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 963.671, 3.897, -1029.230)
+
+[node name="Green13" type="MeshInstance3D" parent="Hole13"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 982.611, 18.061, -712.432)
+mesh = SubResource("GreenMesh")
+surface_material_override/0 = SubResource("GreenMat")
+
+[node name="GreenArea13" type="Area3D" parent="Hole13"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 982.611, 18.061, -712.432)
+script = ExtResource("1_green")
+stimp = 8.0
+par = 4
+hole_number = 13
+
+[node name="GreenCollision13" type="CollisionShape3D" parent="Hole13/GreenArea13"]
+shape = SubResource("GreenShape")
+
+[node name="Flagstick13" type="Node3D" parent="Hole13"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 982.611, 18.041, -712.432)
+
+[node name="Pole13" type="MeshInstance3D" parent="Hole13/Flagstick13"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 0, 1.5, 0)
+mesh = SubResource("FlagpoleMesh")
+surface_material_override/0 = SubResource("FlagpoleMat")
+
+[node name="Flag13" type="MeshInstance3D" parent="Hole13/Flagstick13"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 0.35, 2.9, 0)
+mesh = SubResource("FlagMesh")
+surface_material_override/0 = SubResource("FlagMat")
+
+[node name="Cup13" type="MeshInstance3D" parent="Hole13/Flagstick13"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 0, 0.01, 0)
+mesh = SubResource("CupMesh")
+surface_material_override/0 = SubResource("CupMat")
+
+[node name="Pin_Difficult_13_5" type="Node3D" parent="Hole13"]
+# Difficult pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 974.402, 18.238, -716.977)
+
+[node name="Pin_Difficult_13_2" type="Node3D" parent="Hole13"]
+# Difficult pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 978.490, 17.896, -706.796)
+
+[node name="Pin_Easy_13_3" type="Node3D" parent="Hole13"]
+# Easy pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 989.580, 18.181, -709.799)
+
+[node name="Pin_Medium_13_10" type="Node3D" parent="Hole13"]
+# Medium pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 982.611, 18.041, -712.432)
+
+[node name="Pin_Medium_13_4" type="Node3D" parent="Hole13"]
+# Medium pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 988.462, 18.172, -728.803)
+
+[node name="Pin_Medium_13_7" type="Node3D" parent="Hole13"]
+# Medium pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 986.538, 18.129, -719.064)
+
+[node name="Pin_Medium_13_1" type="Node3D" parent="Hole13"]
+# Medium pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 980.159, 18.024, -731.993)
+
+[node name="Pin_Easy_13_6" type="Node3D" parent="Hole13"]
+# Easy pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 983.977, 18.169, -704.318)
+
+[node name="Pin_Easy_13_9" type="Node3D" parent="Hole13"]
+# Easy pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 973.392, 18.215, -726.849)
+
+[node name="Pin_Easy_13_0" type="Node3D" parent="Hole13"]
+# Easy pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 981.958, 18.104, -724.279)
+
+[node name="Pin_Difficult_13_11" type="Node3D" parent="Hole13"]
+# Difficult pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 976.006, 18.065, -735.822)
+
+[node name="Pin_Difficult_13_8" type="Node3D" parent="Hole13"]
+# Difficult pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 983.308, 17.930, -737.517)
+
+[node name="Hole14" type="Node3D" parent="."]
+# Hole 14 | Par 4 | 378 yds | SI 8
+
+[node name="TeeBox14" type="MeshInstance3D" parent="Hole14"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 897.498, 12.657, -668.856)
+mesh = SubResource("TeeMesh")
+surface_material_override/0 = SubResource("TeeMat")
+
+[node name="TeeArea14" type="Area3D" parent="Hole14"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 897.498, 12.957, -668.856)
+script = ExtResource("2_tee")
+hole_number = 14
+par = 4
+yardage = 378
+
+[node name="TeeCollision14" type="CollisionShape3D" parent="Hole14/TeeArea14"]
+shape = SubResource("TeeShape")
+
+[node name="TeePeg14" type="MeshInstance3D" parent="Hole14"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 897.498, 12.687, -669.856)
+mesh = SubResource("TeePegMesh")
+surface_material_override/0 = SubResource("TeePegMat")
+
+[node name="Tee_Back_14" type="Node3D" parent="Hole14"]
+# Back tee - 353 yds
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 894.923, 11.621, -692.277)
+
+[node name="Tee_Tournament_14" type="Node3D" parent="Hole14"]
+# Tournament tee - 360 yds
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 895.337, 11.621, -685.951)
+
+[node name="Tee_Championship_14" type="Node3D" parent="Hole14"]
+# Championship tee - 378 yds
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 897.498, 12.657, -668.856)
+
+[node name="Tee_Member_14" type="Node3D" parent="Hole14"]
+# Member tee - 333 yds
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 903.854, 10.736, -710.212)
+
+[node name="Tee_Challenge_14" type="Node3D" parent="Hole14"]
+# Challenge tee - 112 yds
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 834.871, 5.188, -966.468)
+
+[node name="Green14" type="MeshInstance3D" parent="Hole14"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 926.240, 5.145, -1014.103)
+mesh = SubResource("GreenMesh")
+surface_material_override/0 = SubResource("GreenMat")
+
+[node name="GreenArea14" type="Area3D" parent="Hole14"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 926.240, 5.145, -1014.103)
+script = ExtResource("1_green")
+stimp = 8.0
+par = 4
+hole_number = 14
+
+[node name="GreenCollision14" type="CollisionShape3D" parent="Hole14/GreenArea14"]
+shape = SubResource("GreenShape")
+
+[node name="Flagstick14" type="Node3D" parent="Hole14"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 926.240, 5.125, -1014.103)
+
+[node name="Pole14" type="MeshInstance3D" parent="Hole14/Flagstick14"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 0, 1.5, 0)
+mesh = SubResource("FlagpoleMesh")
+surface_material_override/0 = SubResource("FlagpoleMat")
+
+[node name="Flag14" type="MeshInstance3D" parent="Hole14/Flagstick14"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 0.35, 2.9, 0)
+mesh = SubResource("FlagMesh")
+surface_material_override/0 = SubResource("FlagMat")
+
+[node name="Cup14" type="MeshInstance3D" parent="Hole14/Flagstick14"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 0, 0.01, 0)
+mesh = SubResource("CupMesh")
+surface_material_override/0 = SubResource("CupMat")
+
+[node name="Pin_Easy_14_3" type="Node3D" parent="Hole14"]
+# Easy pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 914.340, 5.151, -998.196)
+
+[node name="Pin_Difficult_14_2" type="Node3D" parent="Hole14"]
+# Difficult pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 916.223, 5.041, -1012.304)
+
+[node name="Pin_Difficult_14_11" type="Node3D" parent="Hole14"]
+# Difficult pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 924.185, 5.057, -1024.452)
+
+[node name="Pin_Medium_14_7" type="Node3D" parent="Hole14"]
+# Medium pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 926.240, 5.125, -1014.103)
+
+[node name="Pin_Medium_14_10" type="Node3D" parent="Hole14"]
+# Medium pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 913.583, 5.178, -1006.184)
+
+[node name="Pin_Medium_14_1" type="Node3D" parent="Hole14"]
+# Medium pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 920.936, 5.234, -1002.217)
+
+[node name="Pin_Difficult_14_8" type="Node3D" parent="Hole14"]
+# Difficult pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 909.430, 5.194, -1001.291)
+
+[node name="Pin_Difficult_14_5" type="Node3D" parent="Hole14"]
+# Difficult pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 918.947, 5.044, -1023.664)
+
+[node name="Pin_Easy_14_0" type="Node3D" parent="Hole14"]
+# Easy pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 924.277, 5.155, -1011.199)
+
+[node name="Pin_Easy_14_9" type="Node3D" parent="Hole14"]
+# Easy pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 921.416, 5.030, -1017.291)
+
+[node name="Pin_Easy_14_6" type="Node3D" parent="Hole14"]
+# Easy pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 919.419, 5.166, -1008.894)
+
+[node name="Pin_Medium_14_4" type="Node3D" parent="Hole14"]
+# Medium pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 927.143, 4.995, -1020.466)
+
+[node name="Hole15" type="Node3D" parent="."]
+# Hole 15 | Par 3 | 132 yds | SI 18
+
+[node name="TeeBox15" type="MeshInstance3D" parent="Hole15"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 988.951, 3.403, -1070.013)
+mesh = SubResource("TeeMesh")
+surface_material_override/0 = SubResource("TeeMat")
+
+[node name="TeeArea15" type="Area3D" parent="Hole15"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 988.951, 3.703, -1070.013)
+script = ExtResource("2_tee")
+hole_number = 15
+par = 3
+yardage = 132
+
+[node name="TeeCollision15" type="CollisionShape3D" parent="Hole15/TeeArea15"]
+shape = SubResource("TeeShape")
+
+[node name="TeePeg15" type="MeshInstance3D" parent="Hole15"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 988.951, 3.433, -1071.013)
+mesh = SubResource("TeePegMesh")
+surface_material_override/0 = SubResource("TeePegMat")
+
+[node name="Tee_Back_15" type="Node3D" parent="Hole15"]
+# Back tee - 119 yds
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 976.902, 3.403, -1070.924)
+
+[node name="Tee_Member_15" type="Node3D" parent="Hole15"]
+# Member tee - 111 yds
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 969.767, 3.403, -1071.389)
+
+[node name="Tee_Tournament_15" type="Node3D" parent="Hole15"]
+# Tournament tee - 126 yds
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 983.406, 3.403, -1070.584)
+
+[node name="Tee_Challenge_15" type="Node3D" parent="Hole15"]
+# Challenge tee - 112 yds
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 852.162, 4.919, -983.675)
+
+[node name="Tee_Championship_15" type="Node3D" parent="Hole15"]
+# Championship tee - 132 yds
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 988.951, 3.403, -1070.013)
+
+[node name="Green15" type="MeshInstance3D" parent="Hole15"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 868.601, 6.613, -1084.915)
+mesh = SubResource("GreenMesh")
+surface_material_override/0 = SubResource("GreenMat")
+
+[node name="GreenArea15" type="Area3D" parent="Hole15"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 868.601, 6.613, -1084.915)
+script = ExtResource("1_green")
+stimp = 8.0
+par = 3
+hole_number = 15
+
+[node name="GreenCollision15" type="CollisionShape3D" parent="Hole15/GreenArea15"]
+shape = SubResource("GreenShape")
+
+[node name="Flagstick15" type="Node3D" parent="Hole15"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 868.601, 6.593, -1084.915)
+
+[node name="Pole15" type="MeshInstance3D" parent="Hole15/Flagstick15"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 0, 1.5, 0)
+mesh = SubResource("FlagpoleMesh")
+surface_material_override/0 = SubResource("FlagpoleMat")
+
+[node name="Flag15" type="MeshInstance3D" parent="Hole15/Flagstick15"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 0.35, 2.9, 0)
+mesh = SubResource("FlagMesh")
+surface_material_override/0 = SubResource("FlagMat")
+
+[node name="Cup15" type="MeshInstance3D" parent="Hole15/Flagstick15"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 0, 0.01, 0)
+mesh = SubResource("CupMesh")
+surface_material_override/0 = SubResource("CupMat")
+
+[node name="Pin_Difficult_15_2" type="Node3D" parent="Hole15"]
+# Difficult pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 856.517, 6.609, -1072.275)
+
+[node name="Pin_Medium_15_1" type="Node3D" parent="Hole15"]
+# Medium pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 868.601, 6.593, -1084.915)
+
+[node name="Pin_Medium_15_4" type="Node3D" parent="Hole15"]
+# Medium pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 855.674, 6.978, -1090.228)
+
+[node name="Pin_Medium_15_10" type="Node3D" parent="Hole15"]
+# Medium pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 862.505, 6.760, -1088.808)
+
+[node name="Pin_Easy_15_0" type="Node3D" parent="Hole15"]
+# Easy pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 867.013, 6.839, -1092.776)
+
+[node name="Pin_Difficult_15_11" type="Node3D" parent="Hole15"]
+# Difficult pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 865.161, 6.525, -1080.666)
+
+[node name="Pin_Easy_15_6" type="Node3D" parent="Hole15"]
+# Easy pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 860.007, 6.674, -1083.060)
+
+[node name="Pin_Difficult_15_8" type="Node3D" parent="Hole15"]
+# Difficult pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 871.222, 6.754, -1090.438)
+
+[node name="Pin_Easy_15_3" type="Node3D" parent="Hole15"]
+# Easy pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 859.019, 6.609, -1077.445)
+
+[node name="Pin_Easy_15_9" type="Node3D" parent="Hole15"]
+# Easy pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 852.128, 6.821, -1075.994)
+
+[node name="Pin_Medium_15_7" type="Node3D" parent="Hole15"]
+# Medium pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 853.910, 6.852, -1080.926)
+
+[node name="Pin_Difficult_15_5" type="Node3D" parent="Hole15"]
+# Difficult pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 849.206, 6.944, -1071.540)
+
+[node name="Hole16" type="Node3D" parent="."]
+# Hole 16 | Par 5 | 544 yds | SI 2
+
+[node name="TeeBox16" type="MeshInstance3D" parent="Hole16"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 874.016, 5.104, -1051.633)
+mesh = SubResource("TeeMesh")
+surface_material_override/0 = SubResource("TeeMat")
+
+[node name="TeeArea16" type="Area3D" parent="Hole16"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 874.016, 5.404, -1051.633)
+script = ExtResource("2_tee")
+hole_number = 16
+par = 5
+yardage = 544
+
+[node name="TeeCollision16" type="CollisionShape3D" parent="Hole16/TeeArea16"]
+shape = SubResource("TeeShape")
+
+[node name="TeePeg16" type="MeshInstance3D" parent="Hole16"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 874.016, 5.134, -1052.633)
+mesh = SubResource("TeePegMesh")
+surface_material_override/0 = SubResource("TeePegMat")
+
+[node name="Tee_Member_16" type="Node3D" parent="Hole16"]
+# Member tee - 485 yds
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 851.184, 4.919, -999.992)
+
+[node name="Tee_Challenge_16" type="Node3D" parent="Hole16"]
+# Challenge tee - 129 yds
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 841.144, 11.021, -673.480)
+
+[node name="Tee_Championship_16" type="Node3D" parent="Hole16"]
+# Championship tee - 544 yds
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 874.016, 5.104, -1051.633)
+
+[node name="Tee_Back_16" type="Node3D" parent="Hole16"]
+# Back tee - 506 yds
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 859.338, 4.878, -1018.046)
+
+[node name="Tee_Tournament_16" type="Node3D" parent="Hole16"]
+# Tournament tee - 520 yds
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 864.867, 4.878, -1030.782)
+
+[node name="Green16" type="MeshInstance3D" parent="Hole16"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 823.986, 19.992, -556.569)
+mesh = SubResource("GreenMesh")
+surface_material_override/0 = SubResource("GreenMat")
+
+[node name="GreenArea16" type="Area3D" parent="Hole16"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 823.986, 19.992, -556.569)
+script = ExtResource("1_green")
+stimp = 8.0
+par = 5
+hole_number = 16
+
+[node name="GreenCollision16" type="CollisionShape3D" parent="Hole16/GreenArea16"]
+shape = SubResource("GreenShape")
+
+[node name="Flagstick16" type="Node3D" parent="Hole16"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 823.986, 19.972, -556.569)
+
+[node name="Pole16" type="MeshInstance3D" parent="Hole16/Flagstick16"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 0, 1.5, 0)
+mesh = SubResource("FlagpoleMesh")
+surface_material_override/0 = SubResource("FlagpoleMat")
+
+[node name="Flag16" type="MeshInstance3D" parent="Hole16/Flagstick16"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 0.35, 2.9, 0)
+mesh = SubResource("FlagMesh")
+surface_material_override/0 = SubResource("FlagMat")
+
+[node name="Cup16" type="MeshInstance3D" parent="Hole16/Flagstick16"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 0, 0.01, 0)
+mesh = SubResource("CupMesh")
+surface_material_override/0 = SubResource("CupMat")
+
+[node name="Pin_Easy_16_6" type="Node3D" parent="Hole16"]
+# Easy pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 824.981, 20.100, -550.009)
+
+[node name="Pin_Easy_16_0" type="Node3D" parent="Hole16"]
+# Easy pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 831.714, 20.217, -551.673)
+
+[node name="Pin_Medium_16_10" type="Node3D" parent="Hole16"]
+# Medium pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 823.986, 19.972, -556.569)
+
+[node name="Pin_Difficult_16_8" type="Node3D" parent="Hole16"]
+# Difficult pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 820.637, 20.019, -548.088)
+
+[node name="Pin_Medium_16_7" type="Node3D" parent="Hole16"]
+# Medium pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 828.856, 20.234, -546.728)
+
+[node name="Pin_Medium_16_1" type="Node3D" parent="Hole16"]
+# Medium pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 829.296, 20.037, -557.666)
+
+[node name="Pin_Difficult_16_11" type="Node3D" parent="Hole16"]
+# Difficult pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 816.211, 19.985, -543.029)
+
+[node name="Pin_Difficult_16_2" type="Node3D" parent="Hole16"]
+# Difficult pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 819.865, 19.720, -561.494)
+
+[node name="Pin_Easy_16_9" type="Node3D" parent="Hole16"]
+# Easy pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 824.451, 19.757, -562.906)
+
+[node name="Pin_Medium_16_4" type="Node3D" parent="Hole16"]
+# Medium pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 821.308, 20.053, -540.191)
+
+[node name="Pin_Difficult_16_5" type="Node3D" parent="Hole16"]
+# Difficult pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 819.238, 19.907, -554.670)
+
+[node name="Pin_Easy_16_3" type="Node3D" parent="Hole16"]
+# Easy pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 824.612, 20.136, -543.581)
+
+[node name="Hole17" type="Node3D" parent="."]
+# Hole 17 | Par 4 | 420 yds | SI 4
+
+[node name="TeeBox17" type="MeshInstance3D" parent="Hole17"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 756.877, 19.057, -540.282)
+mesh = SubResource("TeeMesh")
+surface_material_override/0 = SubResource("TeeMat")
+
+[node name="TeeArea17" type="Area3D" parent="Hole17"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 756.877, 19.357, -540.282)
+script = ExtResource("2_tee")
+hole_number = 17
+par = 4
+yardage = 420
+
+[node name="TeeCollision17" type="CollisionShape3D" parent="Hole17/TeeArea17"]
+shape = SubResource("TeeShape")
+
+[node name="TeePeg17" type="MeshInstance3D" parent="Hole17"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 756.877, 19.087, -541.282)
+mesh = SubResource("TeePegMesh")
+surface_material_override/0 = SubResource("TeePegMat")
+
+[node name="Tee_Back_17" type="Node3D" parent="Hole17"]
+# Back tee - 399 yds
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 753.506, 18.378, -560.247)
+
+[node name="Tee_Challenge_17" type="Node3D" parent="Hole17"]
+# Challenge tee - 166 yds
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 754.026, 7.816, -774.487)
+
+[node name="Tee_Championship_17" type="Node3D" parent="Hole17"]
+# Championship tee - 420 yds
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 756.877, 19.057, -540.282)
+
+[node name="Tee_Member_17" type="Node3D" parent="Hole17"]
+# Member tee - 362 yds
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 750.673, 13.398, -594.314)
+
+[node name="Tee_Tournament_17" type="Node3D" parent="Hole17"]
+# Tournament tee - 407 yds
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 754.274, 18.378, -552.511)
+
+[node name="Green17" type="MeshInstance3D" parent="Hole17"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 777.874, 6.983, -924.530)
+mesh = SubResource("GreenMesh")
+surface_material_override/0 = SubResource("GreenMat")
+
+[node name="GreenArea17" type="Area3D" parent="Hole17"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 777.874, 6.983, -924.530)
+script = ExtResource("1_green")
+stimp = 8.0
+par = 4
+hole_number = 17
+
+[node name="GreenCollision17" type="CollisionShape3D" parent="Hole17/GreenArea17"]
+shape = SubResource("GreenShape")
+
+[node name="Flagstick17" type="Node3D" parent="Hole17"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 777.874, 6.963, -924.530)
+
+[node name="Pole17" type="MeshInstance3D" parent="Hole17/Flagstick17"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 0, 1.5, 0)
+mesh = SubResource("FlagpoleMesh")
+surface_material_override/0 = SubResource("FlagpoleMat")
+
+[node name="Flag17" type="MeshInstance3D" parent="Hole17/Flagstick17"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 0.35, 2.9, 0)
+mesh = SubResource("FlagMesh")
+surface_material_override/0 = SubResource("FlagMat")
+
+[node name="Cup17" type="MeshInstance3D" parent="Hole17/Flagstick17"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 0, 0.01, 0)
+mesh = SubResource("CupMesh")
+surface_material_override/0 = SubResource("CupMat")
+
+[node name="Pin_Medium_17_10" type="Node3D" parent="Hole17"]
+# Medium pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 777.874, 6.963, -924.530)
+
+[node name="Pin_Easy_17_3" type="Node3D" parent="Hole17"]
+# Easy pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 780.299, 6.968, -929.191)
+
+[node name="Pin_Difficult_17_5" type="Node3D" parent="Hole17"]
+# Difficult pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 770.193, 7.754, -937.764)
+
+[node name="Pin_Medium_17_4" type="Node3D" parent="Hole17"]
+# Medium pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 762.841, 7.315, -919.541)
+
+[node name="Pin_Difficult_17_2" type="Node3D" parent="Hole17"]
+# Difficult pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 765.167, 7.510, -923.859)
+
+[node name="Pin_Easy_17_0" type="Node3D" parent="Hole17"]
+# Easy pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 767.591, 7.221, -917.394)
+
+[node name="Pin_Difficult_17_11" type="Node3D" parent="Hole17"]
+# Difficult pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 785.910, 6.940, -934.100)
+
+[node name="Pin_Difficult_17_8" type="Node3D" parent="Hole17"]
+# Difficult pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 777.959, 7.177, -934.688)
+
+[node name="Pin_Medium_17_1" type="Node3D" parent="Hole17"]
+# Medium pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 769.125, 7.509, -929.156)
+
+[node name="Pin_Easy_17_6" type="Node3D" parent="Hole17"]
+# Easy pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 783.840, 7.109, -940.076)
+
+[node name="Pin_Medium_17_7" type="Node3D" parent="Hole17"]
+# Medium pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 778.574, 7.495, -944.400)
+
+[node name="Pin_Easy_17_9" type="Node3D" parent="Hole17"]
+# Easy pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 771.178, 7.104, -920.653)
+
+[node name="Hole18" type="Node3D" parent="."]
+# Hole 18 | Par 4 | 377 yds | SI 6
+
+[node name="TeeBox18" type="MeshInstance3D" parent="Hole18"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 732.780, 8.702, -905.882)
+mesh = SubResource("TeeMesh")
+surface_material_override/0 = SubResource("TeeMat")
+
+[node name="TeeArea18" type="Area3D" parent="Hole18"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 732.780, 9.002, -905.882)
+script = ExtResource("2_tee")
+hole_number = 18
+par = 4
+yardage = 377
+
+[node name="TeeCollision18" type="CollisionShape3D" parent="Hole18/TeeArea18"]
+shape = SubResource("TeeShape")
+
+[node name="TeePeg18" type="MeshInstance3D" parent="Hole18"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 732.780, 8.732, -906.882)
+mesh = SubResource("TeePegMesh")
+surface_material_override/0 = SubResource("TeePegMat")
+
+[node name="Tee_Championship_18" type="Node3D" parent="Hole18"]
+# Championship tee - 377 yds
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 732.780, 8.702, -905.882)
+
+[node name="Tee_Tournament_18" type="Node3D" parent="Hole18"]
+# Tournament tee - 368 yds
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 729.885, 8.685, -897.676)
+
+[node name="Tee_Member_18" type="Node3D" parent="Hole18"]
+# Member tee - 336 yds
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 719.693, 8.369, -868.356)
+
+[node name="Tee_Back_18" type="Node3D" parent="Hole18"]
+# Back tee - 350 yds
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 725.730, 8.369, -881.312)
+
+[node name="Tee_Challenge_18" type="Node3D" parent="Hole18"]
+# Challenge tee - 173 yds
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 694.134, 17.980, -405.152)
+
+[node name="Green18" type="MeshInstance3D" parent="Hole18"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 721.008, 15.754, -561.088)
+mesh = SubResource("GreenMesh")
+surface_material_override/0 = SubResource("GreenMat")
+
+[node name="GreenArea18" type="Area3D" parent="Hole18"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 721.008, 15.754, -561.088)
+script = ExtResource("1_green")
+stimp = 8.0
+par = 4
+hole_number = 18
+
+[node name="GreenCollision18" type="CollisionShape3D" parent="Hole18/GreenArea18"]
+shape = SubResource("GreenShape")
+
+[node name="Flagstick18" type="Node3D" parent="Hole18"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 721.008, 15.734, -561.088)
+
+[node name="Pole18" type="MeshInstance3D" parent="Hole18/Flagstick18"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 0, 1.5, 0)
+mesh = SubResource("FlagpoleMesh")
+surface_material_override/0 = SubResource("FlagpoleMat")
+
+[node name="Flag18" type="MeshInstance3D" parent="Hole18/Flagstick18"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 0.35, 2.9, 0)
+mesh = SubResource("FlagMesh")
+surface_material_override/0 = SubResource("FlagMat")
+
+[node name="Cup18" type="MeshInstance3D" parent="Hole18/Flagstick18"]
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 0, 0.01, 0)
+mesh = SubResource("CupMesh")
+surface_material_override/0 = SubResource("CupMat")
+
+[node name="Pin_Difficult_18_2" type="Node3D" parent="Hole18"]
+# Difficult pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 701.852, 15.251, -560.696)
+
+[node name="Pin_Easy_18_0" type="Node3D" parent="Hole18"]
+# Easy pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 713.063, 15.549, -553.984)
+
+[node name="Pin_Difficult_18_8" type="Node3D" parent="Hole18"]
+# Difficult pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 708.464, 15.117, -570.770)
+
+[node name="Pin_Easy_18_3" type="Node3D" parent="Hole18"]
+# Easy pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 707.477, 15.286, -562.491)
+
+[node name="Pin_Difficult_18_5" type="Node3D" parent="Hole18"]
+# Difficult pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 715.890, 15.453, -569.941)
+
+[node name="Pin_Medium_18_10" type="Node3D" parent="Hole18"]
+# Medium pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 721.008, 15.734, -561.088)
+
+[node name="Pin_Easy_18_9" type="Node3D" parent="Hole18"]
+# Easy pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 719.519, 16.210, -548.376)
+
+[node name="Pin_Medium_18_1" type="Node3D" parent="Hole18"]
+# Medium pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 715.803, 15.525, -561.777)
+
+[node name="Pin_Medium_18_7" type="Node3D" parent="Hole18"]
+# Medium pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 703.913, 15.067, -568.263)
+
+[node name="Pin_Difficult_18_11" type="Node3D" parent="Hole18"]
+# Difficult pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 712.354, 16.147, -546.039)
+
+[node name="Pin_Easy_18_6" type="Node3D" parent="Hole18"]
+# Easy pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 710.457, 15.346, -566.716)
+
+[node name="Pin_Medium_18_4" type="Node3D" parent="Hole18"]
+# Medium pin position
+transform = Transform3D(1,0,0, 0,1,0, 0,0,1, 704.948, 15.487, -553.205)
