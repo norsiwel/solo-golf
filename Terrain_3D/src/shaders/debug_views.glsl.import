@@ -1,0 +1,14 @@
+[remap]
+
+importer="glsl"
+type="RDShaderFile"
+uid="uid://kurixo731nop"
+path="res://.godot/imported/debug_views.glsl-8bfc5178a5179b3d9b56cdb73626e3b8.res"
+
+[deps]
+
+source_file="res://Terrain_3D/src/shaders/debug_views.glsl"
+dest_files=["res://.godot/imported/debug_views.glsl-8bfc5178a5179b3d9b56cdb73626e3b8.res"]
+
+[params]
+

@@ -1,68 +1,19 @@
-[gd_scene format=3 uid="uid://dvcp2wpqd25c6"]
+[gd_scene load_steps=26 format=3 uid="uid://dvcp2wpqd25c6"]
 
-[ext_resource type="Script" uid="uid://cch7i6fyywjos" path="res://main.gd" id="1_4c57u"]
-[ext_resource type="Script" uid="uid://bagc1rj48iic7" path="res://player.gd" id="1_player"]
-[ext_resource type="Script" uid="uid://e7pu8rvvhmku" path="res://wind_system.gd" id="4_wind"]
-[ext_resource type="Script" uid="uid://o7u3tpuf6tj0" path="res://wind_hud.gd" id="5_wind_hud"]
-[ext_resource type="Script" uid="uid://cvn4viqosvqe4" path="res://flag_animator.gd" id="6_flag"]
-[ext_resource type="Script" uid="uid://jqwulnyojnii" path="res://hole_map.gd" id="7_map"]
-[ext_resource type="Script" uid="uid://bfp36uxh8t7xy" path="res://course_manager.gd" id="8_cm"]
-[ext_resource type="Script" uid="uid://bwhtl5fornkmt" path="res://course_selector.gd" id="9_cs"]
-[ext_resource type="Script" path="res://green.gd" id="10_green"]
-[ext_resource type="Script" path="res://tee.gd" id="11_tee"]
-[ext_resource type="Script" path="res://flag_animator.gd" id="12_flag"]
+[ext_resource type="Script" uid="uid://cch7i6fyywjos" path="res://main.gd" id="1_main"]
+[ext_resource type="Script" uid="uid://bagc1rj48iic7" path="res://player.gd" id="2_player"]
+[ext_resource type="Script" uid="uid://e7pu8rvvhmku" path="res://wind_system.gd" id="3_wind"]
+[ext_resource type="Script" uid="uid://o7u3tpuf6tj0" path="res://wind_hud.gd" id="4_wind_hud"]
+[ext_resource type="Script" uid="uid://jqwulnyojnii" path="res://hole_map.gd" id="5_map"]
+[ext_resource type="Script" uid="uid://bfp36uxh8t7xy" path="res://course_manager.gd" id="6_cm"]
+[ext_resource type="Script" uid="uid://bwhtl5fornkmt" path="res://course_selector.gd" id="7_cs"]
+[ext_resource type="Script" uid="uid://jnuydiewf0yg" path="res://green.gd" id="8_green"]
+[ext_resource type="Script" uid="uid://btr64vpnrmohl" path="res://tee.gd" id="9_tee"]
+[ext_resource type="Script" uid="uid://cvn4viqosvqe4" path="res://flag_animator.gd" id="10_flag"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_player"]
 radius = 0.4
 height = 1.8
-
-[sub_resource type="PlaneMesh" id="PlaneMesh_ground"]
-size = Vector2(2000, 2000)
-
-[sub_resource type="StandardMaterial3D" id="Material_grass"]
-albedo_color = Color(0.22, 0.52, 0.18, 1)
-
-[sub_resource type="BoxShape3D" id="BoxShape3D_ground"]
-size = Vector3(2000, 0.2, 2000)
-
-[sub_resource type="CylinderMesh" id="CylinderMesh_flagpole"]
-top_radius = 0.03
-bottom_radius = 0.03
-height = 3.0
-
-[sub_resource type="StandardMaterial3D" id="Material_pole"]
-albedo_color = Color(0.9, 0.9, 0.9, 1)
-
-[sub_resource type="BoxMesh" id="BoxMesh_flag"]
-size = Vector3(0.6, 0.4, 0.02)
-
-[sub_resource type="StandardMaterial3D" id="Material_flag"]
-albedo_color = Color(1.0, 0.1, 0.1, 1)
-
-[sub_resource type="CylinderMesh" id="CylinderMesh_hole"]
-top_radius = 0.27
-bottom_radius = 0.27
-height = 0.05
-
-[sub_resource type="StandardMaterial3D" id="Material_hole"]
-albedo_color = Color(0.05, 0.05, 0.05, 1)
-
-[sub_resource type="PlaneMesh" id="PlaneMesh_green"]
-size = Vector2(22, 16)
-
-[sub_resource type="StandardMaterial3D" id="Material_green"]
-albedo_color = Color(0.08, 0.42, 0.08, 1)
-
-[sub_resource type="BoxShape3D" id="BoxShape3D_green"]
-size = Vector3(22, 0.3, 16)
-
-[sub_resource type="CylinderMesh" id="CylinderMesh_cup"]
-top_radius = 0.27
-bottom_radius = 0.27
-height = 0.1
-
-[sub_resource type="StandardMaterial3D" id="Material_cup"]
-albedo_color = Color(0.02, 0.02, 0.02, 1)
 
 [sub_resource type="CylinderMesh" id="CylinderMesh_teebox"]
 top_radius = 5.0
@@ -84,51 +35,96 @@ height = 0.05
 [sub_resource type="StandardMaterial3D" id="Material_tee"]
 albedo_color = Color(0.8, 0.3, 0.1, 1)
 
-[node name="Main" type="Node3D" unique_id=1113980085]
-script = ExtResource("1_4c57u")
+[sub_resource type="PlaneMesh" id="PlaneMesh_green"]
+size = Vector2(22, 16)
 
-[node name="WindSystem" type="Node3D" parent="." unique_id=77656627]
-script = ExtResource("4_wind")
+[sub_resource type="StandardMaterial3D" id="Material_green"]
+albedo_color = Color(0.08, 0.42, 0.08, 1)
 
-[node name="WindHUD" type="CanvasLayer" parent="." unique_id=683011568]
-script = ExtResource("5_wind_hud")
+[sub_resource type="BoxShape3D" id="BoxShape3D_green"]
+size = Vector3(22, 0.3, 16)
 
-[node name="HoleMap" type="CanvasLayer" parent="." unique_id=930689441]
-script = ExtResource("7_map")
+[sub_resource type="CylinderMesh" id="CylinderMesh_cup"]
+top_radius = 0.27
+bottom_radius = 0.27
+height = 0.1
 
-[node name="CourseManager" type="Node" parent="." unique_id=2106755217]
-script = ExtResource("8_cm")
+[sub_resource type="StandardMaterial3D" id="Material_cup"]
+albedo_color = Color(0.02, 0.02, 0.02, 1)
 
-[node name="CourseSelector" type="CanvasLayer" parent="." unique_id=1019617956]
-script = ExtResource("9_cs")
+[sub_resource type="CylinderMesh" id="CylinderMesh_flagpole"]
+top_radius = 0.03
+bottom_radius = 0.03
+height = 3.0
 
-[node name="Sun" type="DirectionalLight3D" parent="." unique_id=108492338]
+[sub_resource type="StandardMaterial3D" id="Material_pole"]
+albedo_color = Color(0.9, 0.9, 0.9, 1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_flag"]
+size = Vector3(0.6, 0.4, 0.02)
+
+[sub_resource type="StandardMaterial3D" id="Material_flag"]
+albedo_color = Color(1, 0.1, 0.1, 1)
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_hole"]
+top_radius = 0.27
+bottom_radius = 0.27
+height = 0.05
+
+[sub_resource type="StandardMaterial3D" id="Material_hole"]
+albedo_color = Color(0.05, 0.05, 0.05, 1)
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_fallback"]
+size = Vector2(4000, 4000)
+
+[sub_resource type="StandardMaterial3D" id="Material_grass"]
+albedo_color = Color(0.22, 0.52, 0.18, 1)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_fallback"]
+size = Vector3(4000, 0.2, 4000)
+
+[node name="Main" type="Node3D"]
+script = ExtResource("1_main")
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
 transform = Transform3D(0.866, -0.5, 0, 0.25, 0.433, -0.866, 0.433, 0.75, 0.5, 50, 80, 50)
 light_energy = 1.2
 shadow_enabled = true
 
-[node name="Ground" type="StaticBody3D" parent="."]
+[node name="WindSystem" type="Node3D" parent="."]
+script = ExtResource("3_wind")
 
-[node name="GroundMesh" type="MeshInstance3D" parent="Ground"]
-mesh = SubResource("PlaneMesh_ground")
+[node name="WindHUD" type="CanvasLayer" parent="."]
+script = ExtResource("4_wind_hud")
+
+[node name="HoleMap" type="CanvasLayer" parent="."]
+script = ExtResource("5_map")
+
+[node name="CourseManager" type="Node" parent="."]
+script = ExtResource("6_cm")
+
+[node name="CourseSelector" type="CanvasLayer" parent="."]
+script = ExtResource("7_cs")
+
+[node name="FallbackGround" type="StaticBody3D" parent="."]
+
+[node name="GroundMesh" type="MeshInstance3D" parent="FallbackGround"]
+mesh = SubResource("PlaneMesh_fallback")
 surface_material_override/0 = SubResource("Material_grass")
 
-[node name="GroundCollision" type="CollisionShape3D" parent="Ground"]
+[node name="GroundCollision" type="CollisionShape3D" parent="FallbackGround"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.1, 0)
-shape = SubResource("BoxShape3D_ground")
+shape = SubResource("BoxShape3D_fallback")
 
 [node name="HoleGeometry" type="Node3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1000, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -2000, 0)
 
 [node name="TeeBox" type="MeshInstance3D" parent="HoleGeometry"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.01, 0)
 mesh = SubResource("CylinderMesh_teebox")
 surface_material_override/0 = SubResource("Material_teebox")
 
 [node name="TeeArea" type="Area3D" parent="HoleGeometry"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.3, 0)
-script = ExtResource("11_tee")
-hole_number = 1
+script = ExtResource("9_tee")
 par = 4
 yardage = 400
 
@@ -136,27 +132,30 @@ yardage = 400
 shape = SubResource("CylinderShape3D_teebox")
 
 [node name="TeePeg" type="MeshInstance3D" parent="HoleGeometry"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.03, -1.0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.03, -1)
 mesh = SubResource("CylinderMesh_tee")
 surface_material_override/0 = SubResource("Material_tee")
 
 [node name="Green" type="MeshInstance3D" parent="HoleGeometry"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.02, -180)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.02, 0)
 mesh = SubResource("PlaneMesh_green")
 surface_material_override/0 = SubResource("Material_green")
 
 [node name="GreenArea" type="Area3D" parent="HoleGeometry"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.02, -180)
-script = ExtResource("10_green")
-stimp = 8.0
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.02, 0)
+script = ExtResource("8_green")
 par = 4
 hole_number = 1
 
 [node name="GreenCollision" type="CollisionShape3D" parent="HoleGeometry/GreenArea"]
 shape = SubResource("BoxShape3D_green")
 
+[node name="Cup" type="MeshInstance3D" parent="HoleGeometry/GreenArea"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.01, 0)
+mesh = SubResource("CylinderMesh_cup")
+surface_material_override/0 = SubResource("Material_cup")
+
 [node name="Flagstick" type="Node3D" parent="HoleGeometry"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -180)
 
 [node name="Pole" type="MeshInstance3D" parent="HoleGeometry/Flagstick"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 0)
@@ -167,25 +166,20 @@ surface_material_override/0 = SubResource("Material_pole")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.35, 2.9, 0)
 mesh = SubResource("BoxMesh_flag")
 surface_material_override/0 = SubResource("Material_flag")
-script = ExtResource("12_flag")
+script = ExtResource("10_flag")
 
 [node name="HoleCup" type="MeshInstance3D" parent="HoleGeometry/Flagstick"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.01, 0)
 mesh = SubResource("CylinderMesh_hole")
 surface_material_override/0 = SubResource("Material_hole")
 
-[node name="Cup" type="MeshInstance3D" parent="HoleGeometry/GreenArea"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.01, 0)
-mesh = SubResource("CylinderMesh_cup")
-surface_material_override/0 = SubResource("Material_cup")
+[node name="Player" type="CharacterBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -2000, 0)
+script = ExtResource("2_player")
 
-[node name="Player" type="CharacterBody3D" parent="." unique_id=300885986]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1000, 0)
-script = ExtResource("1_player")
-
-[node name="CollisionShape3D" type="CollisionShape3D" parent="Player" unique_id=1614391253]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Player"]
 shape = SubResource("CapsuleShape3D_player")
 
-[node name="Camera3D" type="Camera3D" parent="Player" unique_id=108987800]
+[node name="Camera3D" type="Camera3D" parent="Player"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.7, 0)
 current = true

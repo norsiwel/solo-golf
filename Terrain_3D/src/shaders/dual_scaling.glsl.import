@@ -1,0 +1,14 @@
+[remap]
+
+importer="glsl"
+type="RDShaderFile"
+uid="uid://b67045d3yfx5t"
+path="res://.godot/imported/dual_scaling.glsl-c8dd4f3a422f86262973b3f331d8c681.res"
+
+[deps]
+
+source_file="res://Terrain_3D/src/shaders/dual_scaling.glsl"
+dest_files=["res://.godot/imported/dual_scaling.glsl-c8dd4f3a422f86262973b3f331d8c681.res"]
+
+[params]
+

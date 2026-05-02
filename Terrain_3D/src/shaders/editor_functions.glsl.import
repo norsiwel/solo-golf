@@ -1,0 +1,14 @@
+[remap]
+
+importer="glsl"
+type="RDShaderFile"
+uid="uid://c5sv7jhu61n56"
+path="res://.godot/imported/editor_functions.glsl-ba70da05eb0e83aa56dd220770fb0eb7.res"
+
+[deps]
+
+source_file="res://Terrain_3D/src/shaders/editor_functions.glsl"
+dest_files=["res://.godot/imported/editor_functions.glsl-ba70da05eb0e83aa56dd220770fb0eb7.res"]
+
+[params]
+
