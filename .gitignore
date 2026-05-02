@@ -6,24 +6,22 @@
 *.unity3d
 *.zip
 
-# Extracted asset binary files
-standrewsv1/extracted assets/
-sunsetvalleygc_fnl3_1/extracted assets/
+# Raw extracted asset data - never commit these
+standrewsv1/
 sunsetvalleygc_fnl3_1/
-standrewsv1/standrewsv1.unity3d
+*/extracted assets/
+*.dat
 
-# Duplicate/temp ball images
-ball_asset1.png
-ball_asset2.png
-ball_texture1.png
-ball_texture2.png
+# Backup files
+*.backup
+*.bak
+*.bak2
+
+# Terrain3D demo files - not part of our game
+demo/
+
+# Duplicate/temp ball images - only keep assets/ folder versions
+ball_asset*.png
+ball_texture*.png
 ball_white.png
 ball_yellow.png
-
-# Terrain3D plugin source and demo - keep only addons/terrain_3d/
-Terrain_3D/
-demo/
-terrain_3d.gd
-terrain_3d.gd.uid
-icon.png
-icon.png.import
