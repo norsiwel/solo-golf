@@ -1,86 +1,95 @@
 extends Node3D
 
 func _ready():
-	var selector = get_node_or_null("CourseSelector")
-	if selector:
-		selector.course_selected.connect(_on_course_selected)
-		selector.show_selector()
+	call_deferred("_load_standrews")
 
-func _on_course_selected(course_name: String):
+func _load_standrews():
 	var cm = get_node_or_null("CourseManager")
 	var player = get_node_or_null("Player")
 	var hole_geo = get_node_or_null("HoleGeometry")
-	var fallback = get_node_or_null("FallbackGround")
 
 	if not cm or not player or not hole_geo:
 		push_error("Main: Missing required nodes")
 		return
 
-	if not cm.load_course(course_name):
-		push_error("Main: Failed to load course: " + course_name)
+	if not cm.load_course("The_Old_Course"):
+		push_error("Main: Failed to load The Old Course")
 		return
 
-	var hole = cm.go_to_hole(1)
-	if hole.is_empty():
-		push_error("Main: No hole 1 data")
-		return
+	_setup_hole(1)
 
-	# Check if Terrain3D is active for this course
+func _setup_hole(hole_num: int):
+	var cm = get_node_or_null("CourseManager")
+	var player = get_node_or_null("Player")
+	var hole_geo = get_node_or_null("HoleGeometry")
 	var terrain = get_node_or_null("Terrain3D")
-	var has_terrain = terrain != null and terrain.visible
-	# Show fallback ground only if no terrain
-	if fallback:
-		fallback.visible = not has_terrain
+	var fallback = get_node_or_null("FallbackGround")
 
-	# Get positions from metadata
-	var tee = cm.get_tee_position(1)
-	var pin = cm.get_pin_position(1)
+	var hole = cm.go_to_hole(hole_num)
+	if hole.is_empty():
+		push_error("Main: No data for hole %d" % hole_num)
+		return
 
-	# If terrain exists, adjust Y to terrain height
-	# Otherwise use metadata Y (which is correct for flat ground too)
+	var tee = cm.get_tee_position(hole_num)
+	var pin = cm.get_pin_position(hole_num)
+
+	# Determine if Terrain3D has data loaded
+	var has_terrain = false
+	if terrain:
+		var storage = terrain.get("storage")
+		if storage != null:
+			has_terrain = true
+			terrain.visible = true
+			terrain.collision_mode = 2  # FULL collision
+			if fallback: fallback.visible = false
+		else:
+			terrain.visible = false
+			if fallback: fallback.visible = true
+
+	# Get actual ground heights
 	var tee_y = tee.y
 	var pin_y = pin.y
-	if has_terrain:
-		# Terrain3D height query if available
-		if terrain.has_method("get_height"):
-			tee_y = terrain.get_height(Vector2(tee.x, tee.z))
-			pin_y = terrain.get_height(Vector2(pin.x, pin.z))
+	if has_terrain and terrain.has_method("get_height"):
+		var th = terrain.get_height(Vector2(tee.x, tee.z))
+		var ph = terrain.get_height(Vector2(pin.x, pin.z))
+		if th != 0: tee_y = th
+		if ph != 0: pin_y = ph
 
-	# Move hole geometry - position the group node
-	# Then position children relative to it at ground level
-	hole_geo.global_position = Vector3.ZERO  # reset group
+	# Position hole geometry
+	var hole_geo_nodes = {
+		"TeeBox":   Vector3(tee.x, tee_y + 0.01, tee.z),
+		"TeePeg":   Vector3(tee.x, tee_y + 0.03, tee.z - 1.0),
+		"Green":    Vector3(pin.x, pin_y + 0.02, pin.z),
+		"Flagstick":Vector3(pin.x, pin_y, pin.z),
+	}
+	for node_name in hole_geo_nodes:
+		var n = hole_geo.get_node_or_null(node_name)
+		if n: n.global_position = hole_geo_nodes[node_name]
 
-	var tee_box  = hole_geo.get_node_or_null("TeeBox")
 	var tee_area = hole_geo.get_node_or_null("TeeArea")
-	var tee_peg  = hole_geo.get_node_or_null("TeePeg")
-	var green    = hole_geo.get_node_or_null("Green")
-	var green_area = hole_geo.get_node_or_null("GreenArea")
-	var flagstick  = hole_geo.get_node_or_null("Flagstick")
-
-	if tee_box:  tee_box.global_position  = Vector3(tee.x, tee_y + 0.01, tee.z)
-	if tee_area: tee_area.global_position = Vector3(tee.x, tee_y + 0.3, tee.z)
-	if tee_peg:  tee_peg.global_position  = Vector3(tee.x, tee_y + 0.03, tee.z - 1.0)
-	if green:    green.global_position    = Vector3(pin.x, pin_y + 0.02, pin.z)
-	if flagstick: flagstick.global_position = Vector3(pin.x, pin_y, pin.z)
-
 	if tee_area:
-		tee_area.hole_number = hole.get("hole", 1)
-		tee_area.par         = hole.get("par", 4)
-		tee_area.yardage     = hole.get("yardage", 0)
+		tee_area.global_position = Vector3(tee.x, tee_y + 0.3, tee.z)
+		tee_area.hole_number = hole.get("hole", hole_num)
+		tee_area.par = hole.get("par", 4)
+		tee_area.yardage = hole.get("yardage", 0)
 
+	var green_area = hole_geo.get_node_or_null("GreenArea")
 	if green_area:
 		green_area.global_position = Vector3(pin.x, pin_y + 0.02, pin.z)
-		green_area.hole_number = hole.get("hole", 1)
+		green_area.hole_number = hole.get("hole", hole_num)
 		green_area.par = hole.get("par", 4)
 
-	# Give player reference to green
 	player.green_node = green_area
 
-	# Teleport player to tee
-	player.global_position = Vector3(tee.x, tee_y + 1.8, tee.z)
-	player.yaw = 0.0
+	# Spawn player above tee — use terrain height if available
+	var spawn_y = tee_y + 1.8
+	player.global_position = Vector3(tee.x, spawn_y, tee.z)
+
+	# Face player toward pin
+	var dir = Vector3(pin.x - tee.x, 0, pin.z - tee.z).normalized()
+	player.yaw = atan2(-dir.x, -dir.z)
+	player.rotation.y = player.yaw
 	player.pitch = 0.0
-	player.rotation.y = 0.0
 	player.get_node("Camera3D").rotation.x = 0.0
 
 	# Reset game state
@@ -94,16 +103,22 @@ func _on_course_selected(course_name: String):
 	player.address_screen.set_putting_mode(false)
 
 	# Update HUD
-	player.get_node("HUD/AimLabel").text = "%s  |  Hole %d  Par %d  %d yds  |  V to aim" % [
-		cm.get_course_name(),
-		hole.get("hole", 1),
-		hole.get("par", 4),
-		hole.get("yardage", 0)
+	player.get_node("HUD/AimLabel").text = "The Old Course  |  Hole %d  Par %d  %d yds  |  V to aim" % [
+		hole_num, hole.get("par", 4), hole.get("yardage", 0)
 	]
 
-	# Update hole map with real course data
+	# Update hole map
 	var hole_map = get_node_or_null("HoleMap")
 	if hole_map and hole_map.has_method("load_hole"):
-		hole_map.load_hole(1)
+		hole_map.load_hole(hole_num)
 
 	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+
+func go_to_next_hole():
+	var cm = get_node_or_null("CourseManager")
+	if not cm:
+		return
+	var next = cm.current_hole + 1
+	if next > cm.get_total_holes():
+		next = 1  # loop back to hole 1
+	_setup_hole(next)

@@ -248,8 +248,10 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.7, 0)
 current = true
 
 [node name="Terrain3D" type="Terrain3D" parent="."]
-data_directory = "res://courses/Sunset_Valley_Terrain_Data"
+data_directory = "res://courses/Terrain_Data"
 material = SubResource("Terrain3DMaterial_ycdy4")
 assets = SubResource("Terrain3DAssets_2cqfq")
 visible = false
+collision_mode = 2
 top_level = true
+metadata/_edit_lock_ = true

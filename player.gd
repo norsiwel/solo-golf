@@ -15,7 +15,7 @@ var aim_locked := false
 var vf_yaw := 0.0
 var vf_pitch := 0.0
 
-# Address screen
+# Game state
 var address_screen: CanvasLayer
 var addressing := false
 var ball: Node3D
@@ -29,7 +29,6 @@ func _ready():
 	_setup_sky()
 	_setup_hud()
 	_setup_address_screen()
-	# Connect green after scene is ready
 	call_deferred("_connect_green")
 
 func _setup_sky():
@@ -52,13 +51,15 @@ func _setup_address_screen():
 	address_screen = preload("res://address_screen.gd").new()
 	add_child(address_screen)
 	address_screen.connect("shot_confirmed", _on_shot_confirmed)
-	# Set up ball node
+	# Ball node
 	ball = preload("res://ball.gd").new()
 	var sphere = SphereMesh.new()
 	sphere.radius = 0.08
 	sphere.height = 0.16
 	var mat = StandardMaterial3D.new()
 	mat.albedo_color = Color(1, 1, 1, 1)
+	var tex = load("res://assets/ball_white.png")
+	if tex: mat.albedo_texture = tex
 	sphere.surface_set_material(0, mat)
 	var ball_vis = MeshInstance3D.new()
 	ball_vis.mesh = sphere
@@ -66,7 +67,7 @@ func _setup_address_screen():
 	get_parent().call_deferred("add_child", ball)
 	ball.visible = false
 	ball.connect("ball_holed", _on_ball_holed)
-	# Set up scorecard
+	# Scorecard
 	scorecard = preload("res://scorecard.gd").new()
 	add_child(scorecard)
 	scorecard.connect("play_again", _on_play_again)
@@ -131,6 +132,8 @@ func _setup_hud():
 	aim_label.set_anchor(SIDE_TOP, 0.08)
 	aim_label.add_theme_font_size_override("font_size", 20)
 	aim_label.add_theme_color_override("font_color", Color(0.3, 1.0, 0.3, 1.0))
+	aim_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 1))
+	aim_label.add_theme_constant_override("outline_size", 4)
 	canvas.add_child(aim_label)
 
 func _input(event):
@@ -171,16 +174,13 @@ func _input(event):
 			if event.keycode == KEY_ESCAPE:
 				if addressing:
 					_close_address()
-				elif viewfinder_active:
-					_close_viewfinder()
 				else:
-					_show_course_selector()
+					Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
 
 func _open_viewfinder():
 	viewfinder_active = true
 	vf_yaw = yaw
 	vf_pitch = pitch
-	# Zoom in like a real rangefinder
 	$Camera3D.fov = 25.0
 	$HUD/VFBorder.visible = true
 	$HUD/Crosshair.visible = true
@@ -205,7 +205,6 @@ func _lock_aim():
 
 func _close_viewfinder():
 	viewfinder_active = false
-	# Restore normal FOV
 	$Camera3D.fov = 75.0
 	$HUD/VFBorder.visible = false
 	$HUD/Crosshair.visible = false
@@ -224,9 +223,8 @@ func _open_address():
 		shot_dir.y = 0.0
 	shot_dir = shot_dir.normalized()
 	ball.global_position = global_position + shot_dir * 1.2
-	ball.global_position.y = 0.025
+	ball.global_position.y = global_position.y - 0.8
 	ball.visible = true
-	# Show wind info in HUD before swing
 	var wind = get_parent().get_node_or_null("WindSystem")
 	if wind:
 		$HUD/AimLabel.text = "AIM: %d yds  |  %s" % [int(aim_yardage), wind.get_wind_description()]
@@ -237,7 +235,6 @@ func _close_address():
 	address_screen.close_screen()
 
 func _connect_green():
-	# Look for GreenArea under HoleGeometry
 	var hole_geo = get_parent().get_node_or_null("HoleGeometry")
 	if hole_geo:
 		green_node = hole_geo.get_node_or_null("GreenArea")
@@ -248,29 +245,13 @@ func _connect_green():
 		if not green_node.is_connected("ball_holed_out", _on_ball_holed_out):
 			green_node.connect("ball_holed_out", _on_ball_holed_out)
 
-func connect_green_to_new_course(new_green):
-	if green_node and green_node.has_signal("ball_holed_out"):
-		if green_node.ball_holed_out.is_connected(_on_ball_holed_out):
-			green_node.ball_holed_out.disconnect(_on_ball_holed_out)
-
-	green_node = new_green
-
-	if green_node:
-		green_node.connected_player = self
-
-		if green_node.has_signal("ball_holed_out"):
-			if not green_node.ball_holed_out.is_connected(_on_ball_holed_out):
-				green_node.ball_holed_out.connect(_on_ball_holed_out)
-
 func on_player_at_tee(hole: int, par: int, yardage: int):
-	# Reset putting mode when back on tee
 	on_green = false
 	address_screen.set_putting_mode(false)
 	$HUD/AimLabel.text = "Hole %d  Par %d  %d yds  |  V to aim  Space to address" % [hole, par, yardage]
 
 func on_ball_entered_green(stimp: float, cup_world_pos: Vector3):
 	on_green = true
-	# Tell the ball where the cup is so it can roll in
 	if ball:
 		ball.cup_pos = cup_world_pos
 		ball.stimp = stimp
@@ -281,69 +262,39 @@ func _on_ball_holed_out(strokes: int):
 	on_green = false
 	ball.visible = false
 	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
-	scorecard.show_scorecard(1, 3, 180, strokes)
+	var cm = get_parent().get_node_or_null("CourseManager")
+	var par = 4
+	var yds = 0
+	if cm:
+		var hole = cm.get_hole_data(cm.current_hole)
+		par = hole.get("par", 4)
+		yds = hole.get("yardage", 0)
+	scorecard.show_scorecard(cm.current_hole if cm else 1, par, yds, strokes)
 
 func _on_ball_holed():
-	# Ball animation finished dropping into cup
 	on_green = false
 	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
-	scorecard.show_scorecard(1, 3, 180, stroke_count)
+	var cm = get_parent().get_node_or_null("CourseManager")
+	var par = 4
+	var yds = 0
+	if cm:
+		var hole = cm.get_hole_data(cm.current_hole)
+		par = hole.get("par", 4)
+		yds = hole.get("yardage", 0)
+	scorecard.show_scorecard(cm.current_hole if cm else 1, par, yds, stroke_count)
 
 func _on_play_again():
-	stroke_count = 0
-	on_green = false
-	aim_locked = false
-	ball.reset()
-	ball.cup_pos = Vector3.ZERO
-	ball.visible = false
-	$HUD/AimLabel.text = ""
-	address_screen.set_putting_mode(false)
-	global_position = Vector3(0, 2.0, 0)
-	yaw = 0.0
-	pitch = 0.0
-	rotation.y = 0.0
-	$Camera3D.rotation.x = 0.0
-	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+	# Replay same hole
+	var main = get_parent()
+	if main and main.has_method("_setup_hole"):
+		var cm = main.get_node_or_null("CourseManager")
+		if cm:
+			main._setup_hole(cm.current_hole)
 
 func _on_next_hole():
-	# Tell main.gd to show the course selector
-	var selector = get_parent().get_node_or_null("CourseSelector")
-	if selector:
-		selector.show_selector()
-
-func _show_course_selector():
-	var selector = get_parent().get_node_or_null("CourseSelector")
-	if selector:
-		selector.connect("course_selected", _on_course_selected, CONNECT_ONE_SHOT)
-		selector.show_selector()
-
-func _on_course_selected(course_name: String):
-	var cm = get_parent().get_node_or_null("CourseManager")
-	if not cm:
-		return
-	cm.load_course(course_name)
-	# Teleport to hole 1 tee
-	var hole = cm.go_to_hole(1)
-	if not hole.is_empty():
-		var tee = cm.get_tee_position(1)
-		global_position = Vector3(tee.x, tee.y + 1.8, tee.z)
-		$HUD/AimLabel.text = "%s  Hole 1  Par %d  %d yds  |  V to aim" % [
-			cm.get_course_name(),
-			hole.get("par", 4),
-			hole.get("yardage", 0)
-		]
-	# Reset game state
-	stroke_count = 0
-	on_green = false
-	aim_locked = false
-	ball.reset()
-	ball.cup_pos = Vector3.ZERO
-	address_screen.set_putting_mode(false)
-	yaw = 0.0
-	pitch = 0.0
-	rotation.y = 0.0
-	$Camera3D.rotation.x = 0.0
-	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+	var main = get_parent()
+	if main and main.has_method("go_to_next_hole"):
+		main.go_to_next_hole()
 
 func _on_shot_confirmed(p_power: float, p_accuracy: float, p_draw_fade: float, p_loft: float, club: Dictionary):
 	_close_address()
@@ -374,11 +325,11 @@ func _on_ball_stopped(pos: Vector3, in_bunker: bool):
 		$HUD/AimLabel.text = "In the bunker!  %.0f yds away  |  Press W to walk" % dist_yards
 	else:
 		$HUD/AimLabel.text = "Ball stopped  %.0f yds away  |  Press W to walk" % dist_yards
-	# Check if ball is on green by distance to green node
+	# Check if ball landed on green
 	if green_node and not on_green:
 		var green_pos = green_node.global_position
 		var dist_to_green = Vector2(pos.x, pos.z).distance_to(Vector2(green_pos.x, green_pos.z))
-		if dist_to_green < 12.0:  # within green radius
+		if dist_to_green < 12.0:
 			on_green = true
 			var cup_world = green_node.get_cup_world_pos()
 			ball.cup_pos = cup_world
@@ -392,19 +343,14 @@ func _on_ball_stopped(pos: Vector3, in_bunker: bool):
 func _physics_process(delta):
 	if viewfinder_active:
 		_update_yardage()
-
 	if addressing:
 		return
 
 	var input_dir := Vector2.ZERO
-	if Input.is_key_pressed(KEY_W):
-		input_dir.y -= 1
-	if Input.is_key_pressed(KEY_S):
-		input_dir.y += 1
-	if Input.is_key_pressed(KEY_A):
-		input_dir.x -= 1
-	if Input.is_key_pressed(KEY_D):
-		input_dir.x += 1
+	if Input.is_key_pressed(KEY_W): input_dir.y -= 1
+	if Input.is_key_pressed(KEY_S): input_dir.y += 1
+	if Input.is_key_pressed(KEY_A): input_dir.x -= 1
+	if Input.is_key_pressed(KEY_D): input_dir.x += 1
 
 	input_dir = input_dir.normalized()
 	var direction := (transform.basis * Vector3(input_dir.x, 0, input_dir.y)).normalized()
@@ -415,7 +361,6 @@ func _physics_process(delta):
 		velocity.y -= gravity * delta
 	else:
 		velocity.y = 0
-
 	move_and_slide()
 
 func _update_yardage():
@@ -428,24 +373,21 @@ func _update_yardage():
 	query.exclude = [self]
 	var result = space_state.intersect_ray(query)
 
-	# Check if crosshair is near the flagstick - snap to it
 	var hole_geo = get_parent().get_node_or_null("HoleGeometry")
-	var flag_node = hole_geo.get_node_or_null("Flagstick") if hole_geo else get_parent().get_node_or_null("Flagstick")
+	var flag_node = hole_geo.get_node_or_null("Flagstick") if hole_geo else null
 	var snapped_to_flag := false
+
 	if flag_node:
 		var flag_pos = flag_node.global_position
-		# Project flag position onto screen and check distance to center
 		var flag_screen = camera.unproject_position(flag_pos)
 		var screen_center = get_viewport().get_visible_rect().size / 2.0
-		var screen_dist = flag_screen.distance_to(screen_center)
-		if screen_dist < 60.0:  # within 60 pixels of crosshair
+		if flag_screen.distance_to(screen_center) < 60.0:
 			var dist_meters = global_position.distance_to(flag_pos)
 			aim_yardage = dist_meters * 1.094
 			aim_point = flag_pos
-			aim_point.y = 0.0
+			aim_point.y = global_position.y
 			snapped_to_flag = true
-			$HUD/YardageLabel.text = "📍 FLAG  %d yds" % int(aim_yardage)
-			# Turn crosshair red to show snap
+			$HUD/YardageLabel.text = "FLAG  %d yds" % int(aim_yardage)
 			$HUD/Crosshair.add_theme_color_override("font_color", Color(1.0, 0.2, 0.2, 1.0))
 
 	if not snapped_to_flag:
