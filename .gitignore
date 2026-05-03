@@ -6,18 +6,10 @@
 *.unity3d
 *.zip
 
-# Raw extracted asset data - never commit these
-standrewsv1/
-sunsetvalleygc_fnl3_1/
-*/extracted assets/
-*.dat
+# Raw extracted assets - too large for git
+assets/extracted assets/
 
-# Backup files
-*.backup
-*.bak
-*.bak2
-
-# Terrain3D demo files - not part of our game
+# Terrain3D demo files
 demo/
 
 # Duplicate/temp ball images - only keep assets/ folder versions
