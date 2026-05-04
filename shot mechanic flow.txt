@@ -1,0 +1,47 @@
+[Walk / Approach Phase]
+      |
+      v
+[Address Mode] — Camera locked to player head
+      |  
+      |-- WASD Horizontal (A/D) → draw/fade (yaw)
+      |-- WASD Vertical (W/S) → loft / backspin
+      |-- 5 discrete clicks per axis
+      |-- Ball Tracer updates to show expected curve & height
+      |-- Safe / Maybe / Extreme zones visualized
+      |
+      v
+[3-Click Meter Activation]
+      |
+      |-- Dynamic meter speed scaled by shot distance
+      |-- Power / timing only (does not affect aim)
+      |-- Optional: micro-error added for extreme clicks
+      |
+      v
+[Shot Execution]
+      |
+      |-- Compute initial velocity vector:
+      |       - Meter value → speed
+      |       - Club orientation → yaw + loft
+      |       - Risk deviations if in maybe/extreme zone
+      |-- Physics-based ball flight:
+      |       - Gravity
+      |       - Spin (backspin, sidespin)
+      |       - Surface / slope friction
+      |-- Ball tracer continues to show actual path
+      |
+      v
+[Ball Landing]
+      |
+      |-- Loft / backspin determines rollout:
+      |       - High loft → soft landing, possible back into hole
+      |       - Low loft → longer roll
+      |-- Horizontal spin → draw/fade effects
+      |
+      v
+[Follow / Evaluate]
+      |
+      |-- Ball tracer guides player to resting position
+      |-- Player observes results and learns for next shot
+      |
+      v
+[Next Shot / Put / Chip]

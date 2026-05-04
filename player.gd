@@ -265,11 +265,13 @@ func _on_ball_holed_out(strokes: int):
 	var cm = get_parent().get_node_or_null("CourseManager")
 	var par = 4
 	var yds = 0
+	var hole_num = 1
 	if cm:
 		var hole = cm.get_hole_data(cm.current_hole)
 		par = hole.get("par", 4)
 		yds = hole.get("yardage", 0)
-	scorecard.show_scorecard(cm.current_hole if cm else 1, par, yds, strokes)
+		hole_num = cm.current_hole
+	scorecard.show_hole_result(hole_num, par, yds, strokes)
 
 func _on_ball_holed():
 	on_green = false
@@ -277,11 +279,13 @@ func _on_ball_holed():
 	var cm = get_parent().get_node_or_null("CourseManager")
 	var par = 4
 	var yds = 0
+	var hole_num = 1
 	if cm:
 		var hole = cm.get_hole_data(cm.current_hole)
 		par = hole.get("par", 4)
 		yds = hole.get("yardage", 0)
-	scorecard.show_scorecard(cm.current_hole if cm else 1, par, yds, stroke_count)
+		hole_num = cm.current_hole
+	scorecard.show_hole_result(hole_num, par, yds, stroke_count)
 
 func _on_play_again():
 	# Replay same hole

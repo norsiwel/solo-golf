@@ -1,4 +1,4 @@
-[gd_scene load_steps=38 format=3 uid="uid://dvcp2wpqd25c6"]
+[gd_scene load_steps=40 format=3 uid="uid://dvcp2wpqd25c6"]
 
 [ext_resource type="Script" uid="uid://cch7i6fyywjos" path="res://main.gd" id="1_main"]
 [ext_resource type="Script" uid="uid://bagc1rj48iic7" path="res://player.gd" id="2_player"]
@@ -10,16 +10,16 @@
 [ext_resource type="Script" uid="uid://jnuydiewf0yg" path="res://green.gd" id="8_green"]
 [ext_resource type="Script" uid="uid://btr64vpnrmohl" path="res://tee.gd" id="9_tee"]
 [ext_resource type="Script" uid="uid://cvn4viqosvqe4" path="res://flag_animator.gd" id="10_flag"]
-[ext_resource type="Texture2D" path="res://assets/terrain/surface_fairway.png" id="11_fairway"]
-[ext_resource type="Texture2D" path="res://assets/terrain/surface_green.png" id="12_green_tex"]
+[ext_resource type="Texture2D" uid="uid://c4p5702bpacy1" path="res://assets/terrain/surface_fairway.png" id="11_fairway"]
+[ext_resource type="Texture2D" uid="uid://b6lyhsbfdhova" path="res://assets/terrain/surface_green.png" id="12_green_tex"]
 
 [sub_resource type="PlaneMesh" id="PlaneMesh_fallback"]
 size = Vector2(4000, 4000)
 
 [sub_resource type="StandardMaterial3D" id="Material_grass"]
 albedo_texture = ExtResource("11_fairway")
-uv1_scale = Vector3(200, 200, 200)
 roughness = 0.9
+uv1_scale = Vector3(200, 200, 200)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_fallback"]
 size = Vector3(4000, 0.2, 4000)
@@ -49,8 +49,8 @@ size = Vector2(22, 16)
 
 [sub_resource type="StandardMaterial3D" id="Material_green"]
 albedo_texture = ExtResource("12_green_tex")
-uv1_scale = Vector3(8, 8, 8)
 roughness = 0.95
+uv1_scale = Vector3(8, 8, 8)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_green"]
 size = Vector3(22, 0.3, 16)
@@ -129,7 +129,7 @@ _shader_parameters = {
 &"noise_texture": SubResource("NoiseTexture2D_dg77c"),
 &"projection_threshold": 0.8
 }
-show_checkered = false
+show_checkered = true
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_w48qg"]
 transparency = 4

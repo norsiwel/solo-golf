@@ -178,16 +178,36 @@ func _process(delta):
 
 	elif state == BallState.ROLLING:
 		var in_bunker := false
-		var roll_distance: float
-		var roll_speed: float
 
 		if is_putt:
-			roll_distance = start_pos.distance_to(land_pos)
-			var progress = global_position.distance_to(start_pos) / max(roll_distance, 0.01)
-			roll_speed = clamp((1.0 - progress) * roll_distance * PUTT_SPEED, 0.01, 20.0)
+			# Putt rolls from start_pos toward land_pos, decelerating
+			var total_dist = start_pos.distance_to(land_pos)
+			if total_dist < 0.01:
+				state = BallState.STOPPED
+				emit_signal("ball_stopped", global_position, false)
+				return
+			var dist_so_far = global_position.distance_to(start_pos)
+			var progress = clamp(dist_so_far / total_dist, 0.0, 1.0)
+			# Ease out deceleration
+			var roll_speed = clamp((1.0 - progress) * total_dist * PUTT_SPEED, 0.02, 15.0)
 			global_position += roll_dir * roll_speed * delta
 			global_position.y = 0.025
 			scale = Vector3(1.0, 1.0, 1.0)
+			# Check if reached or passed land_pos
+			var new_dist = global_position.distance_to(start_pos)
+			if new_dist >= total_dist or roll_speed <= 0.05:
+				global_position = land_pos
+				global_position.y = 0.025
+				# Check cup
+				if cup_pos != Vector3.ZERO:
+					var dist_to_cup = Vector2(global_position.x, global_position.z).distance_to(
+						Vector2(cup_pos.x, cup_pos.z))
+					if dist_to_cup < 1.5:
+						state = BallState.HOLING
+						hole_timer = 0.0
+						return
+				state = BallState.STOPPED
+				emit_signal("ball_stopped", global_position, false)
 		else:
 			var rollout_pct = BASE_ROLLOUT
 			if loft < -0.15:
@@ -198,32 +218,24 @@ func _process(delta):
 			if in_bunker:
 				rollout_pct = 0.02
 				in_bunker_flag = true
-			roll_distance = power * current_max_distance_meters * rollout_pct
-			roll_speed = roll_distance * 0.8
+			var roll_distance = power * current_max_distance_meters * rollout_pct
+			var roll_speed = roll_distance * 0.8
 			global_position += roll_dir * roll_speed * delta
 			roll_speed = move_toward(roll_speed, 0, roll_speed * delta * 2.0)
 			_update_ball_cam()
-
-		var dist_rolled = global_position.distance_to(start_pos if is_putt else land_pos)
-		var stop_dist = start_pos.distance_to(land_pos) if is_putt else (power * current_max_distance_meters * BASE_ROLLOUT)
-
-		if dist_rolled >= stop_dist or roll_speed <= 0.01:
-			if cup_pos != Vector3.ZERO:
-				var dist_to_cup = Vector2(global_position.x, global_position.z).distance_to(
-					Vector2(cup_pos.x, cup_pos.z))
-				if dist_to_cup < 1.5:
-					state = BallState.HOLING
-					hole_timer = 0.0
-					_restore_player_cam()
-					return
-			if not is_putt:
+			var dist_rolled = global_position.distance_to(land_pos)
+			if dist_rolled >= roll_distance or roll_speed <= 0.01:
+				if cup_pos != Vector3.ZERO:
+					var dist_to_cup = Vector2(global_position.x, global_position.z).distance_to(
+						Vector2(cup_pos.x, cup_pos.z))
+					if dist_to_cup < 1.5:
+						state = BallState.HOLING
+						hole_timer = 0.0
+						_restore_player_cam()
+						return
 				scale = Vector3(2.0, 2.0, 2.0)
-				# Hold ball cam on landing for CAM_HOLD_TIME then snap back
 				state = BallState.CAM_HOLD
 				cam_timer = 0.0
-			else:
-				state = BallState.STOPPED
-				emit_signal("ball_stopped", global_position, in_bunker_flag)
 
 	elif state == BallState.CAM_HOLD:
 		# Camera holds on ball landing position
@@ -240,11 +252,15 @@ func _process(delta):
 
 	elif state == BallState.HOLING:
 		hole_timer += delta
-		global_position = global_position.lerp(cup_pos, hole_timer * delta * 5.0)
-		var s = clamp(1.0 - (hole_timer / 0.5), 0.05, 2.0) * 2.0
-		scale = Vector3(s, s, s)
-		global_position.y = cup_pos.y - (hole_timer * 0.3)
-		if hole_timer >= 0.7:
+		# Slide toward cup
+		var t = clamp(hole_timer * 3.0, 0.0, 1.0)
+		global_position = global_position.lerp(
+			Vector3(cup_pos.x, global_position.y, cup_pos.z), t * delta * 4.0)
+		# Shrink as it drops in
+		var s = clamp(1.0 - (hole_timer / 0.6), 0.0, 1.0)
+		scale = Vector3(max(s, 0.05), max(s, 0.05), max(s, 0.05))
+		global_position.y = cup_pos.y - clamp(hole_timer * 0.5, 0.0, 0.3)
+		if hole_timer >= 0.8:
 			visible = false
 			state = BallState.STOPPED
 			emit_signal("ball_holed")
