@@ -63,12 +63,16 @@ func _load_placement_data() -> void:
 		_placement_data = data["placements"]
 
 func _get_terrain_y(world_x: float, world_z: float) -> float:
-	var scene = get_tree().current_scene
-	if not scene:
+	var space = get_world_3d().direct_space_state
+	if not space:
 		return 0.0
-	var terrain = scene.get_node_or_null("HoleTerrain")
-	if terrain and terrain.has_method("get_height_at"):
-		return terrain.get_height_at(world_x, world_z)
+	var query = PhysicsRayQueryParameters3D.create(
+		Vector3(world_x, 500.0, world_z),
+		Vector3(world_x, -50.0, world_z)
+	)
+	var result = space.intersect_ray(query)
+	if result:
+		return result.position.y
 	return 0.0
 
 func _get_surface_type(world_x: float, world_z: float) -> String:

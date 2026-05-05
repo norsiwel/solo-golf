@@ -53,14 +53,9 @@ func _setup_hole(hole_num: int):
 			all_tees, all_pins
 		)
 
-	# Get ground heights at tee and pin from the generated terrain
-	var tee_y := 0.0
-	var pin_y := 0.0
-	if hole_terrain and hole_terrain.has_method("get_height_at"):
-		tee_y = hole_terrain.get_height_at(tee.x, tee.z)
-		pin_y = hole_terrain.get_height_at(pin.x, pin.z)
-	tee_y = max(tee_y, 0.0)
-	pin_y = max(pin_y, 0.0)
+	# Get ground heights via downward raycast so player/geometry land on the actual surface
+	var tee_y := max(_raycast_ground_y(tee.x, tee.z), 0.0)
+	var pin_y := max(_raycast_ground_y(pin.x, pin.z), 0.0)
 
 	# --- Tee box: rectangle perpendicular to tee→pin direction ---
 	var play_dir = Vector3(pin.x - tee.x, 0, pin.z - tee.z).normalized()
@@ -136,6 +131,19 @@ func _setup_hole(hole_num: int):
 		hole_map.load_hole(hole_num)
 
 	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+
+func _raycast_ground_y(world_x: float, world_z: float) -> float:
+	var space = get_world_3d().direct_space_state
+	if not space:
+		return 0.0
+	var query = PhysicsRayQueryParameters3D.create(
+		Vector3(world_x, 500.0, world_z),
+		Vector3(world_x, -50.0, world_z)
+	)
+	var result = space.intersect_ray(query)
+	if result:
+		return result.position.y
+	return 0.0
 
 func go_to_next_hole():
 	var cm = get_node_or_null("CourseManager")
