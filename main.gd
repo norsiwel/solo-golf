@@ -1,7 +1,18 @@
 extends Node3D
 
 func _ready():
+	_start_spline_loader()
 	call_deferred("_load_standrews")
+
+func _start_spline_loader():
+	var loader_script = load("res://courses/The_Old_Course_spline_loader.gd")
+	if not loader_script:
+		push_warning("Main: spline loader script not found")
+		return
+	var loader = Node3D.new()
+	loader.name = "SplineMeshLoader"
+	loader.set_script(loader_script)
+	add_child(loader)
 
 func _load_standrews():
 	var cm = get_node_or_null("CourseManager")
@@ -22,7 +33,6 @@ func _setup_hole(hole_num: int):
 	var cm = get_node_or_null("CourseManager")
 	var player = get_node_or_null("Player")
 	var hole_geo = get_node_or_null("HoleGeometry")
-	var terrain = get_node_or_null("Terrain3D")
 	var fallback = get_node_or_null("FallbackGround")
 
 	var hole = cm.go_to_hole(hole_num)
@@ -33,27 +43,24 @@ func _setup_hole(hole_num: int):
 	var tee = cm.get_tee_position(hole_num)
 	var pin = cm.get_pin_position(hole_num)
 
-	# Determine if Terrain3D has data loaded
-	var has_terrain = false
-	if terrain:
-		var storage = terrain.get("storage")
-		if storage != null:
-			has_terrain = true
-			terrain.visible = true
-			terrain.collision_mode = 2  # FULL collision
-			if fallback: fallback.visible = false
-		else:
-			terrain.visible = false
-			if fallback: fallback.visible = true
-
-	# Get actual ground heights
-	var tee_y = tee.y
-	var pin_y = pin.y
-	if has_terrain and terrain.has_method("get_height"):
-		var th = terrain.get_height(Vector2(tee.x, tee.z))
-		var ph = terrain.get_height(Vector2(pin.x, pin.z))
-		if th != 0: tee_y = th
-		if ph != 0: pin_y = ph
+	# Build per-hole terrain from tee/pin waypoints
+	var hole_terrain = get_node_or_null("HoleTerrain")
+	if hole_terrain and hole_terrain.has_method("build_from_hole"):
+		var all_tees = hole.get("all_tees", [])
+		var all_pins = hole.get("all_pins", [])
+		hole_terrain.build_from_hole(
+			Vector3(tee.x, 0, tee.z),
+			Vector3(pin.x, 0, pin.z),
+			all_tees, all_pins
+		)
+		# Keep fallback ground visible as collision safety net
+	
+	# Get actual ground heights from terrain
+	var tee_y = 0.1
+	var pin_y = 0.1
+	if hole_terrain and hole_terrain.has_method("get_height_at"):
+		tee_y = hole_terrain.get_height_at(tee.x, tee.z)
+		pin_y = hole_terrain.get_height_at(pin.x, pin.z)
 
 	# Position hole geometry
 	var hole_geo_nodes = {
@@ -96,6 +103,7 @@ func _setup_hole(hole_num: int):
 	player.stroke_count = 0
 	player.on_green = false
 	player.aim_locked = false
+	player.aim_point = Vector3(pin.x, pin_y, pin.z)
 	if player.ball:
 		player.ball.reset()
 		player.ball.cup_pos = Vector3.ZERO

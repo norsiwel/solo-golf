@@ -1,0 +1,388 @@
+{
+  "origin": {
+    "unity_x": 1882.06,
+    "unity_z": 181.82
+  },
+  "placements": [
+    {
+      "mesh_file": "courses/meshes/Spline_Mesh_4456.glb",
+      "mesh_id": 4456,
+      "mono_id": 40481,
+      "name": "Concrete",
+      "type": "other",
+      "godot_x": -706.54,
+      "godot_y": 23.02,
+      "godot_z": -818.05,
+      "glb_exists": true,
+      "spline_size": [
+        9.3,
+        11.9
+      ],
+      "mesh_size": [
+        23.0,
+        19.8
+      ]
+    },
+    {
+      "mesh_file": "courses/meshes/Spline_Mesh_4460.glb",
+      "mesh_id": 4460,
+      "mono_id": 40625,
+      "name": "RoughDeepOuter",
+      "type": "rough",
+      "godot_x": -956.47,
+      "godot_y": 23.28,
+      "godot_z": -1204.43,
+      "glb_exists": true,
+      "spline_size": [
+        132.2,
+        190.1
+      ],
+      "mesh_size": [
+        290.4,
+        361.2
+      ]
+    },
+    {
+      "mesh_file": "courses/meshes/Spline_Mesh_4489.glb",
+      "mesh_id": 4489,
+      "mono_id": 40932,
+      "name": "Unknown",
+      "type": "other",
+      "godot_x": -1204.9,
+      "godot_y": 24.75,
+      "godot_z": -1291.77,
+      "glb_exists": true,
+      "spline_size": [
+        12.6,
+        13.0
+      ],
+      "mesh_size": [
+        28.9,
+        21.2
+      ]
+    },
+    {
+      "mesh_file": "courses/meshes/Spline_Mesh_4516.glb",
+      "mesh_id": 4516,
+      "mono_id": 40879,
+      "name": "Rough",
+      "type": "rough",
+      "godot_x": -1233.07,
+      "godot_y": 22.67,
+      "godot_z": -1629.08,
+      "glb_exists": true,
+      "spline_size": [
+        422.7,
+        552.6
+      ],
+      "mesh_size": [
+        813.3,
+        1125.8
+      ]
+    },
+    {
+      "mesh_file": "courses/meshes/Spline_Mesh_4540.glb",
+      "mesh_id": 4540,
+      "mono_id": 40546,
+      "name": "RoughDeep",
+      "type": "rough",
+      "godot_x": -1148.86,
+      "godot_y": 23.29,
+      "godot_z": -1301.91,
+      "glb_exists": true,
+      "spline_size": [
+        72.7,
+        47.6
+      ],
+      "mesh_size": [
+        97.6,
+        143.9
+      ]
+    },
+    {
+      "mesh_file": "courses/meshes/Spline_Mesh_4555.glb",
+      "mesh_id": 4555,
+      "mono_id": 40703,
+      "name": "Rough",
+      "type": "rough",
+      "godot_x": -910.3,
+      "godot_y": 23.62,
+      "godot_z": -808.44,
+      "glb_exists": true,
+      "spline_size": [
+        153.9,
+        310.2
+      ],
+      "mesh_size": [
+        423.4,
+        553.3
+      ]
+    },
+    {
+      "mesh_file": "courses/meshes/Spline_Mesh_4580.glb",
+      "mesh_id": 4580,
+      "mono_id": 40717,
+      "name": "Rough",
+      "type": "rough",
+      "godot_x": -453.87,
+      "godot_y": 22.3,
+      "godot_z": -367.14,
+      "glb_exists": true,
+      "spline_size": [
+        138.2,
+        285.8
+      ],
+      "mesh_size": [
+        223.3,
+        600.4
+      ]
+    },
+    {
+      "mesh_file": "courses/meshes/Spline_Mesh_4582.glb",
+      "mesh_id": 4582,
+      "mono_id": 40678,
+      "name": "Rough",
+      "type": "rough",
+      "godot_x": -309.28,
+      "godot_y": 22.57,
+      "godot_z": -94.58,
+      "glb_exists": true,
+      "spline_size": [
+        130.0,
+        132.9
+      ],
+      "mesh_size": [
+        177.1,
+        329.3
+      ]
+    },
+    {
+      "mesh_file": "courses/meshes/Spline_Mesh_4628.glb",
+      "mesh_id": 4628,
+      "mono_id": 40364,
+      "name": "Rough",
+      "type": "rough",
+      "godot_x": -1161.82,
+      "godot_y": 23.6,
+      "godot_z": -1191.35,
+      "glb_exists": true,
+      "spline_size": [
+        237.3,
+        260.8
+      ],
+      "mesh_size": [
+        293.7,
+        614.4
+      ]
+    },
+    {
+      "mesh_file": "courses/meshes/Spline_Mesh_4671.glb",
+      "mesh_id": 4671,
+      "mono_id": 40421,
+      "name": "RoughDeepOuter",
+      "type": "rough",
+      "godot_x": -833.47,
+      "godot_y": 23.27,
+      "godot_z": -768.06,
+      "glb_exists": true,
+      "spline_size": [
+        121.4,
+        248.0
+      ],
+      "mesh_size": [
+        369.4,
+        419.5
+      ]
+    },
+    {
+      "mesh_file": "courses/meshes/Spline_Mesh_4710.glb",
+      "mesh_id": 4710,
+      "mono_id": 40383,
+      "name": "Fairway",
+      "type": "fairway",
+      "godot_x": -658.51,
+      "godot_y": 22.89,
+      "godot_z": -492.29,
+      "glb_exists": true,
+      "spline_size": [
+        104.2,
+        107.3
+      ],
+      "mesh_size": [
+        194.2,
+        230.9
+      ]
+    },
+    {
+      "mesh_file": "courses/meshes/Spline_Mesh_4780.glb",
+      "mesh_id": 4780,
+      "mono_id": 40359,
+      "name": "Fairway",
+      "type": "fairway",
+      "godot_x": -927.77,
+      "godot_y": 23.42,
+      "godot_z": -851.24,
+      "glb_exists": true,
+      "spline_size": [
+        106.4,
+        215.6
+      ],
+      "mesh_size": [
+        302.2,
+        375.9
+      ]
+    },
+    {
+      "mesh_file": "courses/meshes/Spline_Mesh_4786.glb",
+      "mesh_id": 4786,
+      "mono_id": 40361,
+      "name": "RoughDeepOuter",
+      "type": "rough",
+      "godot_x": -410.08,
+      "godot_y": 22.68,
+      "godot_z": -65.89,
+      "glb_exists": true,
+      "spline_size": [
+        121.0,
+        159.0
+      ],
+      "mesh_size": [
+        199.3,
+        339.2
+      ]
+    },
+    {
+      "mesh_file": "courses/meshes/Spline_Mesh_4847.glb",
+      "mesh_id": 4847,
+      "mono_id": 40579,
+      "name": "Fairway",
+      "type": "fairway",
+      "godot_x": -786.95,
+      "godot_y": 22.65,
+      "godot_z": -1136.63,
+      "glb_exists": true,
+      "spline_size": [
+        222.1,
+        599.2
+      ],
+      "mesh_size": [
+        655.7,
+        1057.2
+      ]
+    },
+    {
+      "mesh_file": "courses/meshes/Spline_Mesh_4887.glb",
+      "mesh_id": 4887,
+      "mono_id": 40980,
+      "name": "Fairway",
+      "type": "fairway",
+      "godot_x": -741.72,
+      "godot_y": 23.21,
+      "godot_z": -397.38,
+      "glb_exists": true,
+      "spline_size": [
+        167.4,
+        189.4
+      ],
+      "mesh_size": [
+        357.0,
+        379.8
+      ]
+    },
+    {
+      "mesh_file": "courses/meshes/Spline_Mesh_4896.glb",
+      "mesh_id": 4896,
+      "mono_id": 40881,
+      "name": "Bunker Burn",
+      "type": "bunker",
+      "godot_x": -274.67,
+      "godot_y": 22.03,
+      "godot_z": 6.55,
+      "glb_exists": true,
+      "spline_size": [
+        97.8,
+        144.1
+      ],
+      "mesh_size": [
+        237.9,
+        261.5
+      ]
+    },
+    {
+      "mesh_file": "courses/meshes/Spline_Mesh_4902.glb",
+      "mesh_id": 4902,
+      "mono_id": 40389,
+      "name": "RoughDeepOuter",
+      "type": "rough",
+      "godot_x": -976.48,
+      "godot_y": 23.58,
+      "godot_z": -1151.71,
+      "glb_exists": true,
+      "spline_size": [
+        73.3,
+        90.2
+      ],
+      "mesh_size": [
+        135.3,
+        189.4
+      ]
+    },
+    {
+      "mesh_file": "courses/meshes/Spline_Mesh_4910.glb",
+      "mesh_id": 4910,
+      "mono_id": 40432,
+      "name": "Fairway",
+      "type": "fairway",
+      "godot_x": -973.05,
+      "godot_y": 22.98,
+      "godot_z": -1421.29,
+      "glb_exists": true,
+      "spline_size": [
+        210.6,
+        241.1
+      ],
+      "mesh_size": [
+        403.8,
+        548.3
+      ]
+    },
+    {
+      "mesh_file": "courses/meshes/Spline_Mesh_4913.glb",
+      "mesh_id": 4913,
+      "mono_id": 40360,
+      "name": "Fairway",
+      "type": "fairway",
+      "godot_x": -932.25,
+      "godot_y": 22.36,
+      "godot_z": -1568.18,
+      "glb_exists": true,
+      "spline_size": [
+        105.6,
+        209.3
+      ],
+      "mesh_size": [
+        370.5,
+        305.6
+      ]
+    },
+    {
+      "mesh_file": "courses/meshes/Spline_Mesh_4943.glb",
+      "mesh_id": 4943,
+      "mono_id": 41005,
+      "name": "Rough",
+      "type": "rough",
+      "godot_x": -571.22,
+      "godot_y": 22.24,
+      "godot_z": -682.14,
+      "glb_exists": true,
+      "spline_size": [
+        94.2,
+        241.9
+      ],
+      "mesh_size": [
+        310.9,
+        423.9
+      ]
+    }
+  ]
+}
