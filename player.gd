@@ -437,17 +437,25 @@ func _on_shot_confirmed(p_power: float, p_accuracy: float, p_draw_fade: float, p
 			"Hi" if p_loft > 0.1 else ("Lo" if p_loft < -0.1 else "Mid")
 		]
 
-func _on_ball_stopped(pos: Vector3, in_bunker: bool):
+func _on_ball_stopped(pos: Vector3, surface: String):
 	var dist_yards = global_position.distance_to(pos) * 1.094
-	if in_bunker:
-		$HUD/AimLabel.text = "In the bunker!  %.0f yds away  |  Press W to walk" % dist_yards
-	else:
-		$HUD/AimLabel.text = "Ball stopped  %.0f yds away  |  Press W to walk" % dist_yards
+	match surface:
+		"water":
+			stroke_count += 1  # one-stroke penalty
+			$HUD/AimLabel.text = "WATER! +1 penalty  %.0f yds away  |  Re-play from same spot" % dist_yards
+		"bunker":
+			$HUD/AimLabel.text = "In the bunker!  %.0f yds away  |  Press W to walk" % dist_yards
+		"green":
+			$HUD/AimLabel.text = "On the green!  Stimp: %.0f  |  Press Space to putt" % (green_node.stimp if green_node else 8.0)
+		_:
+			$HUD/AimLabel.text = "Ball stopped  %.0f yds away  |  Press W to walk" % dist_yards
+	if surface == "water":
+		return  # player must re-hit from same position; no green check
 	# Check if ball landed on green
 	if green_node and not on_green:
 		var green_pos = green_node.global_position
 		var dist_to_green = Vector2(pos.x, pos.z).distance_to(Vector2(green_pos.x, green_pos.z))
-		if dist_to_green < 12.0:
+		if dist_to_green < 12.0 or surface == "green":
 			on_green = true
 			var cup_world = green_node.get_cup_world_pos()
 			ball.cup_pos = cup_world

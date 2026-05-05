@@ -21,6 +21,11 @@ var current_max_distance_meters := 220.0
 var cup_pos := Vector3.ZERO
 var hole_timer := 0.0
 var in_bunker_flag := false
+var landed_surface := "fairway"
+
+# Mesh placement data for surface detection (loaded once)
+var _placement_data: Array = []
+var _placement_loaded := false
 
 # Ball camera
 var ball_cam: Camera3D
@@ -29,7 +34,8 @@ var player_cam: Camera3D = null
 const CAM_HOLD_TIME := 2.5
 
 signal ball_holed
-signal ball_stopped(position: Vector3, in_bunker: bool)
+# surface: "fairway", "rough", "deep_rough", "bunker", "water", "green", "tee"
+signal ball_stopped(position: Vector3, surface: String)
 
 # Tracer
 var tracer_points: Array[Vector3] = []
@@ -44,6 +50,52 @@ const PUTT_SPEED := 1.5
 func _ready():
 	_setup_tracer()
 	_setup_ball_cam()
+	_load_placement_data()
+
+func _load_placement_data() -> void:
+	_placement_loaded = true
+	var f = FileAccess.open("res://courses/The_Old_Course_mesh_placement.json", FileAccess.READ)
+	if not f:
+		return
+	var data = JSON.parse_string(f.get_as_text())
+	f.close()
+	if data and data.has("placements"):
+		_placement_data = data["placements"]
+
+func _get_terrain_y(world_x: float, world_z: float) -> float:
+	var scene = get_tree().current_scene
+	if not scene:
+		return 0.0
+	var terrain = scene.get_node_or_null("HoleTerrain")
+	if terrain and terrain.has_method("get_height_at"):
+		return terrain.get_height_at(world_x, world_z)
+	return 0.0
+
+func _get_surface_type(world_x: float, world_z: float) -> String:
+	# Check named mesh zones first (bunker/water from placement data)
+	for entry in _placement_data:
+		var ex: float = entry.get("godot_x", 0.0)
+		var ez: float = entry.get("godot_z", 0.0)
+		var ms: Array = entry.get("mesh_size", [1.0, 1.0])
+		var hw: float = ms[0] * 0.5
+		var hd: float = ms[1] * 0.5
+		if abs(world_x - ex) < hw and abs(world_z - ez) < hd:
+			var type: String = entry.get("type", "rough")
+			var name: String = entry.get("name", "")
+			# Swilcan Burn is water even though placed as "bunker"
+			if "burn" in name.to_lower() or "water" in name.to_lower():
+				return "water"
+			if type == "bunker":
+				return "bunker"
+			if type == "fairway":
+				return "fairway"
+	# Fall back to terrain zone
+	var scene = get_tree().current_scene
+	if scene:
+		var terrain = scene.get_node_or_null("HoleTerrain")
+		if terrain and terrain.has_method("get_surface_type"):
+			return terrain.get_surface_type(world_x, world_z)
+	return "rough"
 
 func _setup_ball_cam():
 	ball_cam = Camera3D.new()
@@ -83,6 +135,7 @@ func launch(from: Vector3, p_power: float, p_accuracy: float, p_draw_fade: float
 	tracer_points.clear()
 	visible = true
 	in_bunker_flag = false
+	landed_surface = "fairway"
 
 	var forward = aim_target - from
 	forward.y = 0.0
@@ -98,7 +151,7 @@ func launch(from: Vector3, p_power: float, p_accuracy: float, p_draw_fade: float
 		var accuracy_error = (1.0 - accuracy) * 0.8
 		var total_lateral = accuracy_error * (randf() - 0.5) * 2.0
 		land_pos = from + forward * distance + right * total_lateral
-		land_pos.y = 0.025
+		land_pos.y = _get_terrain_y(land_pos.x, land_pos.z) + 0.08
 		roll_dir = (land_pos - from).normalized()
 		roll_dir.y = 0.0
 		state = BallState.ROLLING
@@ -110,12 +163,12 @@ func launch(from: Vector3, p_power: float, p_accuracy: float, p_draw_fade: float
 		var curve_offset = draw_fade * distance * 0.12
 		var total_lateral = curve_offset + (accuracy_error * (randf() - 0.5) * 2.0)
 		land_pos = from + forward * distance + right * total_lateral
-		land_pos.y = 0.025
+		land_pos.y = _get_terrain_y(land_pos.x, land_pos.z) + 0.08
 		# Apply wind effect to landing position
 		var wind = get_tree().current_scene.get_node_or_null("WindSystem")
 		if wind:
 			land_pos = wind.apply_to_ball(from, land_pos, power, loft)
-			land_pos.y = 0.025
+			land_pos.y = _get_terrain_y(land_pos.x, land_pos.z) + 0.08
 		roll_dir = (land_pos - from).normalized()
 		roll_dir.y = 0.0
 		state = BallState.FLYING
@@ -160,7 +213,8 @@ func _process(delta):
 		var peak_height = base_height * loft_mult
 		var arc_y = peak_height * 4.0 * t * (1.0 - t)
 		var new_pos = start_pos.lerp(land_pos, t)
-		new_pos.y = land_pos.y + arc_y
+		# Interpolate ground elevation between start and land, then add arc
+		new_pos.y = lerp(start_pos.y, land_pos.y, t) + arc_y
 
 		# Scale ball gently with distance so it stays visible without becoming a beachball
 		var cam = get_viewport().get_camera_3d()
@@ -177,27 +231,26 @@ func _process(delta):
 		_update_ball_cam()
 
 	elif state == BallState.ROLLING:
-		var in_bunker := false
-
 		if is_putt:
 			# Putt rolls from start_pos toward land_pos, decelerating
 			var total_dist = start_pos.distance_to(land_pos)
 			if total_dist < 0.01:
 				state = BallState.STOPPED
-				emit_signal("ball_stopped", global_position, false)
+				emit_signal("ball_stopped", global_position, "green")
 				return
 			var dist_so_far = global_position.distance_to(start_pos)
 			var progress = clamp(dist_so_far / total_dist, 0.0, 1.0)
 			# Ease out deceleration
 			var roll_speed = clamp((1.0 - progress) * total_dist * PUTT_SPEED, 0.02, 15.0)
 			global_position += roll_dir * roll_speed * delta
-			global_position.y = 0.025
+			global_position.y = _get_terrain_y(global_position.x, global_position.z) + 0.08
 			scale = Vector3(1.0, 1.0, 1.0)
 			# Check if reached or passed land_pos
 			var new_dist = global_position.distance_to(start_pos)
 			if new_dist >= total_dist or roll_speed <= 0.05:
-				global_position = land_pos
-				global_position.y = 0.025
+				global_position.x = land_pos.x
+				global_position.z = land_pos.z
+				global_position.y = _get_terrain_y(land_pos.x, land_pos.z) + 0.08
 				# Check cup
 				if cup_pos != Vector3.ZERO:
 					var dist_to_cup = Vector2(global_position.x, global_position.z).distance_to(
@@ -207,24 +260,28 @@ func _process(delta):
 						hole_timer = 0.0
 						return
 				state = BallState.STOPPED
-				emit_signal("ball_stopped", global_position, false)
+				emit_signal("ball_stopped", global_position, "green")
 		else:
 			var rollout_pct = BASE_ROLLOUT
 			if loft < -0.15:
 				rollout_pct = 0.18
 			elif loft > 0.15:
 				rollout_pct = 0.04
-			in_bunker = _check_bunker()
-			if in_bunker:
+			var surface = _get_surface_type(global_position.x, global_position.z)
+			if surface == "bunker" or surface == "water":
 				rollout_pct = 0.02
-				in_bunker_flag = true
+				in_bunker_flag = surface == "bunker"
+				landed_surface = surface
 			var roll_distance = power * current_max_distance_meters * rollout_pct
 			var roll_speed = roll_distance * 0.8
 			global_position += roll_dir * roll_speed * delta
+			global_position.y = _get_terrain_y(global_position.x, global_position.z) + 0.08
 			roll_speed = move_toward(roll_speed, 0, roll_speed * delta * 2.0)
 			_update_ball_cam()
 			var dist_rolled = global_position.distance_to(land_pos)
 			if dist_rolled >= roll_distance or roll_speed <= 0.01:
+				# Sample final surface type at rest position
+				landed_surface = _get_surface_type(global_position.x, global_position.z)
 				if cup_pos != Vector3.ZERO:
 					var dist_to_cup = Vector2(global_position.x, global_position.z).distance_to(
 						Vector2(cup_pos.x, cup_pos.z))
@@ -248,7 +305,7 @@ func _process(delta):
 		if cam_timer >= CAM_HOLD_TIME:
 			state = BallState.STOPPED
 			_restore_player_cam()
-			emit_signal("ball_stopped", global_position, in_bunker_flag)
+			emit_signal("ball_stopped", global_position, landed_surface)
 
 	elif state == BallState.HOLING:
 		hole_timer += delta
@@ -265,20 +322,6 @@ func _process(delta):
 			state = BallState.STOPPED
 			emit_signal("ball_holed")
 
-func _check_bunker() -> bool:
-	var scene = get_tree().current_scene
-	for bunker_name in ["Bunker1Area", "Bunker2Area"]:
-		var bunker = scene.get_node_or_null(bunker_name)
-		if bunker:
-			var bunker_pos = bunker.global_position
-			var col_name = "Bunker1Collision" if bunker_name == "Bunker1Area" else "Bunker2Collision"
-			var bunker_col = bunker.get_node_or_null(col_name)
-			if bunker_col and bunker_col.shape:
-				var shape_size = bunker_col.shape.size
-				var local_pos = global_position - bunker_pos
-				if abs(local_pos.x) < shape_size.x / 2.0 and abs(local_pos.z) < shape_size.z / 2.0:
-					return true
-	return false
 
 func _draw_tracer():
 	if tracer_mesh == null or tracer_instance == null:
@@ -295,6 +338,7 @@ func reset():
 	state = BallState.IDLE
 	is_putt = false
 	in_bunker_flag = false
+	landed_surface = "fairway"
 	tracer_points.clear()
 	if tracer_mesh:
 		tracer_mesh.clear_surfaces()

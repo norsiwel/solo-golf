@@ -125,6 +125,23 @@ func get_height_at(world_x: float, world_z: float) -> float:
 	var h11 = _heightmap[(zi + 1) * _width + xi + 1]
 	return lerp(lerp(h00, h10, fx), lerp(h01, h11, fx), fz)
 
+func get_surface_type(world_x: float, world_z: float) -> String:
+	if _heightmap.is_empty():
+		return "rough"
+	var world = Vector3(world_x, 0, world_z)
+	var tee_d = world.distance_to(_tee)
+	var pin_d = world.distance_to(_pin)
+	if tee_d < 8.0:
+		return "tee"
+	if pin_d < 14.0:
+		return "green"
+	var d = _distance_to_path(world, _path)
+	if d < 22.0:
+		return "fairway"
+	if d < 55.0:
+		return "rough"
+	return "deep_rough"
+
 func _interpolate_path_elevation(pos: Vector3, path: Array) -> float:
 	if path.size() < 2:
 		return 0.0
