@@ -34,19 +34,22 @@ func _load_meshes():
 	print("SplineMeshLoader: placed %d meshes with collision" % loaded)
 
 func _build_collision(body: StaticBody3D, node: Node, accumulated: Transform3D) -> void:
-	var local_xform := accumulated * node.transform
-	if node is MeshInstance3D and node.mesh:
-		var faces := node.mesh.get_faces()
-		if faces.size() > 0:
-			# Transform face vertices into body-local space
-			var xformed := PackedVector3Array()
-			xformed.resize(faces.size())
-			for i in faces.size():
-				xformed[i] = local_xform * faces[i]
-			var shape := ConcavePolygonShape3D.new()
-			shape.set_faces(xformed)
-			var col := CollisionShape3D.new()
-			col.shape = shape
-			body.add_child(col)
+	var node_xform := accumulated
+	if node is Node3D:
+		node_xform = accumulated * (node as Node3D).transform
+	if node is MeshInstance3D:
+		var mi := node as MeshInstance3D
+		if mi.mesh:
+			var faces := mi.mesh.get_faces()
+			if faces.size() > 0:
+				var xformed := PackedVector3Array()
+				xformed.resize(faces.size())
+				for i in faces.size():
+					xformed[i] = node_xform * faces[i]
+				var shape := ConcavePolygonShape3D.new()
+				shape.set_faces(xformed)
+				var col := CollisionShape3D.new()
+				col.shape = shape
+				body.add_child(col)
 	for child in node.get_children():
-		_build_collision(body, child, local_xform)
+		_build_collision(body, child, node_xform)
