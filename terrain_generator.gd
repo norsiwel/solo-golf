@@ -72,7 +72,7 @@ func build_from_hole(tee: Vector3, pin: Vector3, all_tees: Array = [], all_pins:
 			var corridor = 30.0
 			var noise_mult = clamp(dist / corridor, 0.0, 1.0)
 			var n = noise.get_noise_2d(world.x, world.z) * noise_strength * noise_mult
-			_heightmap[z * _width + x] = base_y + n
+			_heightmap[z * _width + x] = max(base_y + n, 0.0)
 
 	# Remove old children
 	for child in get_children():

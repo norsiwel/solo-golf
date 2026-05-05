@@ -89,7 +89,7 @@ func _setup_hole(hole_num: int):
 	player.green_node = green_area
 
 	# Spawn player above tee — use terrain height if available
-	var spawn_y = tee_y + 1.8
+	var spawn_y = max(tee_y, 0.0) + 1.8
 	player.global_position = Vector3(tee.x, spawn_y, tee.z)
 
 	# Face player toward pin

@@ -38,7 +38,8 @@ ORIGIN_X = 1882.06
 ORIGIN_Z = 181.82   # Unity_z of tee 1 (meta stores -181.82, which is -Unity_z)
 
 def unity_to_godot(ux, uy, uz):
-    return (ux - ORIGIN_X, uy, ORIGIN_Z - uz)
+    # Y is dropped — Godot terrain is flat at y=0, Unity elevation is irrelevant
+    return (ux - ORIGIN_X, 0.0, ORIGIN_Z - uz)
 
 
 # ---------------------------------------------------------------------------

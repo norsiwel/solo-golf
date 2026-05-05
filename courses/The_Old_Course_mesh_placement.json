@@ -11,7 +11,7 @@
       "name": "Concrete",
       "type": "other",
       "godot_x": -706.54,
-      "godot_y": 23.02,
+      "godot_y": 0.0,
       "godot_z": -818.05,
       "glb_exists": true,
       "spline_size": [
@@ -30,7 +30,7 @@
       "name": "RoughDeepOuter",
       "type": "rough",
       "godot_x": -956.47,
-      "godot_y": 23.28,
+      "godot_y": 0.0,
       "godot_z": -1204.43,
       "glb_exists": true,
       "spline_size": [
@@ -49,7 +49,7 @@
       "name": "Unknown",
       "type": "other",
       "godot_x": -1204.9,
-      "godot_y": 24.75,
+      "godot_y": 0.0,
       "godot_z": -1291.77,
       "glb_exists": true,
       "spline_size": [
@@ -68,7 +68,7 @@
       "name": "Rough",
       "type": "rough",
       "godot_x": -1233.07,
-      "godot_y": 22.67,
+      "godot_y": 0.0,
       "godot_z": -1629.08,
       "glb_exists": true,
       "spline_size": [
@@ -87,7 +87,7 @@
       "name": "RoughDeep",
       "type": "rough",
       "godot_x": -1148.86,
-      "godot_y": 23.29,
+      "godot_y": 0.0,
       "godot_z": -1301.91,
       "glb_exists": true,
       "spline_size": [
@@ -106,7 +106,7 @@
       "name": "Rough",
       "type": "rough",
       "godot_x": -910.3,
-      "godot_y": 23.62,
+      "godot_y": 0.0,
       "godot_z": -808.44,
       "glb_exists": true,
       "spline_size": [
@@ -125,7 +125,7 @@
       "name": "Rough",
       "type": "rough",
       "godot_x": -453.87,
-      "godot_y": 22.3,
+      "godot_y": 0.0,
       "godot_z": -367.14,
       "glb_exists": true,
       "spline_size": [
@@ -144,7 +144,7 @@
       "name": "Rough",
       "type": "rough",
       "godot_x": -309.28,
-      "godot_y": 22.57,
+      "godot_y": 0.0,
       "godot_z": -94.58,
       "glb_exists": true,
       "spline_size": [
@@ -163,7 +163,7 @@
       "name": "Rough",
       "type": "rough",
       "godot_x": -1161.82,
-      "godot_y": 23.6,
+      "godot_y": 0.0,
       "godot_z": -1191.35,
       "glb_exists": true,
       "spline_size": [
@@ -182,7 +182,7 @@
       "name": "RoughDeepOuter",
       "type": "rough",
       "godot_x": -833.47,
-      "godot_y": 23.27,
+      "godot_y": 0.0,
       "godot_z": -768.06,
       "glb_exists": true,
       "spline_size": [
@@ -201,7 +201,7 @@
       "name": "Fairway",
       "type": "fairway",
       "godot_x": -658.51,
-      "godot_y": 22.89,
+      "godot_y": 0.0,
       "godot_z": -492.29,
       "glb_exists": true,
       "spline_size": [
@@ -220,7 +220,7 @@
       "name": "Fairway",
       "type": "fairway",
       "godot_x": -927.77,
-      "godot_y": 23.42,
+      "godot_y": 0.0,
       "godot_z": -851.24,
       "glb_exists": true,
       "spline_size": [
@@ -239,7 +239,7 @@
       "name": "RoughDeepOuter",
       "type": "rough",
       "godot_x": -410.08,
-      "godot_y": 22.68,
+      "godot_y": 0.0,
       "godot_z": -65.89,
       "glb_exists": true,
       "spline_size": [
@@ -258,7 +258,7 @@
       "name": "Fairway",
       "type": "fairway",
       "godot_x": -786.95,
-      "godot_y": 22.65,
+      "godot_y": 0.0,
       "godot_z": -1136.63,
       "glb_exists": true,
       "spline_size": [
@@ -277,7 +277,7 @@
       "name": "Fairway",
       "type": "fairway",
       "godot_x": -741.72,
-      "godot_y": 23.21,
+      "godot_y": 0.0,
       "godot_z": -397.38,
       "glb_exists": true,
       "spline_size": [
@@ -296,7 +296,7 @@
       "name": "Bunker Burn",
       "type": "bunker",
       "godot_x": -274.67,
-      "godot_y": 22.03,
+      "godot_y": 0.0,
       "godot_z": 6.55,
       "glb_exists": true,
       "spline_size": [
@@ -315,7 +315,7 @@
       "name": "RoughDeepOuter",
       "type": "rough",
       "godot_x": -976.48,
-      "godot_y": 23.58,
+      "godot_y": 0.0,
       "godot_z": -1151.71,
       "glb_exists": true,
       "spline_size": [
@@ -334,7 +334,7 @@
       "name": "Fairway",
       "type": "fairway",
       "godot_x": -973.05,
-      "godot_y": 22.98,
+      "godot_y": 0.0,
       "godot_z": -1421.29,
       "glb_exists": true,
       "spline_size": [
@@ -353,7 +353,7 @@
       "name": "Fairway",
       "type": "fairway",
       "godot_x": -932.25,
-      "godot_y": 22.36,
+      "godot_y": 0.0,
       "godot_z": -1568.18,
       "glb_exists": true,
       "spline_size": [
@@ -372,7 +372,7 @@
       "name": "Rough",
       "type": "rough",
       "godot_x": -571.22,
-      "godot_y": 22.24,
+      "godot_y": 0.0,
       "godot_z": -682.14,
       "glb_exists": true,
       "spline_size": [
