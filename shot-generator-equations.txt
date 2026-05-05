@@ -1,0 +1,123 @@
+# MasterShotEngine.gd
+# Deterministic Golf Shot Engine for Godot
+# Paste into project dir and use as a helper script
+
+extends Node
+
+# ---------- CONSTANTS ----------
+var D_max = 250.0  # Max club distance for reference
+var k_lat = 0.1    # Lateral slope sensitivity
+var k_asym = 5.0   # Sensitivity of asymmetric ball weight on lateral curve
+var BW_default = 1.0  # Base ball weight
+
+# ---------- FUNCTIONS ----------
+
+# Compute effective carry distance (air phase)
+func calculate_carry(P_input, C, L, A, L_f, H_f, R_s, vertical_slope, W, BW):
+    # P_input: player 3-click power (0..1)
+    # C: club factor
+    # L: lie / surface starting factor
+    # A: accuracy
+    # L_f: loft factor
+    # H_f: humidity factor
+    # R_s: surface resistance
+    # vertical_slope: slope along line (up/down)
+    # W: wind head/tail effect
+    # BW: total ball weight including micro-variation
+    
+    var carry = D_max * P_input * C * L * A * L_f * H_f * R_s / BW
+    # Adjust for vertical slope: uphill reduces carry, downhill increases
+
+    carry *= (1.0 - 0.05 * vertical_slope)
+    carry += W * 2.0  # wind multiplier, tweak as needed
+    return carry
+
+# Compute roll distance and lateral deviation after landing
+func calculate_roll(carry_distance, landing_surface, stimp, slope_lateral, spin, fade_draw_offset, BW_total, asymmetric_active=false, W_left=1.0, W_right=1.0):
+    # carry_distance: from air phase
+    # landing_surface: string, e.g., "green", "fairway", "rough", "mud", "asphalt"
+    # stimp: green speed factor
+    # slope_lateral: lateral slope of surface
+    # spin: dictionary {backspin: 0..1, topspin: 0..1}
+    # fade_draw_offset: player slider (-1..1)
+    # BW_total: total ball weight
+    # asymmetric_active: boolean
+    # W_left, W_right: asymmetric weights
+    
+    var F_surface = 1.0
+    match landing_surface:
+        "fairway":
+            F_surface = 1.0
+        "rough":
+            F_surface = 0.75
+        "deep_rough":
+            F_surface = 0.6
+        "sand":
+            F_surface = 0.2
+        "green":
+            F_surface = 1.0
+        "mud":
+            F_surface = 0.2
+        "asphalt":
+            F_surface = 0.3
+    # Roll affected by stimp and ball weight
+    var roll_distance = carry_distance * F_surface * stimp / BW_total
+    roll_distance *= (1.0 - spin.backspin) * (1.0 + spin.topspin)
+    
+    # Lateral offset from slope and fade/draw
+    var lateral_offset = fade_draw_offset * 15.0  # Max curve scaling
+    lateral_offset += slope_lateral * roll_distance * k_lat
+    
+    # Add asymmetric ball weight effect if active
+    if asymmetric_active:
+        lateral_offset += k_asym * (W_right - W_left)
+    
+    return roll_distance, lateral_offset
+
+# Putting mode
+func putt(distance_to_pin, horizontal_slider, stimp, slope_lateral, meter_power):
+    # vertical slider ignored
+    # distance_to_pin: distance from ball to hole
+    # horizontal_slider: -1..1 aiming
+    # stimp: green speed factor
+    # slope_lateral: lateral slope
+    # meter_power: 0..1 from 3-click
+    var roll_distance = distance_to_pin * stimp * meter_power
+    var lateral_offset = horizontal_slider * 5.0 + slope_lateral * roll_distance * k_lat
+    return roll_distance, lateral_offset
+
+# Update ball state based on landing surface
+func update_ball_state(landing_surface, ball_state, W_left=1.0, W_right=1.0):
+    # ball_state: dictionary holding condition variables
+    match landing_surface:
+        "mud":
+            ball_state.condition = "muddy"
+            W_left += 0.2  # sticks slightly heavier on one side
+        "gravel":
+            ball_state.condition = "nicked"
+            W_right -= 0.1 # slightly lighter on one side
+        "green":
+            ball_state.condition = "normal"
+            W_left = 1.0
+            W_right = 1.0
+        _:
+            pass
+    ball_state.W_left = W_left
+    ball_state.W_right = W_right
+    return ball_state
+
+# Compute 3-click meter speed based on effective shot distance
+func compute_meter_speed(D_effective, D_club_max, S_min=0.5, S_max=2.0):
+    var S_meter = S_min + (S_max - S_min) * (D_effective / D_club_max)
+    S_meter = clamp(S_meter, S_min, S_max)
+    return S_meter
+var carry = MasterShotEngine.calculate_carry(P_input, C, L, A, L_f, H_f, R_s, vertical_slope, W, BW_total)
+var roll, lateral = MasterShotEngine.calculate_roll(carry, landing_surface, stimp, slope_lateral, spin, fade_draw_offset, BW_total, asymmetric_active, W_left, W_right)
+var roll, lateral = MasterShotEngine.putt(distance_to_pin, horizontal_slider, stimp, slope_lateral, meter_power)
+ball_state = MasterShotEngine.update_ball_state(landing_surface, ball_state, W_left, W_right)
+
+
+How to Use
+Paste this into your project directory, e.g., MasterShotEngine.gd
+Attach it as a helper or singleton in Godot
+Call:

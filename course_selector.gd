@@ -112,7 +112,7 @@ func _populate_courses():
 		return
 
 	# Re-scan for courses in case new ones were added
-	course_manager.scan_courses()
+	course_manager._scan_courses()
 
 	var courses = course_manager.get_available_courses()
 	if courses.is_empty():

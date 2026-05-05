@@ -40,6 +40,8 @@ var power_label: Label
 var draw_slider: HSlider
 var loft_slider: HSlider
 var ball_image: TextureRect
+var draw_label: Label
+var loft_label: Label
 
 # Layout constants - right side panel
 const PANEL_LEFT  := 0.62
@@ -58,6 +60,20 @@ func _ready():
 	_build_ui()
 
 func _build_ui():
+	# Ball indicator (white = normal, yellow = putting)
+	ball_image = TextureRect.new()
+	ball_image.name = "BallImage"
+	ball_image.set_anchor(SIDE_LEFT, 0.915)
+	ball_image.set_anchor(SIDE_TOP, 0.02)
+	ball_image.set_anchor(SIDE_RIGHT, 0.975)
+	ball_image.set_anchor(SIDE_BOTTOM, 0.09)
+	ball_image.expand_mode = TextureRect.EXPAND_FIT_HEIGHT_PROPORTIONAL
+	ball_image.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	var ball_tex = load("res://assets/ball_white.png")
+	if ball_tex:
+		ball_image.texture = ball_tex
+	add_child(ball_image)
+
 	# Semi-transparent right side panel only - course still visible on left
 	var panel = Panel.new()
 	panel.set_anchor(SIDE_LEFT,  PANEL_LEFT)
@@ -155,66 +171,64 @@ func _build_ui():
 	power_label.add_theme_constant_override("outline_size", 3)
 	add_child(power_label)
 
-	# Club bag title
+	# Club bag — single vertical list, Tab to cycle
 	var bag_title = Label.new()
-	bag_title.text = "CLUB  (Tab)"
+	bag_title.text = "— CLUB BAG —"
 	bag_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	bag_title.set_anchor(SIDE_LEFT,  0.69)
-	bag_title.set_anchor(SIDE_TOP,   0.17)
+	bag_title.set_anchor(SIDE_LEFT,  0.63)
+	bag_title.set_anchor(SIDE_TOP,   0.02)
 	bag_title.set_anchor(SIDE_RIGHT, PANEL_RIGHT)
-	bag_title.set_anchor(SIDE_BOTTOM,0.21)
-	bag_title.add_theme_font_size_override("font_size", 12)
+	bag_title.set_anchor(SIDE_BOTTOM,0.07)
+	bag_title.add_theme_font_size_override("font_size", 13)
 	bag_title.add_theme_color_override("font_color", Color(1, 1, 0.4, 1))
 	bag_title.add_theme_color_override("font_outline_color", Color(0, 0, 0, 1))
 	bag_title.add_theme_constant_override("outline_size", 3)
 	add_child(bag_title)
 
-	# Club grid
-	var club_grid = GridContainer.new()
-	club_grid.columns = 2
-	club_grid.set_anchor(SIDE_LEFT,  0.69)
-	club_grid.set_anchor(SIDE_TOP,   0.21)
-	club_grid.set_anchor(SIDE_RIGHT, PANEL_RIGHT)
-	club_grid.set_anchor(SIDE_BOTTOM,0.65)
-	club_grid.add_theme_constant_override("h_separation", 4)
-	club_grid.add_theme_constant_override("v_separation", 3)
-	add_child(club_grid)
+	var club_list = VBoxContainer.new()
+	club_list.name = "ClubList"
+	club_list.set_anchor(SIDE_LEFT,  0.63)
+	club_list.set_anchor(SIDE_TOP,   0.07)
+	club_list.set_anchor(SIDE_RIGHT, PANEL_RIGHT)
+	club_list.set_anchor(SIDE_BOTTOM,0.77)
+	club_list.add_theme_constant_override("separation", 1)
+	add_child(club_list)
 
 	for i in CLUBS.size():
 		var club = CLUBS[i]
 		var label = Label.new()
-		label.text = "%s %dy" % [club["name"], club["full_yards"]]
+		label.text = "  %s  %dy" % [club["name"], club["full_yards"]]
 		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-		label.custom_minimum_size = Vector2(70, 20)
-		label.add_theme_font_size_override("font_size", 11)
-		club_grid.add_child(label)
+		label.add_theme_font_size_override("font_size", 12)
+		label.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6, 1))
+		club_list.add_child(label)
 		club_labels.append(label)
 
-	# Selected club display
+	# Large selected club readout above the meter
 	selected_club_label = Label.new()
 	selected_club_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	selected_club_label.set_anchor(SIDE_LEFT,  PANEL_LEFT)
+	selected_club_label.set_anchor(SIDE_LEFT,  METER_L - 0.04)
 	selected_club_label.set_anchor(SIDE_TOP,   0.10)
-	selected_club_label.set_anchor(SIDE_RIGHT, 0.68)
-	selected_club_label.set_anchor(SIDE_BOTTOM,0.16)
-	selected_club_label.add_theme_font_size_override("font_size", 16)
+	selected_club_label.set_anchor(SIDE_RIGHT, METER_R + 0.04)
+	selected_club_label.set_anchor(SIDE_BOTTOM,0.20)
+	selected_club_label.add_theme_font_size_override("font_size", 14)
 	selected_club_label.add_theme_color_override("font_color", Color(0.3, 1.0, 0.3, 1))
 	selected_club_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 1))
 	selected_club_label.add_theme_constant_override("outline_size", 4)
 	add_child(selected_club_label)
 
-	# Draw/fade label and slider
-	var draw_label = Label.new()
-	draw_label.text = "< DRAW  |  FADE >"
+	# Draw/fade label and slider (A/D keys)
+	draw_label = Label.new()
+	draw_label.text = "A/D: Straight"
 	draw_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	draw_label.set_anchor(SIDE_LEFT,  PANEL_LEFT)
 	draw_label.set_anchor(SIDE_TOP,   0.77)
 	draw_label.set_anchor(SIDE_RIGHT, PANEL_RIGHT)
 	draw_label.set_anchor(SIDE_BOTTOM,0.81)
-	draw_label.add_theme_font_size_override("font_size", 12)
-	draw_label.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9, 1))
+	draw_label.add_theme_font_size_override("font_size", 13)
+	draw_label.add_theme_color_override("font_color", Color(0.4, 1.0, 0.8, 1))
 	draw_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 1))
-	draw_label.add_theme_constant_override("outline_size", 3)
+	draw_label.add_theme_constant_override("outline_size", 4)
 	add_child(draw_label)
 
 	draw_slider = HSlider.new()
@@ -229,16 +243,18 @@ func _build_ui():
 	draw_slider.connect("value_changed", _on_draw_changed)
 	add_child(draw_slider)
 
-	# Loft label and slider
-	var loft_label = Label.new()
-	loft_label.text = "^ HI LOFT  |  LO LOFT v"
+	# Loft label and slider (W/S keys)
+	loft_label = Label.new()
+	loft_label.text = "W/S: Mid Loft"
 	loft_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	loft_label.set_anchor(SIDE_LEFT,  PANEL_LEFT)
 	loft_label.set_anchor(SIDE_TOP,   0.87)
 	loft_label.set_anchor(SIDE_RIGHT, PANEL_RIGHT)
 	loft_label.set_anchor(SIDE_BOTTOM,0.91)
-	loft_label.add_theme_font_size_override("font_size", 12)
-	loft_label.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9, 1))
+	loft_label.add_theme_font_size_override("font_size", 13)
+	loft_label.add_theme_color_override("font_color", Color(0.4, 1.0, 0.8, 1))
+	loft_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 1))
+	loft_label.add_theme_constant_override("outline_size", 4)
 	add_child(loft_label)
 
 	loft_slider = HSlider.new()
@@ -281,6 +297,7 @@ func open_screen():
 	power_label.text = ""
 	_update_meter_visual(0.0)
 	_update_club_highlight()
+	_update_slider_labels()
 
 func close_screen():
 	visible = false
@@ -300,22 +317,22 @@ func _input(event):
 				else:
 					_select_next_club()
 				get_viewport().set_input_as_handled()
-			KEY_LEFT:
+			KEY_LEFT, KEY_A:
 				draw_fade = clamp(draw_fade - 0.1, -1.0, 1.0)
 				draw_slider.value = draw_fade
 				_update_slider_labels()
 				get_viewport().set_input_as_handled()
-			KEY_RIGHT:
+			KEY_RIGHT, KEY_D:
 				draw_fade = clamp(draw_fade + 0.1, -1.0, 1.0)
 				draw_slider.value = draw_fade
 				_update_slider_labels()
 				get_viewport().set_input_as_handled()
-			KEY_UP:
+			KEY_UP, KEY_W:
 				loft = clamp(loft + 0.1, -1.0, 1.0)
 				loft_slider.value = loft
 				_update_slider_labels()
 				get_viewport().set_input_as_handled()
-			KEY_DOWN:
+			KEY_DOWN, KEY_S:
 				loft = clamp(loft - 0.1, -1.0, 1.0)
 				loft_slider.value = loft
 				_update_slider_labels()
@@ -332,13 +349,18 @@ func _select_previous_club():
 func _update_club_highlight():
 	for i in club_labels.size():
 		var label = club_labels[i]
+		var club = CLUBS[i]
 		if i == selected_club_index:
+			label.text = "▶ %s  %dy" % [club["name"], club["full_yards"]]
 			label.add_theme_color_override("font_color", Color(0.2, 1.0, 0.2, 1))
-			label.add_theme_font_size_override("font_size", 13)
-			label.add_theme_constant_override("outline_size", 0)
+			label.add_theme_font_size_override("font_size", 14)
+			label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 1))
+			label.add_theme_constant_override("outline_size", 3)
 		else:
-			label.add_theme_color_override("font_color", Color(0.75, 0.75, 0.75, 1))
-			label.add_theme_font_size_override("font_size", 11)
+			label.text = "  %s  %dy" % [club["name"], club["full_yards"]]
+			label.add_theme_color_override("font_color", Color(0.55, 0.55, 0.55, 1))
+			label.add_theme_font_size_override("font_size", 12)
+			label.add_theme_constant_override("outline_size", 0)
 	var club = CLUBS[selected_club_index]
 	if selected_club_label:
 		selected_club_label.text = "%s  %dy" % [club["name"], club["full_yards"]]
@@ -349,12 +371,15 @@ func _update_slider_labels():
 		draw_text = "Draw %d%%" % int(abs(draw_fade) * 100)
 	elif draw_fade > 0.15:
 		draw_text = "Fade %d%%" % int(draw_fade * 100)
-	var loft_text = "Mid"
+	var loft_text = "Mid Loft"
 	if loft > 0.15:
 		loft_text = "Hi Loft %d%%" % int(loft * 100)
 	elif loft < -0.15:
 		loft_text = "Lo Loft %d%%" % int(abs(loft) * 100)
-	power_label.text = draw_text + "  |  " + loft_text
+	if draw_label:
+		draw_label.text = "A/D: " + draw_text
+	if loft_label:
+		loft_label.text = "W/S: " + loft_text
 
 func _handle_click():
 	match state:
