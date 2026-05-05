@@ -112,12 +112,12 @@ func build_from_hole(tee: Vector3, pin: Vector3, all_tees: Array = [], all_pins:
 func get_height_at(world_x: float, world_z: float) -> float:
 	if _heightmap.is_empty():
 		return 0.0
-	var lx := (world_x - _origin.x) / _step_x
-	var lz := (world_z - _origin.z) / _step_z
-	var xi := clamp(int(lx), 0, _width - 2)
-	var zi := clamp(int(lz), 0, _depth - 2)
-	var fx := lx - xi
-	var fz := lz - zi
+	var lx: float = (world_x - _origin.x) / _step_x
+	var lz: float = (world_z - _origin.z) / _step_z
+	var xi: int = clamp(int(lx), 0, _width - 2)
+	var zi: int = clamp(int(lz), 0, _depth - 2)
+	var fx: float = lx - xi
+	var fz: float = lz - zi
 	var h00: float = _heightmap[zi * _width + xi]
 	var h10: float = _heightmap[zi * _width + xi + 1]
 	var h01: float = _heightmap[(zi + 1) * _width + xi]
