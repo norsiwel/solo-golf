@@ -1,7 +1,7 @@
 extends CharacterBody3D
 
 @export var mouse_sensitivity := 0.002
-@export var walk_speed := 10.0
+@export var walk_speed := 16.0
 @export var gravity := 9.8
 
 var yaw := 0.0
@@ -23,6 +23,10 @@ var on_green := false
 var stroke_count := 0
 var green_node = null
 var scorecard: CanvasLayer
+
+# Putting aim
+var putt_aim_active := false
+var putt_aim_offset := 0.0
 
 func _ready():
 	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
@@ -56,10 +60,16 @@ func _setup_address_screen():
 	var sphere = SphereMesh.new()
 	sphere.radius = 0.08
 	sphere.height = 0.16
+	sphere.radial_segments = 16
+	sphere.rings = 8
 	var mat = StandardMaterial3D.new()
-	mat.albedo_color = Color(1, 1, 1, 1)
-	var tex = load("res://assets/ball_white.png")
-	if tex: mat.albedo_texture = tex
+	mat.albedo_color = Color(0.96, 0.92, 0.12)  # yellow
+	mat.roughness = 0.25
+	mat.metallic = 0.0
+	mat.metallic_specular = 0.9
+	mat.emission_enabled = true
+	mat.emission = Color(0.98, 0.95, 0.2)
+	mat.emission_energy_multiplier = 0.7
 	sphere.surface_set_material(0, mat)
 	var ball_vis = MeshInstance3D.new()
 	ball_vis.mesh = sphere
@@ -97,32 +107,36 @@ func _setup_hud():
 
 	var crosshair = Label.new()
 	crosshair.name = "Crosshair"
-	crosshair.text = "+"
+	crosshair.text = ""
 	crosshair.visible = false
-	crosshair.set_anchor(SIDE_LEFT, 0.5)
-	crosshair.set_anchor(SIDE_TOP, 0.5)
-	crosshair.add_theme_font_size_override("font_size", 24)
-	crosshair.add_theme_color_override("font_color", Color(1.0, 0.9, 0.3, 1.0))
 	canvas.add_child(crosshair)
 
 	var yardage_label = Label.new()
 	yardage_label.name = "YardageLabel"
 	yardage_label.text = "--- yds"
 	yardage_label.visible = false
-	yardage_label.set_anchor(SIDE_LEFT, 0.5)
-	yardage_label.set_anchor(SIDE_TOP, 0.62)
-	yardage_label.add_theme_font_size_override("font_size", 28)
+	yardage_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	yardage_label.set_anchor(SIDE_LEFT, 0.33)
+	yardage_label.set_anchor(SIDE_TOP, 0.63)
+	yardage_label.set_anchor(SIDE_RIGHT, 0.67)
+	yardage_label.set_anchor(SIDE_BOTTOM, 0.70)
+	yardage_label.add_theme_font_size_override("font_size", 22)
 	yardage_label.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 1.0))
+	yardage_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 1))
+	yardage_label.add_theme_constant_override("outline_size", 4)
 	canvas.add_child(yardage_label)
 
 	var vf_hint = Label.new()
 	vf_hint.name = "VFHint"
-	vf_hint.text = "Move mouse to aim  |  Left click to lock"
+	vf_hint.text = "Left click to lock aim"
 	vf_hint.visible = false
-	vf_hint.set_anchor(SIDE_LEFT, 0.5)
-	vf_hint.set_anchor(SIDE_TOP, 0.68)
-	vf_hint.add_theme_font_size_override("font_size", 14)
-	vf_hint.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9, 0.8))
+	vf_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	vf_hint.set_anchor(SIDE_LEFT, 0.33)
+	vf_hint.set_anchor(SIDE_TOP, 0.70)
+	vf_hint.set_anchor(SIDE_RIGHT, 0.67)
+	vf_hint.set_anchor(SIDE_BOTTOM, 0.75)
+	vf_hint.add_theme_font_size_override("font_size", 12)
+	vf_hint.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9, 0.7))
 	canvas.add_child(vf_hint)
 
 	var aim_label = Label.new()
@@ -135,6 +149,53 @@ func _setup_hud():
 	aim_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 1))
 	aim_label.add_theme_constant_override("outline_size", 4)
 	canvas.add_child(aim_label)
+
+	var putt_aim_label = Label.new()
+	putt_aim_label.name = "PuttAimLabel"
+	putt_aim_label.text = "← AIM →"
+	putt_aim_label.visible = false
+	putt_aim_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	putt_aim_label.set_anchor(SIDE_LEFT, 0.3)
+	putt_aim_label.set_anchor(SIDE_TOP, 0.45)
+	putt_aim_label.set_anchor(SIDE_RIGHT, 0.7)
+	putt_aim_label.set_anchor(SIDE_BOTTOM, 0.55)
+	putt_aim_label.add_theme_font_size_override("font_size", 22)
+	putt_aim_label.add_theme_color_override("font_color", Color(0.3, 1.0, 1.0, 1.0))
+	putt_aim_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 1))
+	putt_aim_label.add_theme_constant_override("outline_size", 4)
+	canvas.add_child(putt_aim_label)
+
+	# Viewfinder body — frame with transparent lens center
+	var vf_image = TextureRect.new()
+	vf_image.name = "VFImage"
+	vf_image.visible = false
+	vf_image.set_anchor(SIDE_LEFT, 0.25)
+	vf_image.set_anchor(SIDE_TOP, 0.05)
+	vf_image.set_anchor(SIDE_RIGHT, 0.75)
+	vf_image.set_anchor(SIDE_BOTTOM, 0.95)
+	vf_image.expand_mode = TextureRect.EXPAND_FIT_HEIGHT_PROPORTIONAL
+	vf_image.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	vf_image.modulate = Color(1, 1, 1, 1.0)
+	var vf_tex = load("res://assets/golf_o_matic_realistic_body_transparent_lens.png")
+	if vf_tex:
+		vf_image.texture = vf_tex
+	canvas.add_child(vf_image)
+
+	# Viewfinder glass overlay — subtle lens sheen on top
+	var vf_glass = TextureRect.new()
+	vf_glass.name = "VFGlass"
+	vf_glass.visible = false
+	vf_glass.set_anchor(SIDE_LEFT, 0.25)
+	vf_glass.set_anchor(SIDE_TOP, 0.05)
+	vf_glass.set_anchor(SIDE_RIGHT, 0.75)
+	vf_glass.set_anchor(SIDE_BOTTOM, 0.95)
+	vf_glass.expand_mode = TextureRect.EXPAND_FIT_HEIGHT_PROPORTIONAL
+	vf_glass.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	vf_glass.modulate = Color(1, 1, 1, 0.4)
+	var vf_glass_tex = load("res://assets/golf_o_matic_realistic_glass_overlay.png")
+	if vf_glass_tex:
+		vf_glass.texture = vf_glass_tex
+	canvas.add_child(vf_glass)
 
 func _input(event):
 	if addressing:
@@ -161,13 +222,27 @@ func _input(event):
 
 	if event is InputEventKey:
 		if event.keycode == KEY_V:
-			if event.pressed and not viewfinder_active:
-				_open_viewfinder()
+			if event.pressed:
+				if on_green:
+					if putt_aim_active:
+						_close_putting_aim()
+					else:
+						_open_putting_aim()
+				elif not viewfinder_active:
+					_open_viewfinder()
 			elif not event.pressed and viewfinder_active:
 				_close_viewfinder()
 		if event.pressed:
+			if event.keycode == KEY_LEFT and putt_aim_active:
+				putt_aim_offset -= 3.0
+				_update_putt_aim_label()
+			if event.keycode == KEY_RIGHT and putt_aim_active:
+				putt_aim_offset += 3.0
+				_update_putt_aim_label()
 			if event.keycode == KEY_SPACE and not viewfinder_active:
-				if aim_locked:
+				if on_green:
+					_open_address()
+				elif aim_locked:
 					_open_address()
 				else:
 					$HUD/AimLabel.text = "Use V to aim first!"
@@ -182,7 +257,9 @@ func _open_viewfinder():
 	vf_yaw = yaw
 	vf_pitch = pitch
 	$Camera3D.fov = 25.0
-	$HUD/VFBorder.visible = true
+	$HUD/VFImage.visible = true
+	$HUD/VFGlass.visible = true
+	$HUD/VFBorder.visible = false
 	$HUD/Crosshair.visible = true
 	$HUD/YardageLabel.visible = true
 	$HUD/VFHint.visible = true
@@ -206,6 +283,8 @@ func _lock_aim():
 func _close_viewfinder():
 	viewfinder_active = false
 	$Camera3D.fov = 75.0
+	$HUD/VFImage.visible = false
+	$HUD/VFGlass.visible = false
 	$HUD/VFBorder.visible = false
 	$HUD/Crosshair.visible = false
 	$HUD/YardageLabel.visible = false
@@ -214,14 +293,48 @@ func _close_viewfinder():
 	pitch = 0.0
 	$Camera3D.rotation.x = 0.0
 
+func _open_putting_aim():
+	putt_aim_active = true
+	putt_aim_offset = 0.0
+	_update_putt_aim_label()
+	$HUD/PuttAimLabel.visible = true
+	$HUD/AimLabel.text = "V: aim  ← → adjust  Space: putt"
+
+func _close_putting_aim():
+	putt_aim_active = false
+	$HUD/PuttAimLabel.visible = false
+
+func _update_putt_aim_label():
+	var deg = int(putt_aim_offset)
+	if deg == 0:
+		$HUD/PuttAimLabel.text = "← STRAIGHT →"
+	elif deg < 0:
+		$HUD/PuttAimLabel.text = "← %d° LEFT" % abs(deg)
+	else:
+		$HUD/PuttAimLabel.text = "%d° RIGHT →" % deg
+
 func _open_address():
 	addressing = true
-	var shot_dir = aim_point - global_position
-	shot_dir.y = 0.0
-	if shot_dir.length() < 0.01:
-		shot_dir = -global_transform.basis.z
+	_close_putting_aim()
+	var shot_dir: Vector3
+	if on_green and ball and ball.cup_pos != Vector3.ZERO:
+		# Calculate putt direction from cup line + player aim offset
+		var cup_dir = (ball.cup_pos - ball.global_position)
+		cup_dir.y = 0.0
+		if cup_dir.length() > 0.01:
+			cup_dir = cup_dir.normalized()
+		else:
+			cup_dir = -global_transform.basis.z
+			cup_dir.y = 0.0
+		shot_dir = cup_dir.rotated(Vector3.UP, deg_to_rad(putt_aim_offset))
+		aim_point = ball.global_position + shot_dir * 20.0
+	else:
+		shot_dir = aim_point - global_position
 		shot_dir.y = 0.0
-	shot_dir = shot_dir.normalized()
+		if shot_dir.length() < 0.01:
+			shot_dir = -global_transform.basis.z
+			shot_dir.y = 0.0
+		shot_dir = shot_dir.normalized()
 	ball.global_position = global_position + shot_dir * 1.2
 	ball.global_position.y = global_position.y - 0.8
 	ball.visible = true
@@ -252,6 +365,7 @@ func on_player_at_tee(hole: int, par: int, yardage: int):
 
 func on_ball_entered_green(stimp: float, cup_world_pos: Vector3):
 	on_green = true
+	putt_aim_offset = 0.0
 	if ball:
 		ball.cup_pos = cup_world_pos
 		ball.stimp = stimp
@@ -383,9 +497,15 @@ func _update_yardage():
 
 	if flag_node:
 		var flag_pos = flag_node.global_position
-		var flag_screen = camera.unproject_position(flag_pos)
+		# Snap to camera eye-level height on the flag so the projected point
+		# sits near screen center when looking straight at the pin, regardless
+		# of the player's distance or standing height.
+		var flag_snap = Vector3(flag_pos.x, camera.global_position.y, flag_pos.z)
+		var flag_screen = camera.unproject_position(flag_snap)
 		var screen_center = get_viewport().get_visible_rect().size / 2.0
-		if flag_screen.distance_to(screen_center) < 60.0:
+		# Scale snap radius for the narrow (25°) viewfinder FOV vs normal (75°) — 3× wider.
+		var snap_radius = 180.0
+		if flag_screen.distance_to(screen_center) < snap_radius:
 			var dist_meters = global_position.distance_to(flag_pos)
 			aim_yardage = dist_meters * 1.094
 			aim_point = flag_pos

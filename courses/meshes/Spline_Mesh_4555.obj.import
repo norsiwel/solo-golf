@@ -1,0 +1,25 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://cvbgnf1nc780h"
+path="res://.godot/imported/Spline_Mesh_4555.obj-dbfcef68909793061a8f478d9e3cf8e2.mesh"
+
+[deps]
+
+files=["res://.godot/imported/Spline_Mesh_4555.obj-dbfcef68909793061a8f478d9e3cf8e2.mesh"]
+
+source_file="res://courses/meshes/Spline_Mesh_4555.obj"
+dest_files=["res://.godot/imported/Spline_Mesh_4555.obj-dbfcef68909793061a8f478d9e3cf8e2.mesh", "res://.godot/imported/Spline_Mesh_4555.obj-dbfcef68909793061a8f478d9e3cf8e2.mesh"]
+
+[params]
+
+generate_tangents=true
+generate_lods=true
+generate_shadow_mesh=true
+generate_lightmap_uv2=false
+generate_lightmap_uv2_texel_size=0.2
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+force_disable_mesh_compression=false

@@ -162,11 +162,11 @@ func _process(delta):
 		var new_pos = start_pos.lerp(land_pos, t)
 		new_pos.y = land_pos.y + arc_y
 
-		# Scale ball with distance for visibility
+		# Scale ball gently with distance so it stays visible without becoming a beachball
 		var cam = get_viewport().get_camera_3d()
 		if cam and not ball_cam.current:
 			var dist = global_position.distance_to(cam.global_position)
-			var scale_factor = clamp(dist * 0.04, 1.0, 8.0)
+			var scale_factor = clamp(dist * 0.012, 1.0, 2.5)
 			scale = Vector3(scale_factor, scale_factor, scale_factor)
 		else:
 			scale = Vector3(1.0, 1.0, 1.0)
