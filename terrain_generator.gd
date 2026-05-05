@@ -110,20 +110,29 @@ func build_from_hole(tee: Vector3, pin: Vector3, all_tees: Array = [], all_pins:
 	print("TerrainGenerator: Built %dx%d terrain for hole" % [_width, _depth])
 
 func get_height_at(world_x: float, world_z: float) -> float:
-	# Query terrain height at world XZ
 	if _heightmap.is_empty():
 		return 0.0
-	var lx = (world_x - _origin.x) / _step_x
-	var lz = (world_z - _origin.z) / _step_z
-	var xi = clamp(int(lx), 0, _width - 2)
-	var zi = clamp(int(lz), 0, _depth - 2)
-	var fx = lx - xi
-	var fz = lz - zi
-	var h00 = _heightmap[zi * _width + xi]
-	var h10 = _heightmap[zi * _width + xi + 1]
-	var h01 = _heightmap[(zi + 1) * _width + xi]
-	var h11 = _heightmap[(zi + 1) * _width + xi + 1]
+	var lx := (world_x - _origin.x) / _step_x
+	var lz := (world_z - _origin.z) / _step_z
+	var xi := clamp(int(lx), 0, _width - 2)
+	var zi := clamp(int(lz), 0, _depth - 2)
+	var fx := lx - xi
+	var fz := lz - zi
+	var h00: float = _heightmap[zi * _width + xi]
+	var h10: float = _heightmap[zi * _width + xi + 1]
+	var h01: float = _heightmap[(zi + 1) * _width + xi]
+	var h11: float = _heightmap[(zi + 1) * _width + xi + 1]
 	return lerp(lerp(h00, h10, fx), lerp(h01, h11, fx), fz)
+
+func get_normal_at(world_x: float, world_z: float) -> Vector3:
+	if _heightmap.is_empty():
+		return Vector3.UP
+	var s: float = maxf(_step_x, _step_z)
+	var hl: float = get_height_at(world_x - s, world_z)
+	var hr: float = get_height_at(world_x + s, world_z)
+	var hd: float = get_height_at(world_x, world_z - s)
+	var hu: float = get_height_at(world_x, world_z + s)
+	return Vector3(hl - hr, 2.0 * s, hd - hu).normalized()
 
 func get_surface_type(world_x: float, world_z: float) -> String:
 	if _heightmap.is_empty():

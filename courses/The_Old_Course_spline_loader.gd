@@ -19,37 +19,8 @@ func _load_meshes():
 		if not ResourceLoader.exists(glb_path): continue
 		var scene = load(glb_path)
 		if not scene: continue
-
-		# Wrap in StaticBody3D so the mesh becomes a walkable collision surface
-		var body := StaticBody3D.new()
-		body.position = Vector3(entry.godot_x, entry.godot_y, entry.godot_z)
-		add_child(body)
-
 		var inst = scene.instantiate()
-		inst.position = Vector3.ZERO
-		body.add_child(inst)
-
-		_build_collision(body, inst, Transform3D.IDENTITY)
+		inst.position = Vector3(entry.godot_x, entry.godot_y, entry.godot_z)
+		add_child(inst)
 		loaded += 1
-	print("SplineMeshLoader: placed %d meshes with collision" % loaded)
-
-func _build_collision(body: StaticBody3D, node: Node, accumulated: Transform3D) -> void:
-	var node_xform := accumulated
-	if node is Node3D:
-		node_xform = accumulated * (node as Node3D).transform
-	if node is MeshInstance3D:
-		var mi := node as MeshInstance3D
-		if mi.mesh:
-			var faces := mi.mesh.get_faces()
-			if faces.size() > 0:
-				var xformed := PackedVector3Array()
-				xformed.resize(faces.size())
-				for i in faces.size():
-					xformed[i] = node_xform * faces[i]
-				var shape := ConcavePolygonShape3D.new()
-				shape.set_faces(xformed)
-				var col := CollisionShape3D.new()
-				col.shape = shape
-				body.add_child(col)
-	for child in node.get_children():
-		_build_collision(body, child, node_xform)
+	print("SplineMeshLoader: placed %d meshes" % loaded)

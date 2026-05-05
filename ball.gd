@@ -63,17 +63,25 @@ func _load_placement_data() -> void:
 		_placement_data = data["placements"]
 
 func _get_terrain_y(world_x: float, world_z: float) -> float:
-	var space = get_world_3d().direct_space_state
+	var space := get_world_3d().direct_space_state
 	if not space:
 		return 0.0
-	var query = PhysicsRayQueryParameters3D.create(
+	var query := PhysicsRayQueryParameters3D.create(
 		Vector3(world_x, 500.0, world_z),
 		Vector3(world_x, -50.0, world_z)
 	)
-	var result = space.intersect_ray(query)
+	var result := space.intersect_ray(query)
 	if result:
 		return result.position.y
 	return 0.0
+
+func _get_terrain_normal(world_x: float, world_z: float) -> Vector3:
+	var scene := get_tree().current_scene
+	if scene:
+		var terrain := scene.get_node_or_null("HoleTerrain")
+		if terrain and terrain.has_method("get_normal_at"):
+			return terrain.get_normal_at(world_x, world_z)
+	return Vector3.UP
 
 func _get_surface_type(world_x: float, world_z: float) -> String:
 	# Check named mesh zones first (bunker/water from placement data)
@@ -266,18 +274,30 @@ func _process(delta):
 				state = BallState.STOPPED
 				emit_signal("ball_stopped", global_position, "green")
 		else:
-			var rollout_pct = BASE_ROLLOUT
+			var rollout_pct := BASE_ROLLOUT
 			if loft < -0.15:
 				rollout_pct = 0.18
 			elif loft > 0.15:
 				rollout_pct = 0.04
-			var surface = _get_surface_type(global_position.x, global_position.z)
+			var surface := _get_surface_type(global_position.x, global_position.z)
 			if surface == "bunker" or surface == "water":
 				rollout_pct = 0.02
 				in_bunker_flag = surface == "bunker"
 				landed_surface = surface
-			var roll_distance = power * current_max_distance_meters * rollout_pct
-			var roll_speed = roll_distance * 0.8
+			var roll_distance := power * current_max_distance_meters * rollout_pct
+			var roll_speed := roll_distance * 0.8
+
+			# Slope: deflect roll direction and adjust speed based on terrain gradient
+			var normal := _get_terrain_normal(global_position.x, global_position.z)
+			var gravity := Vector3(0.0, -1.0, 0.0)
+			# Slope force = component of gravity tangent to terrain surface, projected to XZ
+			var slope_3d := gravity - gravity.dot(normal) * normal
+			var slope_xz := Vector3(slope_3d.x, 0.0, slope_3d.z)
+			if slope_xz.length() > 0.005:
+				roll_dir = (roll_dir + slope_xz.normalized() * slope_xz.length() * 0.35).normalized()
+				var slope_along := slope_xz.normalized().dot(roll_dir)
+				roll_speed = roll_speed * (1.0 + slope_along * slope_xz.length() * 0.6)
+
 			global_position += roll_dir * roll_speed * delta
 			global_position.y = _get_terrain_y(global_position.x, global_position.z) + 0.08
 			roll_speed = move_toward(roll_speed, 0, roll_speed * delta * 2.0)
