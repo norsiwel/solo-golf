@@ -54,8 +54,8 @@ func _setup_hole(hole_num: int):
 		)
 
 	# Get ground heights via downward raycast so player/geometry land on the actual surface
-	var tee_y := max(_raycast_ground_y(tee.x, tee.z), 0.0)
-	var pin_y := max(_raycast_ground_y(pin.x, pin.z), 0.0)
+	var tee_y: float = maxf(_raycast_ground_y(tee.x, tee.z), 0.0)
+	var pin_y: float = maxf(_raycast_ground_y(pin.x, pin.z), 0.0)
 
 	# --- Tee box: rectangle perpendicular to tee→pin direction ---
 	var play_dir = Vector3(pin.x - tee.x, 0, pin.z - tee.z).normalized()
