@@ -33,7 +33,6 @@ func _setup_hole(hole_num: int):
 	var cm = get_node_or_null("CourseManager")
 	var player = get_node_or_null("Player")
 	var hole_geo = get_node_or_null("HoleGeometry")
-	var fallback = get_node_or_null("FallbackGround")
 
 	var hole = cm.go_to_hole(hole_num)
 	if hole.is_empty():
@@ -53,26 +52,51 @@ func _setup_hole(hole_num: int):
 			Vector3(pin.x, 0, pin.z),
 			all_tees, all_pins
 		)
-		# Keep fallback ground visible as collision safety net
-	
-	# Get actual ground heights from terrain
-	var tee_y = 0.1
-	var pin_y = 0.1
+
+	# Get ground heights at tee and pin from the generated terrain
+	var tee_y := 0.0
+	var pin_y := 0.0
 	if hole_terrain and hole_terrain.has_method("get_height_at"):
 		tee_y = hole_terrain.get_height_at(tee.x, tee.z)
 		pin_y = hole_terrain.get_height_at(pin.x, pin.z)
+	tee_y = max(tee_y, 0.0)
+	pin_y = max(pin_y, 0.0)
 
-	# Position hole geometry
-	var hole_geo_nodes = {
-		"TeeBox":   Vector3(tee.x, tee_y + 0.01, tee.z),
-		"TeePeg":   Vector3(tee.x, tee_y + 0.03, tee.z - 1.0),
-		"Green":    Vector3(pin.x, pin_y + 0.02, pin.z),
-		"Flagstick":Vector3(pin.x, pin_y, pin.z),
-	}
-	for node_name in hole_geo_nodes:
-		var n = hole_geo.get_node_or_null(node_name)
-		if n: n.global_position = hole_geo_nodes[node_name]
+	# --- Tee box: rectangle perpendicular to tee→pin direction ---
+	var play_dir = Vector3(pin.x - tee.x, 0, pin.z - tee.z).normalized()
+	var tee_box = hole_geo.get_node_or_null("TeeBox")
+	if tee_box:
+		tee_box.global_position = Vector3(tee.x, tee_y + 0.005, tee.z)
+		# Rotate tee box so its long axis is perpendicular to play direction
+		tee_box.rotation.y = atan2(-play_dir.x, -play_dir.z) + PI * 0.5
 
+	var tee_peg = hole_geo.get_node_or_null("TeePeg")
+	if tee_peg:
+		tee_peg.global_position = Vector3(tee.x, tee_y + 0.06, tee.z - play_dir.z * 0.5)
+
+	# --- Flagstick at pin position ---
+	var flagstick = hole_geo.get_node_or_null("Flagstick")
+	if flagstick:
+		flagstick.global_position = Vector3(pin.x, pin_y, pin.z)
+
+	# --- Green: real polygon shape from shapes JSON ---
+	var green_mesh = hole_geo.get_node_or_null("Green")
+	if green_mesh:
+		CourseShapesLoader.apply_green_mesh(green_mesh, hole_num, pin_y)
+
+	# --- GreenArea collision: real polygon from shapes JSON ---
+	var green_area = hole_geo.get_node_or_null("GreenArea")
+	if green_area:
+		CourseShapesLoader.apply_green_shape(green_area, hole_num, pin_y)
+		green_area.hole_number = hole.get("hole", hole_num)
+		green_area.par = hole.get("par", 4)
+
+		# Cup at pin position (which may differ slightly from green centre)
+		var cup = green_area.get_node_or_null("Cup")
+		if cup:
+			cup.global_position = Vector3(pin.x, pin_y + 0.005, pin.z)
+
+	# --- Tee detection area ---
 	var tee_area = hole_geo.get_node_or_null("TeeArea")
 	if tee_area:
 		tee_area.global_position = Vector3(tee.x, tee_y + 0.3, tee.z)
@@ -80,21 +104,13 @@ func _setup_hole(hole_num: int):
 		tee_area.par = hole.get("par", 4)
 		tee_area.yardage = hole.get("yardage", 0)
 
-	var green_area = hole_geo.get_node_or_null("GreenArea")
-	if green_area:
-		green_area.global_position = Vector3(pin.x, pin_y + 0.02, pin.z)
-		green_area.hole_number = hole.get("hole", hole_num)
-		green_area.par = hole.get("par", 4)
-
 	player.green_node = green_area
 
-	# Spawn player above tee — use terrain height if available
-	var spawn_y = max(tee_y, 0.0) + 1.8
-	player.global_position = Vector3(tee.x, spawn_y, tee.z)
+	# Spawn player above tee
+	player.global_position = Vector3(tee.x, tee_y + 1.8, tee.z)
 
 	# Face player toward pin
-	var dir = Vector3(pin.x - tee.x, 0, pin.z - tee.z).normalized()
-	player.yaw = atan2(-dir.x, -dir.z)
+	player.yaw = atan2(-play_dir.x, -play_dir.z)
 	player.rotation.y = player.yaw
 	player.pitch = 0.0
 	player.get_node("Camera3D").rotation.x = 0.0
@@ -110,12 +126,11 @@ func _setup_hole(hole_num: int):
 		player.ball.visible = false
 	player.address_screen.set_putting_mode(false)
 
-	# Update HUD
+	# HUD
 	player.get_node("HUD/AimLabel").text = "The Old Course  |  Hole %d  Par %d  %d yds  |  V to aim" % [
 		hole_num, hole.get("par", 4), hole.get("yardage", 0)
 	]
 
-	# Update hole map
 	var hole_map = get_node_or_null("HoleMap")
 	if hole_map and hole_map.has_method("load_hole"):
 		hole_map.load_hole(hole_num)
@@ -128,5 +143,5 @@ func go_to_next_hole():
 		return
 	var next = cm.current_hole + 1
 	if next > cm.get_total_holes():
-		next = 1  # loop back to hole 1
+		next = 1
 	_setup_hole(next)
