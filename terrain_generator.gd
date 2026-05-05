@@ -7,8 +7,20 @@ class_name TerrainGenerator
 
 @export var resolution: int = 128
 @export var margin: float = 80.0
-@export var noise_strength: float = 0.8
+@export var noise_strength: float = 0.4
 @export var noise_scale: float = 0.025
+
+# Heightmap sampling constants (The Old Course — normalized coordinate system)
+# UV formula: u = 1 - (world_x + 1785.42) / 2156.9 ; v = (166.66 - world_z) / 2156.9
+const HM_PATH := "res://courses/The_Old_Course_heightmap.png"
+const HM_WORLD_SIZE: float = 2156.9
+const HM_X_OFFSET: float = 1785.42   # normalized_x + this = shifted Unity X
+const HM_Z_ZERO: float = 166.66      # Unity Z at normalized world Z = 0
+const HM_HEIGHT_SCALE: float = 6.4   # 0-255 maps to 0–6.4 m (Unity elevation)
+const HM_Y_BASE: float = 21.92       # Unity minimum elevation (m)
+const HM_Y_GODOT_OFFSET: float = -23.6  # converts Unity Y → Godot world Y
+
+var _hm_image: Image = null
 
 var _heightmap: PackedFloat32Array
 var _width: int
@@ -23,6 +35,24 @@ var _pin: Vector3
 
 var _mesh_instance: MeshInstance3D
 var _collision_shape: CollisionShape3D
+
+func _ready() -> void:
+	if ResourceLoader.exists(HM_PATH):
+		_hm_image = Image.load_from_file(HM_PATH)
+		print("TerrainGenerator: heightmap loaded %dx%d" % [_hm_image.get_width(), _hm_image.get_height()])
+	else:
+		push_warning("TerrainGenerator: heightmap not found, using noise")
+
+func _sample_real_height(world_x: float, world_z: float) -> float:
+	# Map normalized Godot world coords → heightmap UV → Godot Y
+	var u: float = 1.0 - (world_x + HM_X_OFFSET) / HM_WORLD_SIZE
+	var v: float = (HM_Z_ZERO - world_z) / HM_WORLD_SIZE
+	u = clampf(u, 0.0, 1.0)
+	v = clampf(v, 0.0, 1.0)
+	var px: int = int(u * float(_hm_image.get_width() - 1))
+	var py: int = int(v * float(_hm_image.get_height() - 1))
+	var raw: float = _hm_image.get_pixel(px, py).r  # 0.0–1.0
+	return raw * HM_HEIGHT_SCALE + HM_Y_BASE + HM_Y_GODOT_OFFSET
 
 func build_from_hole(tee: Vector3, pin: Vector3, all_tees: Array = [], all_pins: Array = []):
 	# Collect all known points
@@ -45,34 +75,36 @@ func build_from_hole(tee: Vector3, pin: Vector3, all_tees: Array = [], all_pins:
 	_step_x = _bounds.size.x / (_width - 1)
 	_step_z = _bounds.size.z / (_depth - 1)
 
-	# Noise
-	var noise = FastNoiseLite.new()
+	# Noise fallback (light, only used when heightmap is unavailable)
+	var noise := FastNoiseLite.new()
 	noise.seed = int(tee.x * 100 + pin.z * 100) % 65536
 	noise.frequency = noise_scale
 	noise.fractal_octaves = 4
 	noise.fractal_gain = 0.5
 	noise.fractal_lacunarity = 2.0
 
-	# Path waypoints for corridor
 	_tee = tee
 	_pin = pin
 	var path: Array[Vector3] = [tee, pin]
 	_path = path
 
-	# Fill heightmap
 	_heightmap = PackedFloat32Array()
 	_heightmap.resize(_width * _depth)
 
 	for z in _depth:
 		for x in _width:
-			var world = _origin + Vector3(x * _step_x, 0, z * _step_z)
-			var base_y = _interpolate_path_elevation(world, path)
-			var dist = _distance_to_path(world, path)
-			# Noise fades at fairway corridor, full outside
-			var corridor = 30.0
-			var noise_mult = clamp(dist / corridor, 0.0, 1.0)
-			var n = noise.get_noise_2d(world.x, world.z) * noise_strength * noise_mult
-			_heightmap[z * _width + x] = max(base_y + n, 0.0)
+			var world: Vector3 = _origin + Vector3(x * _step_x, 0, z * _step_z)
+			var h: float
+			if _hm_image:
+				h = _sample_real_height(world.x, world.z)
+				# Blend in tiny noise to break up flat-pixel repetition
+				h += noise.get_noise_2d(world.x, world.z) * noise_strength * 0.15
+			else:
+				var base_y: float = _interpolate_path_elevation(world, path)
+				var dist: float = _distance_to_path(world, path)
+				var noise_mult: float = clamp(dist / 30.0, 0.0, 1.0)
+				h = base_y + noise.get_noise_2d(world.x, world.z) * noise_strength * noise_mult
+			_heightmap[z * _width + x] = maxf(h, 0.0)
 
 	# Remove old children
 	for child in get_children():
