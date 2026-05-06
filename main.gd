@@ -114,8 +114,8 @@ func _setup_hole(hole_num: int):
 	# Spawn player above tee
 	player.global_position = Vector3(tee.x, tee_y + 1.8, tee.z)
 
-	# Face player toward pin
-	player.yaw = atan2(-play_dir.x, -play_dir.z)
+	# Face player perpendicular to play direction — golf address stance (left side toward target)
+	player.yaw = atan2(-play_dir.x, -play_dir.z) - PI * 0.5
 	player.rotation.y = player.yaw
 	player.pitch = 0.0
 	player.get_node("Camera3D").rotation.x = 0.0
