@@ -27,8 +27,6 @@ var landed_surface := "fairway"
 var _placement_data: Array = []
 var _placement_loaded := false
 
-# OSM water polygons for precise Swilcan Burn detection
-var _osm_water_polys: Array = []
 
 # Ball camera
 var ball_cam: Camera3D
@@ -67,32 +65,20 @@ func _load_placement_data() -> void:
 		_placement_data = data["placements"]
 
 func _load_osm_water() -> void:
-	var f = FileAccess.open("res://courses/The_Old_Course_osm_shapes.json", FileAccess.READ)
-	if not f:
-		return
-	var data = JSON.parse_string(f.get_as_text())
-	f.close()
-	if not data:
-		return
-	for w in data.get("water", []):
-		var shape: Array = w.get("shape", [])
-		if shape.size() >= 3:
-			_osm_water_polys.append(shape)
+	pass  # replaced by circle checks in _point_in_water
 
 func _point_in_water(wx: float, wz: float) -> bool:
-	for poly in _osm_water_polys:
-		var inside := false
-		var n: int = poly.size()
-		var j: int = n - 1
-		for i in n:
-			var xi: float = poly[i].get("x", 0.0)
-			var yi: float = poly[i].get("z", 0.0)
-			var xj: float = poly[j].get("x", 0.0)
-			var yj: float = poly[j].get("z", 0.0)
-			if (yi > wz) != (yj > wz) and wx < (xj - xi) * (wz - yi) / (yj - yi) + xi:
-				inside = !inside
-			j = i
-		if inside:
+	# Swilcan Burn: circles along the creek centre-line, 7m radius each
+	# Creek crosses hole 1 fairway roughly from NE to SW in front of the green
+	const R2 := 49.0  # 7m radius squared
+	const CREEK_PTS: Array = [
+		[-258.0, 60.0], [-268.0, 38.0], [-278.0, 18.0],
+		[-290.0, 4.0],  [-305.0, -8.0], [-316.0, -22.0]
+	]
+	for pt in CREEK_PTS:
+		var dx: float = wx - pt[0]
+		var dz: float = wz - pt[1]
+		if dx * dx + dz * dz < R2:
 			return true
 	return false
 
@@ -152,15 +138,15 @@ func _setup_ball_cam():
 func _setup_tracer():
 	# Use MultiMesh spheres — ImmediateMesh line strips are unreliable in Forward+
 	var sphere := SphereMesh.new()
-	sphere.radius = 0.07
-	sphere.height = 0.14
+	sphere.radius = 0.22
+	sphere.height = 0.44
 	sphere.radial_segments = 6
 	sphere.rings = 4
 	var mat := StandardMaterial3D.new()
-	mat.albedo_color = Color(1.0, 1.0, 0.4, 1.0)
+	mat.albedo_color = Color(1.0, 0.9, 0.0, 1.0)
 	mat.emission_enabled = true
-	mat.emission = Color(1.0, 1.0, 0.4)
-	mat.emission_energy_multiplier = 1.2
+	mat.emission = Color(1.0, 0.9, 0.0)
+	mat.emission_energy_multiplier = 2.5
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	sphere.surface_set_material(0, mat)
 	_tracer_mm = MultiMesh.new()
