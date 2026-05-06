@@ -8,6 +8,7 @@ func _ready():
 	_load_meshes()
 
 func _load_meshes():
+	return  # spline meshes disabled — no material so they appear as flat water; terrain handles visuals
 	var file = FileAccess.open(PLACEMENT_PATH, FileAccess.READ)
 	if not file: push_error("SplineMeshLoader: cannot open " + PLACEMENT_PATH); return
 	var data = JSON.parse_string(file.get_as_text())

@@ -212,6 +212,8 @@ func launch(from: Vector3, p_power: float, p_accuracy: float, p_draw_fade: float
 			if player:
 				player_cam = player.get_node_or_null("Camera3D")
 		if ball_cam:
+			if player_cam and player_cam.environment:
+				ball_cam.environment = player_cam.environment
 			ball_cam.current = true
 
 func _update_ball_cam():

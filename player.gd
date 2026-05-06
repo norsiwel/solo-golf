@@ -304,8 +304,19 @@ func _input(event):
 func _open_viewfinder():
 	viewfinder_active = true
 	$HUD/OVBLabel.visible = false
-	vf_yaw = yaw
-	vf_pitch = pitch
+	# Start viewfinder pointing toward the flag/aim point, not the perpendicular body yaw
+	if aim_point != Vector3.ZERO:
+		var to_aim := aim_point - global_position
+		to_aim.y = 0.0
+		if to_aim.length() > 0.1:
+			vf_yaw = atan2(-to_aim.x, -to_aim.z)
+		else:
+			vf_yaw = yaw
+	else:
+		vf_yaw = yaw
+	vf_pitch = 0.0
+	rotation.y = vf_yaw
+	$Camera3D.rotation.x = 0.0
 	$Camera3D.fov = 25.0
 	$HUD/VFImage.visible = true
 	$HUD/VFGlass.visible = true
@@ -568,7 +579,10 @@ func _check_ball_stance() -> void:
 		var play_dir := target - ball.global_position
 		play_dir.y = 0.0
 		if play_dir.length() > 0.5:
-			yaw = atan2(-play_dir.x, -play_dir.z)
+			play_dir = play_dir.normalized()
+			# Perpendicular address stance — flag is to player's left (right-handed)
+			var hand_offset := -PI * 0.5 if right_handed else PI * 0.5
+			yaw = atan2(-play_dir.x, -play_dir.z) + hand_offset
 			rotation.y = yaw
 			pitch = 0.0
 			$Camera3D.rotation.x = 0.0
