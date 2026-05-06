@@ -361,6 +361,7 @@ func _connect_green():
 func on_player_at_tee(hole: int, par: int, yardage: int):
 	on_green = false
 	address_screen.set_putting_mode(false)
+	address_screen.select_club(0)  # Driver
 	$HUD/AimLabel.text = "Hole %d  Par %d  %d yds  |  V to aim  Space to address" % [hole, par, yardage]
 
 func on_ball_entered_green(stimp: float, cup_world_pos: Vector3):
@@ -451,11 +452,16 @@ func _on_ball_stopped(pos: Vector3, surface: String):
 			$HUD/AimLabel.text = "Ball stopped  %.0f yds away  |  Press W to walk" % dist_yards
 	if surface == "water":
 		return  # player must re-hit from same position; no green check
+	# Also query terrain directly — placement data can mis-classify the green as fairway
+	var terrain_surface := ""
+	var hole_terrain = get_parent().get_node_or_null("HoleTerrain")
+	if hole_terrain and hole_terrain.has_method("get_surface_type"):
+		terrain_surface = hole_terrain.get_surface_type(pos.x, pos.z)
 	# Check if ball landed on green
 	if green_node and not on_green:
 		var green_pos = green_node.global_position
 		var dist_to_green = Vector2(pos.x, pos.z).distance_to(Vector2(green_pos.x, green_pos.z))
-		if dist_to_green < 12.0 or surface == "green":
+		if dist_to_green < 12.0 or surface == "green" or terrain_surface == "green":
 			on_green = true
 			var cup_world = green_node.get_cup_world_pos()
 			ball.cup_pos = cup_world

@@ -53,6 +53,13 @@ func _setup_hole(hole_num: int):
 			all_tees, all_pins
 		)
 
+	# Hide the flat fallback ground mesh now that heightmap terrain is active
+	var fallback = get_node_or_null("FallbackGround")
+	if fallback:
+		var gm = fallback.get_node_or_null("GroundMesh")
+		if gm:
+			gm.visible = false
+
 	# Get ground heights via downward raycast so player/geometry land on the actual surface
 	var tee_y: float = maxf(_raycast_ground_y(tee.x, tee.z), 0.0)
 	var pin_y: float = maxf(_raycast_ground_y(pin.x, pin.z), 0.0)
@@ -77,7 +84,10 @@ func _setup_hole(hole_num: int):
 	# --- Green: real polygon shape from shapes JSON ---
 	var green_mesh = hole_geo.get_node_or_null("Green")
 	if green_mesh:
-		CourseShapesLoader.apply_green_mesh(green_mesh, hole_num, pin_y)
+		var height_fn := Callable()
+		if hole_terrain and hole_terrain.has_method("get_height_at"):
+			height_fn = Callable(hole_terrain, "get_height_at")
+		CourseShapesLoader.apply_green_mesh(green_mesh, hole_num, pin_y, height_fn)
 
 	# --- GreenArea collision: real polygon from shapes JSON ---
 	var green_area = hole_geo.get_node_or_null("GreenArea")

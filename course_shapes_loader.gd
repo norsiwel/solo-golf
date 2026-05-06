@@ -98,7 +98,7 @@ static func apply_green_shape(green_area: Area3D, hole_num: int, ground_y: float
 
 
 static func apply_green_mesh(mesh_instance: MeshInstance3D, hole_num: int,
-							ground_y: float = 0.0) -> void:
+							ground_y: float = 0.0, height_fn: Callable = Callable()) -> void:
 	var poly = get_green_polygon(hole_num)
 	if poly.is_empty():
 		return
@@ -121,18 +121,32 @@ static func apply_green_mesh(mesh_instance: MeshInstance3D, hole_num: int,
 	var st = SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 
+	# Pre-compute centroid height offset (local Y = terrain_h - ground_y)
+	var yc := 0.0
+	if height_fn.is_valid():
+		yc = height_fn.call(cx, cz) - ground_y
+
 	var n = poly.size()
-	# Centroid-fan triangulation. Winding is CCW viewed from above (normals up).
+	# Centroid-fan triangulation. generate_normals() handles per-face normals.
 	for i in n:
 		var a = poly[i]
 		var b = poly[(i + 1) % n]
-		var va = Vector3(_nx(a.x) - cx, 0.0, _nz(a.z) - cz)
-		var vb = Vector3(_nx(b.x) - cx, 0.0, _nz(b.z) - cz)
-		var vc = Vector3.ZERO  # centroid in local space
+		var ax := _nx(a.x) - cx
+		var az := _nz(a.z) - cz
+		var bx := _nx(b.x) - cx
+		var bz := _nz(b.z) - cz
+		var ya := 0.0
+		var yb := 0.0
+		if height_fn.is_valid():
+			ya = height_fn.call(_nx(a.x), _nz(a.z)) - ground_y
+			yb = height_fn.call(_nx(b.x), _nz(b.z)) - ground_y
+		var va = Vector3(ax, ya, az)
+		var vb = Vector3(bx, yb, bz)
+		var vc = Vector3(0.0, yc, 0.0)
 
-		st.set_normal(Vector3.UP)
-		st.set_uv(Vector2(0.5, 0.5));   st.add_vertex(vc)
-		st.set_uv(Vector2(va.x / 60.0 + 0.5, va.z / 60.0 + 0.5)); st.add_vertex(va)
-		st.set_uv(Vector2(vb.x / 60.0 + 0.5, vb.z / 60.0 + 0.5)); st.add_vertex(vb)
+		st.set_uv(Vector2(0.5, 0.5));                              st.add_vertex(vc)
+		st.set_uv(Vector2(ax / 60.0 + 0.5, az / 60.0 + 0.5));    st.add_vertex(va)
+		st.set_uv(Vector2(bx / 60.0 + 0.5, bz / 60.0 + 0.5));    st.add_vertex(vb)
 
+	st.generate_normals()
 	mesh_instance.mesh = st.commit()

@@ -346,6 +346,10 @@ func _select_previous_club():
 	selected_club_index = (selected_club_index - 1 + CLUBS.size()) % CLUBS.size()
 	_update_club_highlight()
 
+func select_club(index: int):
+	selected_club_index = clamp(index, 0, CLUBS.size() - 1)
+	_update_club_highlight()
+
 func _update_club_highlight():
 	for i in club_labels.size():
 		var label = club_labels[i]

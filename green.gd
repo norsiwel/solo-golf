@@ -36,6 +36,9 @@ func _on_body_exited(body):
 	ball_on_green = false
 
 func get_cup_world_pos() -> Vector3:
+	var cup = get_node_or_null("Cup")
+	if cup is Node3D:
+		return cup.global_position
 	return global_position + cup_local_pos
 
 func check_hole_out(ball_pos: Vector3, strokes: int) -> bool:
