@@ -95,6 +95,8 @@ func _setup_hole(hole_num: int):
 		CourseShapesLoader.apply_green_shape(green_area, hole_num, pin_y)
 		green_area.hole_number = hole.get("hole", hole_num)
 		green_area.par = hole.get("par", 4)
+		# Random stimp 8–13 each round (8=slow, 10=medium, 13=tour fast)
+		green_area.stimp = randf_range(8.0, 13.0)
 
 		# Cup at pin position (which may differ slightly from green centre)
 		var cup = green_area.get_node_or_null("Cup")
