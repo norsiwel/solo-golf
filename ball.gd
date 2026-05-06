@@ -306,14 +306,6 @@ func _process(delta):
 				global_position.x = land_pos.x
 				global_position.z = land_pos.z
 				global_position.y = _get_terrain_y(land_pos.x, land_pos.z) + 0.08
-				# Only hole out when ball genuinely reaches the cup (0.15m ≈ 6 inches)
-				if cup_pos != Vector3.ZERO:
-					var dist_to_cup = Vector2(global_position.x, global_position.z).distance_to(
-						Vector2(cup_pos.x, cup_pos.z))
-					if dist_to_cup < 0.15:
-						state = BallState.HOLING
-						hole_timer = 0.0
-						return
 				visible = true
 				scale = Vector3(1.0, 1.0, 1.0)
 				state = BallState.STOPPED
@@ -355,14 +347,6 @@ func _process(delta):
 			if dist_rolled >= roll_distance or roll_speed <= 0.01:
 				# Sample final surface type at rest position
 				landed_surface = _get_surface_type(global_position.x, global_position.z)
-				if cup_pos != Vector3.ZERO:
-					var dist_to_cup = Vector2(global_position.x, global_position.z).distance_to(
-						Vector2(cup_pos.x, cup_pos.z))
-					if dist_to_cup < 0.15:
-						state = BallState.HOLING
-						hole_timer = 0.0
-						_restore_player_cam()
-						return
 				scale = Vector3(2.0, 2.0, 2.0)
 				state = BallState.CAM_HOLD
 				cam_timer = 0.0
@@ -426,6 +410,11 @@ func _draw_tracer():
 func _tracer_quad(st: SurfaceTool, p1: Vector3, p2: Vector3, p3: Vector3, p4: Vector3):
 	st.add_vertex(p1); st.add_vertex(p2); st.add_vertex(p3)
 	st.add_vertex(p1); st.add_vertex(p3); st.add_vertex(p4)
+
+func hole_out() -> void:
+	state = BallState.HOLING
+	hole_timer = 0.0
+	_restore_player_cam()
 
 func is_stopped() -> bool:
 	return state == BallState.STOPPED or state == BallState.IDLE

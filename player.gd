@@ -305,17 +305,22 @@ func _input(event):
 func _open_viewfinder():
 	viewfinder_active = true
 	$HUD/OVBLabel.visible = false
-	# On the tee: snap viewfinder toward the flag so the target is easy to find.
-	# On the course: start from current facing — player finds their own line.
-	if on_tee and aim_point != Vector3.ZERO:
-		var to_aim := aim_point - global_position
+	# Always start viewfinder oriented toward the flag/aim — player then adjusts freely
+	var vf_target := aim_point
+	if vf_target == Vector3.ZERO:
+		var hole_geo := get_parent().get_node_or_null("HoleGeometry")
+		var flag := hole_geo.get_node_or_null("Flagstick") if hole_geo else null
+		if flag:
+			vf_target = flag.global_position
+	if vf_target != Vector3.ZERO:
+		var to_aim := vf_target - global_position
 		to_aim.y = 0.0
 		if to_aim.length() > 0.1:
 			vf_yaw = atan2(-to_aim.x, -to_aim.z)
 		else:
 			vf_yaw = yaw
 	else:
-		vf_yaw = yaw  # start from wherever the player is looking
+		vf_yaw = yaw
 	vf_pitch = 0.0
 	rotation.y = vf_yaw
 	$Camera3D.rotation.x = 0.0
@@ -427,22 +432,13 @@ func on_ball_entered_green(stimp: float, cup_world_pos: Vector3):
 	address_screen.set_putting_mode(true, stimp)
 
 func _on_ball_holed_out(strokes: int):
+	# Trigger the drop animation — scorecard shows when animation finishes
 	on_green = false
-	ball.visible = false
-	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
-	var cm = get_parent().get_node_or_null("CourseManager")
-	var par = 4
-	var yds = 0
-	var hole_num = 1
-	if cm:
-		var hole = cm.get_hole_data(cm.current_hole)
-		par = hole.get("par", 4)
-		yds = hole.get("yardage", 0)
-		hole_num = cm.current_hole
-	scorecard.show_hole_result(hole_num, par, yds, strokes)
+	if ball:
+		ball.hole_out()
 
 func _on_ball_holed():
-	on_green = false
+	# Called after the drop animation completes — now show result
 	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
 	var cm = get_parent().get_node_or_null("CourseManager")
 	var par = 4
@@ -631,8 +627,9 @@ func _update_yardage():
 		var flag_snap = Vector3(flag_pos.x, camera.global_position.y, flag_pos.z)
 		var flag_screen = camera.unproject_position(flag_snap)
 		var screen_center = get_viewport().get_visible_rect().size / 2.0
-		# Scale snap radius for the narrow (25°) viewfinder FOV vs normal (75°) — 3× wider.
-		var snap_radius = 180.0
+		# Tight snap — crosshair turns red and shows FLAG yds only when precisely on flag.
+		# Aim goes where the raycast hits so player can aim off-flag for wind/obstacles.
+		var snap_radius = 25.0
 		if flag_screen.distance_to(screen_center) < snap_radius:
 			var dist_meters = global_position.distance_to(flag_pos)
 			aim_yardage = dist_meters * 1.094
