@@ -183,7 +183,7 @@ func get_surface_type(world_x: float, world_z: float) -> String:
 	var pin_d = world.distance_to(_pin)
 	if tee_d < 8.0:
 		return "tee"
-	if pin_d < 14.0:
+	if pin_d < 24.0:
 		return "green"
 	var d = _distance_to_path(world, _path)
 	if d < 22.0:
@@ -237,7 +237,7 @@ func _zone_color(world_x: float, world_z: float) -> Color:
 	# Multiplied with fairway texture albedo — near-white = pure texture colour
 	if tee_d < 8.0:
 		return Color(1.0, 0.92, 0.72)   # sandy warmth for tee box
-	if pin_d < 14.0:
+	if pin_d < 24.0:
 		return Color(0.80, 1.0, 0.70)   # bright green tint for putting green
 	if d < 22.0:
 		return Color(1.0, 1.0, 1.0)     # pure texture on fairway

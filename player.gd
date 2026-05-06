@@ -393,6 +393,15 @@ func _lock_putt_aim_facing():
 
 func _open_address():
 	addressing = true
+	# Safety net: if ball is near the green but on_green was missed, catch it now
+	if not on_green and ball and green_node:
+		var d2 := Vector2(ball.global_position.x, ball.global_position.z).distance_to(
+			Vector2(green_node.global_position.x, green_node.global_position.z))
+		if d2 < 40.0:
+			on_green = true
+			ball.cup_pos = green_node.get_cup_world_pos()
+			ball.stimp = green_node.stimp
+			address_screen.set_putting_mode(true, green_node.stimp)
 	var shot_dir: Vector3
 	if on_green:
 		# Ball stays on green surface where it stopped — use player facing as putt direction
@@ -401,8 +410,8 @@ func _open_address():
 		if shot_dir.length() > 0.01:
 			shot_dir = shot_dir.normalized()
 		aim_point = ball.global_position + shot_dir * 20.0
-		# Ensure putter is selected
 		address_screen.set_putting_mode(true, ball.stimp if ball else 8.0)
+		ball.visible = true  # keep ball visible at its stopped position on the green
 	else:
 		shot_dir = aim_point - global_position
 		shot_dir.y = 0.0
@@ -532,7 +541,7 @@ func _on_ball_stopped(pos: Vector3, surface: String):
 	if green_node and not on_green:
 		var green_pos = green_node.global_position
 		var dist_to_green = Vector2(pos.x, pos.z).distance_to(Vector2(green_pos.x, green_pos.z))
-		if dist_to_green < 20.0 or surface == "green" or terrain_surface == "green":
+		if dist_to_green < 40.0 or surface == "green" or terrain_surface == "green":
 			on_green = true
 			var cup_world = green_node.get_cup_world_pos()
 			ball.cup_pos = cup_world
