@@ -40,8 +40,7 @@ signal ball_stopped(position: Vector3, surface: String)
 
 # Tracer
 var tracer_points: Array[Vector3] = []
-var _tracer_mm: MultiMesh = null
-var _tracer_mmi: MultiMeshInstance3D = null
+var _tracer_mesh: MeshInstance3D = null
 
 const YARDS_TO_METERS := 0.9144
 const BASE_ROLLOUT := 0.10
@@ -136,31 +135,21 @@ func _setup_ball_cam():
 	add_child(ball_cam)
 
 func _setup_tracer():
-	# Use MultiMesh spheres — ImmediateMesh line strips are unreliable in Forward+
-	var sphere := SphereMesh.new()
-	sphere.radius = 0.22
-	sphere.height = 0.44
-	sphere.radial_segments = 6
-	sphere.rings = 4
 	var mat := StandardMaterial3D.new()
 	mat.albedo_color = Color(1.0, 0.9, 0.0, 1.0)
 	mat.emission_enabled = true
 	mat.emission = Color(1.0, 0.9, 0.0)
-	mat.emission_energy_multiplier = 2.5
+	mat.emission_energy_multiplier = 2.0
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	sphere.surface_set_material(0, mat)
-	_tracer_mm = MultiMesh.new()
-	_tracer_mm.transform_format = MultiMesh.TRANSFORM_3D
-	_tracer_mm.mesh = sphere
-	_tracer_mm.instance_count = 0
-	_tracer_mmi = MultiMeshInstance3D.new()
-	_tracer_mmi.name = "BallTracer"
-	_tracer_mmi.multimesh = _tracer_mm
+	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	_tracer_mesh = MeshInstance3D.new()
+	_tracer_mesh.name = "BallTracer"
+	_tracer_mesh.material_override = mat
 	var scene = get_tree().current_scene
 	if scene:
-		scene.call_deferred("add_child", _tracer_mmi)
+		scene.call_deferred("add_child", _tracer_mesh)
 	else:
-		call_deferred("add_child", _tracer_mmi)
+		call_deferred("add_child", _tracer_mesh)
 
 func launch(from: Vector3, p_power: float, p_accuracy: float, p_draw_fade: float, p_loft: float, aim_target: Vector3, p_club_yards: float, p_is_putt: bool = false, p_stimp: float = 8.0):
 	power = p_power
@@ -379,18 +368,35 @@ func _process(delta):
 
 
 func _draw_tracer():
-	if not _tracer_mm or not _tracer_mmi:
+	if not _tracer_mesh:
 		return
 	var n := tracer_points.size()
 	if n < 2:
-		_tracer_mm.instance_count = 0
+		_tracer_mesh.mesh = null
 		return
-	# Sample up to 24 evenly-spaced dots along the arc
-	var count := mini(n, 24)
-	_tracer_mm.instance_count = count
-	for i in count:
-		var idx := int(float(i) / float(count - 1) * float(n - 1)) if count > 1 else 0
-		_tracer_mm.set_instance_transform(i, Transform3D(Basis(), tracer_points[clamp(idx, 0, n - 1)]))
+	const W := 0.18  # half-width of the ribbon in metres
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for i in range(n - 1):
+		var a := tracer_points[i]
+		var b := tracer_points[i + 1]
+		var d := b - a
+		if d.length_squared() < 0.0001:
+			continue
+		d = d.normalized()
+		var r := d.cross(Vector3.UP)
+		if r.length_squared() < 0.01:
+			r = d.cross(Vector3.RIGHT)
+		r = r.normalized() * W
+		var u := d.cross(r.normalized()).normalized() * W
+		# Two perpendicular quads per segment — solid from all viewing angles
+		_tracer_quad(st, a - r, a + r, b + r, b - r)
+		_tracer_quad(st, a - u, a + u, b + u, b - u)
+	_tracer_mesh.mesh = st.commit()
+
+func _tracer_quad(st: SurfaceTool, p1: Vector3, p2: Vector3, p3: Vector3, p4: Vector3):
+	st.add_vertex(p1); st.add_vertex(p2); st.add_vertex(p3)
+	st.add_vertex(p1); st.add_vertex(p3); st.add_vertex(p4)
 
 func is_stopped() -> bool:
 	return state == BallState.STOPPED or state == BallState.IDLE
@@ -401,7 +407,7 @@ func reset():
 	in_bunker_flag = false
 	landed_surface = "fairway"
 	tracer_points.clear()
-	if _tracer_mm:
-		_tracer_mm.instance_count = 0
+	if _tracer_mesh:
+		_tracer_mesh.mesh = null
 	_restore_player_cam()
 	visible = false
