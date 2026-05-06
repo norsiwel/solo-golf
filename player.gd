@@ -521,7 +521,7 @@ func _check_ball_stance() -> void:
 	var dist2d := sqrt(dx * dx + dz * dz)
 	if not _near_ball and dist2d < 1.0:
 		# On green aim at cup; everywhere else aim at last locked target
-		var target := ball.cup_pos if (on_green and ball.cup_pos != Vector3.ZERO) else aim_point
+		var target: Vector3 = ball.cup_pos if (on_green and ball.cup_pos != Vector3.ZERO) else aim_point
 		var play_dir := target - ball.global_position
 		play_dir.y = 0.0
 		if play_dir.length() > 0.5:
