@@ -374,7 +374,7 @@ func _draw_tracer():
 		_tracer_mm.set_instance_transform(i, Transform3D(Basis(), tracer_points[clamp(idx, 0, n - 1)]))
 
 func is_stopped() -> bool:
-	return state == BallState.STOPPED
+	return state == BallState.STOPPED or state == BallState.IDLE
 
 func reset():
 	state = BallState.IDLE

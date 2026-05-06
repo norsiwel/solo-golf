@@ -176,6 +176,21 @@ func _setup_hud():
 	putt_aim_label.add_theme_constant_override("outline_size", 4)
 	canvas.add_child(putt_aim_label)
 
+	# OVB (over-the-ball) label — visible only when stance cam is active
+	var ovb_label = Label.new()
+	ovb_label.name = "OVBLabel"
+	ovb_label.text = ""
+	ovb_label.visible = false
+	ovb_label.set_anchor(SIDE_LEFT, 0.01)
+	ovb_label.set_anchor(SIDE_TOP, 0.42)
+	ovb_label.set_anchor(SIDE_RIGHT, 0.45)
+	ovb_label.set_anchor(SIDE_BOTTOM, 0.58)
+	ovb_label.add_theme_font_size_override("font_size", 22)
+	ovb_label.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 1.0))
+	ovb_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 1))
+	ovb_label.add_theme_constant_override("outline_size", 5)
+	canvas.add_child(ovb_label)
+
 	# Viewfinder body — frame with transparent lens center
 	var vf_image = TextureRect.new()
 	vf_image.name = "VFImage"
@@ -273,6 +288,11 @@ func _input(event):
 
 func _open_viewfinder():
 	viewfinder_active = true
+	# If OVB stance cam is active, hand off to first-person for the viewfinder
+	if _stance_cam and _stance_cam.current:
+		_stance_cam.current = false
+		$Camera3D.current = true
+	$HUD/OVBLabel.visible = false
 	vf_yaw = yaw
 	vf_pitch = pitch
 	$Camera3D.fov = 25.0
@@ -311,6 +331,11 @@ func _close_viewfinder():
 	yaw = vf_yaw
 	pitch = 0.0
 	$Camera3D.rotation.x = 0.0
+	# If still in OVB zone, return to overhead stance cam
+	if _near_ball and _stance_cam and _stance_cam.is_inside_tree():
+		$Camera3D.current = false
+		_stance_cam.current = true
+		$HUD/OVBLabel.visible = true
 
 func _open_putting_aim():
 	putt_aim_active = true
@@ -441,6 +466,7 @@ func _on_shot_confirmed(p_power: float, p_accuracy: float, p_draw_fade: float, p
 	if _stance_cam:
 		_stance_cam.current = false
 	$Camera3D.current = true
+	$HUD/OVBLabel.visible = false
 	stroke_count += 1
 	var launch_pos = ball.global_position
 	ball.connect("ball_stopped", _on_ball_stopped, CONNECT_ONE_SHOT)
@@ -545,28 +571,38 @@ func _check_ball_stance() -> void:
 			pitch = 0.0
 			$Camera3D.rotation.x = 0.0
 		_near_ball = true
-		# Switch to overhead stance camera
+		# Switch to overhead stance camera and show OVB HUD
 		if _stance_cam and _stance_cam.is_inside_tree():
 			$Camera3D.current = false
 			_stance_cam.current = true
+		$HUD/OVBLabel.visible = true
 	elif _near_ball and dist2d > 1.5:
 		_near_ball = false
-		# Return to player camera
+		# Return to player camera and hide OVB HUD
 		if _stance_cam:
 			_stance_cam.current = false
 		$Camera3D.current = true
+		$HUD/OVBLabel.visible = false
 
 func _update_stance_cam() -> void:
 	if not ball or not _stance_cam:
 		return
 	# Position camera 4 m above the ball looking straight down.
-	# Use target direction as the "up" vector so the flag sits at top of screen.
-	var target_pos: Vector3 = ball.cup_pos if (on_green and ball.cup_pos != Vector3.ZERO) else aim_point
-	var look_dir := target_pos - ball.global_position
-	look_dir.y = 0.0
-	var up := look_dir.normalized() if look_dir.length() > 0.5 else Vector3(0, 0, -1)
+	# Use the player's facing direction as camera-up so the fairway / flag sit at
+	# screen LEFT (player's left side = toward target in golf address stance).
+	var forward := -global_transform.basis.z
+	forward.y = 0.0
+	var up := forward.normalized() if forward.length() > 0.1 else Vector3(1.0, 0.0, 0.0)
 	_stance_cam.global_position = ball.global_position + Vector3(0, 4.0, 0)
 	_stance_cam.look_at(ball.global_position, up)
+	# Update OVB HUD bar
+	var arrow := "←" if right_handed else "→"
+	if on_green and ball.cup_pos != Vector3.ZERO:
+		var cup_ft := int(ball.global_position.distance_to(ball.cup_pos) * 3.281)
+		$HUD/OVBLabel.text = "%s CUP  %d ft\nV to aim  ·  SPACE to putt" % [arrow, cup_ft]
+	else:
+		var flag_yds := int(global_position.distance_to(aim_point) * 1.094)
+		$HUD/OVBLabel.text = "%s FLAG  %d yds\nV to aim  ·  SPACE to shoot" % [arrow, flag_yds]
 
 func _update_yardage():
 	var camera = $Camera3D

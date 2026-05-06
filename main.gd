@@ -130,7 +130,9 @@ func _setup_hole(hole_num: int):
 	if player.ball:
 		player.ball.reset()
 		player.ball.cup_pos = Vector3.ZERO
-		player.ball.visible = false
+		# Place ball on the tee peg so OVB shows it immediately
+		player.ball.global_position = Vector3(tee.x, tee_y + 0.08, tee.z)
+		player.ball.visible = true
 	player.address_screen.set_putting_mode(false)
 
 	# HUD
