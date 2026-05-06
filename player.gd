@@ -29,6 +29,9 @@ var scorecard: CanvasLayer
 var putt_aim_active := false
 var putt_aim_offset := 0.0
 
+# Auto-stance tracking
+var _near_ball := false
+
 func _ready():
 	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
 	_setup_sky()
@@ -426,6 +429,7 @@ func _on_next_hole():
 
 func _on_shot_confirmed(p_power: float, p_accuracy: float, p_draw_fade: float, p_loft: float, club: Dictionary):
 	_close_address()
+	_near_ball = false  # re-arm stance snap for next approach
 	stroke_count += 1
 	var launch_pos = ball.global_position
 	ball.connect("ball_stopped", _on_ball_stopped, CONNECT_ONE_SHOT)
@@ -482,6 +486,7 @@ func _on_ball_stopped(pos: Vector3, surface: String):
 		green_node.check_hole_out(pos, stroke_count)
 
 func _physics_process(delta):
+	_check_ball_stance()
 	if viewfinder_active:
 		_update_yardage()
 	if addressing:
@@ -503,6 +508,32 @@ func _physics_process(delta):
 	else:
 		velocity.y = 0
 	move_and_slide()
+
+func _check_ball_stance() -> void:
+	# When the player walks within ~2 ft of a stopped ball, snap to address stance
+	if addressing or on_green or viewfinder_active:
+		return
+	if not ball or not ball.visible:
+		return
+	if ball.state != ball.BallState.STOPPED:
+		return
+	# Use 2D distance so vertical height difference doesn't prevent the snap
+	var dx := global_position.x - ball.global_position.x
+	var dz := global_position.z - ball.global_position.z
+	var dist2d := sqrt(dx * dx + dz * dz)
+	if not _near_ball and dist2d < 0.7:
+		var play_dir := aim_point - ball.global_position
+		play_dir.y = 0.0
+		if play_dir.length() > 0.5:
+			play_dir = play_dir.normalized()
+			var hand_offset := -PI * 0.5 if right_handed else PI * 0.5
+			yaw = atan2(-play_dir.x, -play_dir.z) + hand_offset
+			rotation.y = yaw
+			pitch = 0.0
+			$Camera3D.rotation.x = 0.0
+		_near_ball = true
+	elif _near_ball and dist2d > 1.2:
+		_near_ball = false
 
 func _update_yardage():
 	var camera = $Camera3D
