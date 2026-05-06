@@ -303,10 +303,6 @@ func _input(event):
 
 func _open_viewfinder():
 	viewfinder_active = true
-	# If OVB stance cam is active, hand off to first-person for the viewfinder
-	if _stance_cam and _stance_cam.current:
-		_stance_cam.current = false
-		$Camera3D.current = true
 	$HUD/OVBLabel.visible = false
 	vf_yaw = yaw
 	vf_pitch = pitch
@@ -346,10 +342,8 @@ func _close_viewfinder():
 	yaw = vf_yaw
 	pitch = 0.0
 	$Camera3D.rotation.x = 0.0
-	# If still in OVB zone, return to overhead stance cam
-	if _near_ball and _stance_cam and _stance_cam.is_inside_tree():
-		$Camera3D.current = false
-		_stance_cam.current = true
+	# If still in OVB zone, restore OVB label
+	if _near_ball:
 		$HUD/OVBLabel.visible = true
 
 func _lock_putt_aim_facing():
@@ -462,11 +456,8 @@ func _on_next_hole():
 
 func _on_shot_confirmed(p_power: float, p_accuracy: float, p_draw_fade: float, p_loft: float, club: Dictionary):
 	_close_address()
-	_near_ball = false  # re-arm stance snap for next approach
-	# Deactivate stance cam; ball_cam will take over during flight
-	if _stance_cam:
-		_stance_cam.current = false
-	$Camera3D.current = true
+	_near_ball = false  # re-arm OVB for next approach
+	aim_locked = false  # reset aim — will be set fresh at next OVB
 	$HUD/OVBLabel.visible = false
 	stroke_count += 1
 	var launch_pos = ball.global_position
@@ -525,8 +516,8 @@ func _on_ball_stopped(pos: Vector3, surface: String):
 
 func _physics_process(delta):
 	_check_ball_stance()
-	if _near_ball and _stance_cam and _stance_cam.is_inside_tree() and _stance_cam.current:
-		_update_stance_cam()
+	if _near_ball:
+		_update_ovb_label()
 	if viewfinder_active:
 		_update_yardage()
 	# Putting cursor: show on green when free to aim, hide otherwise
@@ -539,12 +530,6 @@ func _physics_process(delta):
 	if Input.is_key_pressed(KEY_S): input_dir.y += 1
 	if Input.is_key_pressed(KEY_A): input_dir.x -= 1
 	if Input.is_key_pressed(KEY_D): input_dir.x += 1
-
-	# Exit OVB overhead cam on movement so player can walk and scout
-	if input_dir != Vector2.ZERO and _near_ball and _stance_cam and _stance_cam.current:
-		_stance_cam.current = false
-		$Camera3D.current = true
-		$HUD/OVBLabel.visible = false
 
 	input_dir = input_dir.normalized()
 	var direction := (transform.basis * Vector3(input_dir.x, 0, input_dir.y)).normalized()
@@ -568,50 +553,43 @@ func _check_ball_stance() -> void:
 	var dz := global_position.z - ball.global_position.z
 	var dist2d := sqrt(dx * dx + dz * dz)
 	if not _near_ball and dist2d < 1.0:
-		# On green aim at cup; everywhere else aim at last locked target
-		var target: Vector3 = ball.cup_pos if (on_green and ball.cup_pos != Vector3.ZERO) else aim_point
+		_near_ball = true
+		aim_locked = false  # reset aim for fresh approach
+		# Face player toward target so viewfinder is immediately ready
+		var target: Vector3
+		if on_green and ball.cup_pos != Vector3.ZERO:
+			target = ball.cup_pos
+		elif aim_point != Vector3.ZERO:
+			target = aim_point
+		else:
+			var hole_geo := get_parent().get_node_or_null("HoleGeometry")
+			var flag := hole_geo.get_node_or_null("Flagstick") if hole_geo else null
+			target = flag.global_position if flag else global_position + Vector3(0, 0, -50)
 		var play_dir := target - ball.global_position
 		play_dir.y = 0.0
 		if play_dir.length() > 0.5:
-			play_dir = play_dir.normalized()
-			var hand_offset := -PI * 0.5 if right_handed else PI * 0.5
-			yaw = atan2(-play_dir.x, -play_dir.z) + hand_offset
+			yaw = atan2(-play_dir.x, -play_dir.z)
 			rotation.y = yaw
 			pitch = 0.0
 			$Camera3D.rotation.x = 0.0
-		_near_ball = true
-		# Switch to overhead stance camera and show OVB HUD
-		if _stance_cam and _stance_cam.is_inside_tree():
-			$Camera3D.current = false
-			_stance_cam.current = true
 		$HUD/OVBLabel.visible = true
 	elif _near_ball and dist2d > 1.5:
 		_near_ball = false
-		# Return to player camera and hide OVB HUD
-		if _stance_cam:
-			_stance_cam.current = false
-		$Camera3D.current = true
+		aim_locked = false  # reset aim when leaving ball area
 		$HUD/OVBLabel.visible = false
 
-func _update_stance_cam() -> void:
-	if not ball or not _stance_cam:
+func _update_ovb_label() -> void:
+	if not ball:
 		return
-	# Position camera 4 m above the ball looking straight down.
-	# Use the player's facing direction as camera-up so the fairway / flag sit at
-	# screen LEFT (player's left side = toward target in golf address stance).
-	var forward := -global_transform.basis.z
-	forward.y = 0.0
-	var up := forward.normalized() if forward.length() > 0.1 else Vector3(1.0, 0.0, 0.0)
-	_stance_cam.global_position = ball.global_position + Vector3(0, 4.0, 0)
-	_stance_cam.look_at(ball.global_position, up)
-	# Update OVB HUD bar
-	var arrow := "←" if right_handed else "→"
 	if on_green and ball.cup_pos != Vector3.ZERO:
 		var cup_ft := int(ball.global_position.distance_to(ball.cup_pos) * 3.281)
-		$HUD/OVBLabel.text = "%s CUP  %d ft\nV to aim  ·  SPACE to putt" % [arrow, cup_ft]
+		$HUD/OVBLabel.text = "Cup: %d ft  |  Mouse aim  ·  Right-click: set aim  ·  Left-click: putt" % cup_ft
 	else:
-		var flag_yds := int(global_position.distance_to(aim_point) * 1.094)
-		$HUD/OVBLabel.text = "%s FLAG  %d yds\nV to aim  ·  SPACE to shoot" % [arrow, flag_yds]
+		if aim_locked and aim_point != Vector3.ZERO:
+			var yds := int(ball.global_position.distance_to(aim_point) * 1.094)
+			$HUD/OVBLabel.text = "AIM SET  %d yds  |  Space to address" % yds
+		else:
+			$HUD/OVBLabel.text = "V to aim  |  Space to address"
 
 func _update_yardage():
 	var camera = $Camera3D
