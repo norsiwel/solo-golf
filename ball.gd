@@ -43,9 +43,12 @@ var tracer_points: Array[Vector3] = []
 var _tracer_mesh: MeshInstance3D = null
 
 const YARDS_TO_METERS := 0.9144
-const BASE_ROLLOUT := 0.10
 const FLIGHT_SPEED := 2.5
 const PUTT_SPEED := 1.5
+# MasterShotEngine constants
+const D_MAX := 250.0   # reference max carry distance (metres)
+const K_LAT := 0.1     # lateral slope sensitivity
+var carry_distance := 0.0  # stored so ROLLING can use it for roll calc
 
 func _ready():
 	_setup_tracer()
@@ -178,34 +181,52 @@ func launch(from: Vector3, p_power: float, p_accuracy: float, p_draw_fade: float
 	var right = Vector3(forward.z, 0.0, -forward.x).normalized()
 
 	if is_putt:
-		var max_putt_meters = (stimp / 8.0) * 10.0
-		var distance = power * max_putt_meters
-		var accuracy_error = (1.0 - accuracy) * 0.8
-		var total_lateral = accuracy_error * (randf() - 0.5) * 2.0
-		land_pos = from + forward * distance + right * total_lateral
+		# MasterShotEngine putt(): roll_distance = dist_to_pin * (stimp/8) * meter_power
+		var dist_to_pin := from.distance_to(cup_pos) if cup_pos != Vector3.ZERO else 8.0
+		var roll_dist := dist_to_pin * (stimp / 8.0) * power
+		var accuracy_error := (1.0 - accuracy) * 0.6
+		var total_lateral := accuracy_error * (randf() - 0.5) * 2.0
+		land_pos = from + forward * roll_dist + right * total_lateral
 		land_pos.y = _get_terrain_y(land_pos.x, land_pos.z) + 0.08
-		roll_dir = (land_pos - from).normalized()
+		roll_dir = (land_pos - from)
 		roll_dir.y = 0.0
+		if roll_dir.length() > 0.01:
+			roll_dir = roll_dir.normalized()
+		carry_distance = roll_dist
 		state = BallState.ROLLING
 		scale = Vector3(1.0, 1.0, 1.0)
 		# No ball cam for putts
 	else:
-		var distance = power * current_max_distance_meters
-		var accuracy_error = (1.0 - accuracy) * 15.0
-		var curve_offset = draw_fade * distance * 0.12
-		var total_lateral = curve_offset + (accuracy_error * (randf() - 0.5) * 2.0)
-		land_pos = from + forward * distance + right * total_lateral
+		# MasterShotEngine calculate_carry():
+		# carry = D_max * P * C * L * A * L_f
+		var club_factor := (club_yards * YARDS_TO_METERS) / D_MAX
+		# Lie factor from surface under ball at shot time
+		var lie_surface := _get_surface_type(from.x, from.z)
+		var lie_factor := 1.0
+		match lie_surface:
+			"rough":      lie_factor = 0.85
+			"deep_rough": lie_factor = 0.70
+			"bunker":     lie_factor = 0.50
+		# Loft factor: high loft trades carry for height
+		var loft_factor := 1.0 + loft * 0.15
+		var carry := D_MAX * power * club_factor * lie_factor * accuracy * loft_factor
+		carry_distance = carry
+		# Lateral: MasterShotEngine uses draw_fade * 15 + accuracy error
+		var accuracy_error := (1.0 - accuracy) * 15.0
+		var total_lateral := draw_fade * 15.0 + accuracy_error * (randf() - 0.5) * 2.0
+		land_pos = from + forward * carry + right * total_lateral
 		land_pos.y = _get_terrain_y(land_pos.x, land_pos.z) + 0.08
-		# Apply wind effect to landing position
+		# Wind effect
 		var wind = get_tree().current_scene.get_node_or_null("WindSystem")
 		if wind:
 			land_pos = wind.apply_to_ball(from, land_pos, power, loft)
 			land_pos.y = _get_terrain_y(land_pos.x, land_pos.z) + 0.08
-		roll_dir = (land_pos - from).normalized()
+		roll_dir = (land_pos - from)
 		roll_dir.y = 0.0
+		if roll_dir.length() > 0.01:
+			roll_dir = roll_dir.normalized()
 		state = BallState.FLYING
 		cam_timer = 0.0
-		# Store reference to player cam so we can restore it
 		var scene = get_tree().current_scene
 		if scene:
 			var player = scene.get_node_or_null("Player")
@@ -285,28 +306,34 @@ func _process(delta):
 				global_position.x = land_pos.x
 				global_position.z = land_pos.z
 				global_position.y = _get_terrain_y(land_pos.x, land_pos.z) + 0.08
-				# Check cup — 0.5m gives a small "gimme" without triggering on putt start position
+				# Only hole out when ball genuinely reaches the cup (0.15m ≈ 6 inches)
 				if cup_pos != Vector3.ZERO:
 					var dist_to_cup = Vector2(global_position.x, global_position.z).distance_to(
 						Vector2(cup_pos.x, cup_pos.z))
-					if dist_to_cup < 0.5:
+					if dist_to_cup < 0.15:
 						state = BallState.HOLING
 						hole_timer = 0.0
 						return
+				visible = true
+				scale = Vector3(1.0, 1.0, 1.0)
 				state = BallState.STOPPED
 				emit_signal("ball_stopped", global_position, "green")
 		else:
-			var rollout_pct := BASE_ROLLOUT
-			if loft < -0.15:
-				rollout_pct = 0.18
-			elif loft > 0.15:
-				rollout_pct = 0.04
+			# MasterShotEngine calculate_roll(): roll = carry * F_surface * loft_mod * 0.10
 			var surface := _get_surface_type(global_position.x, global_position.z)
-			if surface == "bunker" or surface == "water":
-				rollout_pct = 0.02
-				in_bunker_flag = surface == "bunker"
-				landed_surface = surface
-			var roll_distance := power * current_max_distance_meters * rollout_pct
+			var f_surface := 1.0
+			match surface:
+				"fairway":    f_surface = 1.0
+				"rough":      f_surface = 0.75
+				"deep_rough": f_surface = 0.60
+				"bunker":     f_surface = 0.0
+				"water":      f_surface = 0.0
+				"green":      f_surface = 0.80
+			if surface == "bunker":
+				in_bunker_flag = true
+			landed_surface = surface
+			var loft_roll_mod := clamp(1.0 - loft * 0.5, 0.02, 1.5)
+			var roll_distance := carry_distance * f_surface * loft_roll_mod * 0.10
 			var roll_speed := roll_distance * 0.8
 
 			# Slope: deflect roll direction and adjust speed based on terrain gradient
@@ -331,7 +358,7 @@ func _process(delta):
 				if cup_pos != Vector3.ZERO:
 					var dist_to_cup = Vector2(global_position.x, global_position.z).distance_to(
 						Vector2(cup_pos.x, cup_pos.z))
-					if dist_to_cup < 1.5:
+					if dist_to_cup < 0.15:
 						state = BallState.HOLING
 						hole_timer = 0.0
 						_restore_player_cam()
@@ -408,6 +435,7 @@ func reset():
 	is_putt = false
 	in_bunker_flag = false
 	landed_surface = "fairway"
+	carry_distance = 0.0
 	tracer_points.clear()
 	if _tracer_mesh:
 		_tracer_mesh.mesh = null
