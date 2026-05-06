@@ -13,6 +13,7 @@ class_name TerrainGenerator
 # Heightmap sampling constants (The Old Course — normalized coordinate system)
 # UV formula: u = 1 - (world_x + 1785.42) / 2156.9 ; v = (166.66 - world_z) / 2156.9
 const HM_PATH := "res://courses/The_Old_Course_heightmap.png"
+const GRASS_UV_SCALE := 12.0        # metres per texture repeat
 const HM_WORLD_SIZE: float = 2156.9
 const HM_X_OFFSET: float = 1785.42   # normalized_x + this = shifted Unity X
 const HM_Z_ZERO: float = 166.66      # Unity Z at normalized world Z = 0
@@ -140,6 +141,10 @@ func build_from_hole(tee: Vector3, pin: Vector3, all_tees: Array = [], all_pins:
 	mat.vertex_color_use_as_albedo = true
 	mat.roughness = 0.92
 	mat.metallic = 0.0
+	var fairway_tex = load("res://assets/terrain/surface_fairway_alt.png")
+	if fairway_tex:
+		mat.albedo_texture = fairway_tex
+		mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
 	_mesh_instance.material_override = mat
 	add_child(_mesh_instance)
 
@@ -229,20 +234,16 @@ func _zone_color(world_x: float, world_z: float) -> Color:
 	var tee_d = world.distance_to(_tee)
 	var pin_d = world.distance_to(_pin)
 
-	# Tee box: sandy beige
+	# Multiplied with fairway texture albedo — near-white = pure texture colour
 	if tee_d < 8.0:
-		return Color(0.72, 0.66, 0.42)
-	# Green: bright putting-green color
+		return Color(1.0, 0.92, 0.72)   # sandy warmth for tee box
 	if pin_d < 14.0:
-		return Color(0.15, 0.62, 0.22)
-	# Fairway corridor
+		return Color(0.80, 1.0, 0.70)   # bright green tint for putting green
 	if d < 22.0:
-		return Color(0.28, 0.60, 0.18)
-	# Semi-rough
+		return Color(1.0, 1.0, 1.0)     # pure texture on fairway
 	if d < 55.0:
-		return Color(0.20, 0.46, 0.13)
-	# Deep rough
-	return Color(0.14, 0.34, 0.10)
+		return Color(0.78, 0.86, 0.68)  # slightly dark/yellow for semi-rough
+	return Color(0.55, 0.70, 0.48)      # noticeably darker deep rough
 
 func _generate_mesh() -> Mesh:
 	var st = SurfaceTool.new()
@@ -252,20 +253,22 @@ func _generate_mesh() -> Mesh:
 			var i00 = z * _width + x
 			var wx00 = _origin.x + x * _step_x
 			var wz00 = _origin.z + z * _step_z
+			var wx10 = wx00 + _step_x
+			var wz01 = wz00 + _step_z
 			var p00 = Vector3(x * _step_x,       _heightmap[i00],              z * _step_z)
 			var p10 = Vector3((x+1) * _step_x,   _heightmap[i00 + 1],          z * _step_z)
 			var p01 = Vector3(x * _step_x,       _heightmap[i00 + _width],     (z+1) * _step_z)
 			var p11 = Vector3((x+1) * _step_x,   _heightmap[i00 + _width + 1], (z+1) * _step_z)
-			var c00 = _zone_color(wx00,              wz00)
-			var c10 = _zone_color(wx00 + _step_x,    wz00)
-			var c01 = _zone_color(wx00,              wz00 + _step_z)
-			var c11 = _zone_color(wx00 + _step_x,    wz00 + _step_z)
-			st.set_color(c00); st.add_vertex(p00)
-			st.set_color(c01); st.add_vertex(p01)
-			st.set_color(c10); st.add_vertex(p10)
-			st.set_color(c10); st.add_vertex(p10)
-			st.set_color(c01); st.add_vertex(p01)
-			st.set_color(c11); st.add_vertex(p11)
+			var c00 = _zone_color(wx00, wz00)
+			var c10 = _zone_color(wx10, wz00)
+			var c01 = _zone_color(wx00, wz01)
+			var c11 = _zone_color(wx10, wz01)
+			st.set_color(c00); st.set_uv(Vector2(wx00 / GRASS_UV_SCALE, wz00 / GRASS_UV_SCALE)); st.add_vertex(p00)
+			st.set_color(c01); st.set_uv(Vector2(wx00 / GRASS_UV_SCALE, wz01 / GRASS_UV_SCALE)); st.add_vertex(p01)
+			st.set_color(c10); st.set_uv(Vector2(wx10 / GRASS_UV_SCALE, wz00 / GRASS_UV_SCALE)); st.add_vertex(p10)
+			st.set_color(c10); st.set_uv(Vector2(wx10 / GRASS_UV_SCALE, wz00 / GRASS_UV_SCALE)); st.add_vertex(p10)
+			st.set_color(c01); st.set_uv(Vector2(wx00 / GRASS_UV_SCALE, wz01 / GRASS_UV_SCALE)); st.add_vertex(p01)
+			st.set_color(c11); st.set_uv(Vector2(wx10 / GRASS_UV_SCALE, wz01 / GRASS_UV_SCALE)); st.add_vertex(p11)
 	st.generate_normals()
 	return st.commit()
 

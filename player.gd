@@ -519,7 +519,7 @@ func _check_ball_stance() -> void:
 	var dx := global_position.x - ball.global_position.x
 	var dz := global_position.z - ball.global_position.z
 	var dist2d := sqrt(dx * dx + dz * dz)
-	if not _near_ball and dist2d < 0.7:
+	if not _near_ball and dist2d < 1.0:
 		# On green aim at cup; everywhere else aim at last locked target
 		var target := ball.cup_pos if (on_green and ball.cup_pos != Vector3.ZERO) else aim_point
 		var play_dir := target - ball.global_position
@@ -532,7 +532,7 @@ func _check_ball_stance() -> void:
 			pitch = 0.0
 			$Camera3D.rotation.x = 0.0
 		_near_ball = true
-	elif _near_ball and dist2d > 1.2:
+	elif _near_ball and dist2d > 1.5:
 		_near_ball = false
 
 func _update_yardage():
