@@ -129,8 +129,13 @@ func _setup_hole(hole_num: int):
 	player.on_green = false
 	player.aim_locked = false
 	player.aim_point = Vector3(pin.x, pin_y, pin.z)
+	# Course conditions: firmness affects rollout distance
+	var firmness := randf_range(0.7, 1.3)
+	var condition_str := "Wet" if firmness < 0.85 else ("Firm" if firmness > 1.15 else "Normal")
+
 	if player.ball:
 		player.ball.reset()
+		player.ball.course_firmness = firmness
 		player.ball.cup_pos = Vector3.ZERO
 		# Place ball on the tee peg so OVB shows it immediately
 		player.ball.global_position = Vector3(tee.x, tee_y + 0.08, tee.z)
@@ -138,8 +143,8 @@ func _setup_hole(hole_num: int):
 	player.address_screen.set_putting_mode(false)
 
 	# HUD
-	player.get_node("HUD/AimLabel").text = "The Old Course  |  Hole %d  Par %d  %d yds  |  V to aim" % [
-		hole_num, hole.get("par", 4), hole.get("yardage", 0)
+	player.get_node("HUD/AimLabel").text = "The Old Course  |  Hole %d  Par %d  %d yds  |  Course: %s  |  V to aim" % [
+		hole_num, hole.get("par", 4), hole.get("yardage", 0), condition_str
 	]
 
 	var hole_map = get_node_or_null("HoleMap")

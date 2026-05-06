@@ -49,6 +49,12 @@ const PUTT_SPEED := 1.5
 const D_MAX := 250.0   # reference max carry distance (metres)
 const K_LAT := 0.1     # lateral slope sensitivity
 var carry_distance := 0.0  # stored so ROLLING can use it for roll calc
+# Rollout state — computed ONCE at landing, not every frame
+var _roll_total: float = 0.0
+var _roll_done: float = 0.0
+var _roll_spd0: float = 0.0
+# Course condition: 0.7=wet/slow, 1.0=normal, 1.3=firm/fast
+var course_firmness: float = 1.0
 
 func _ready():
 	_setup_tracer()
@@ -259,8 +265,9 @@ func _process(delta):
 		time_in_flight += delta * FLIGHT_SPEED
 		if time_in_flight >= 1.0:
 			time_in_flight = 1.0
-			state = BallState.ROLLING
 			global_position = land_pos
+			_init_rollout()   # compute roll params once at landing
+			state = BallState.ROLLING
 
 		var t = time_in_flight
 		var base_height = power * 25.0
@@ -311,41 +318,30 @@ func _process(delta):
 				state = BallState.STOPPED
 				emit_signal("ball_stopped", global_position, "green")
 		else:
-			# MasterShotEngine calculate_roll(): roll = carry * F_surface * loft_mod * 0.10
-			var surface := _get_surface_type(global_position.x, global_position.z)
-			var f_surface := 1.0
-			match surface:
-				"fairway":    f_surface = 1.0
-				"rough":      f_surface = 0.75
-				"deep_rough": f_surface = 0.60
-				"bunker":     f_surface = 0.0
-				"water":      f_surface = 0.0
-				"green":      f_surface = 0.80
-			if surface == "bunker":
-				in_bunker_flag = true
-			landed_surface = surface
-			var loft_roll_mod: float = clamp(1.0 - loft * 0.5, 0.02, 1.5)
-			var roll_distance: float = carry_distance * f_surface * loft_roll_mod * 0.10
-			var roll_speed: float = roll_distance * 0.8
-
-			# Slope: deflect roll direction and adjust speed based on terrain gradient
+			# Rollout: _roll_total/_roll_done/_roll_spd0 computed once in _init_rollout()
+			if _roll_total <= 0.0:
+				landed_surface = _get_surface_type(global_position.x, global_position.z)
+				scale = Vector3(2.0, 2.0, 2.0)
+				state = BallState.CAM_HOLD
+				cam_timer = 0.0
+				return
+			var progress: float = clamp(_roll_done / _roll_total, 0.0, 1.0)
+			var spd: float = _roll_spd0 * (1.0 - progress)  # linear deceleration to zero
+			# Slope deflects direction and modifies speed
 			var normal := _get_terrain_normal(global_position.x, global_position.z)
-			var gravity := Vector3(0.0, -1.0, 0.0)
-			# Slope force = component of gravity tangent to terrain surface, projected to XZ
-			var slope_3d := gravity - gravity.dot(normal) * normal
+			var grav := Vector3(0.0, -1.0, 0.0)
+			var slope_3d := grav - grav.dot(normal) * normal
 			var slope_xz := Vector3(slope_3d.x, 0.0, slope_3d.z)
 			if slope_xz.length() > 0.005:
 				roll_dir = (roll_dir + slope_xz.normalized() * slope_xz.length() * 0.35).normalized()
-				var slope_along := slope_xz.normalized().dot(roll_dir)
-				roll_speed = roll_speed * (1.0 + slope_along * slope_xz.length() * 0.6)
-
-			global_position += roll_dir * roll_speed * delta
+				var slope_along: float = slope_xz.normalized().dot(roll_dir)
+				spd *= (1.0 + slope_along * slope_xz.length() * 0.6)
+			var step: float = maxf(spd * delta, 0.0)
+			global_position += roll_dir * step
 			global_position.y = _get_terrain_y(global_position.x, global_position.z) + 0.08
-			roll_speed = move_toward(roll_speed, 0, roll_speed * delta * 2.0)
+			_roll_done += step
 			_update_ball_cam()
-			var dist_rolled = global_position.distance_to(land_pos)
-			if dist_rolled >= roll_distance or roll_speed <= 0.01:
-				# Sample final surface type at rest position
+			if _roll_done >= _roll_total or spd < 0.02:
 				landed_surface = _get_surface_type(global_position.x, global_position.z)
 				scale = Vector3(2.0, 2.0, 2.0)
 				state = BallState.CAM_HOLD
@@ -411,6 +407,26 @@ func _tracer_quad(st: SurfaceTool, p1: Vector3, p2: Vector3, p3: Vector3, p4: Ve
 	st.add_vertex(p1); st.add_vertex(p2); st.add_vertex(p3)
 	st.add_vertex(p1); st.add_vertex(p3); st.add_vertex(p4)
 
+func _init_rollout() -> void:
+	# MasterShotEngine calculate_roll — called once at the moment of landing
+	var surface := _get_surface_type(global_position.x, global_position.z)
+	var f_surface := 1.0
+	match surface:
+		"fairway":    f_surface = 1.0
+		"rough":      f_surface = 0.75
+		"deep_rough": f_surface = 0.60
+		"bunker":     f_surface = 0.0
+		"water":      f_surface = 0.0
+		"green":      f_surface = 0.80
+	if surface == "bunker": in_bunker_flag = true
+	landed_surface = surface
+	var loft_roll_mod: float = clamp(1.0 - loft * 0.5, 0.02, 1.5)
+	# course_firmness: 0.7=wet/slow, 1.0=normal, 1.3=firm/fast
+	_roll_total = carry_distance * f_surface * loft_roll_mod * 0.10 * course_firmness
+	_roll_done  = 0.0
+	# Initial speed gives a visible roll that decelerates to stop over _roll_total metres
+	_roll_spd0  = clamp(_roll_total * 1.5, 0.3, 10.0)
+
 func hole_out() -> void:
 	state = BallState.HOLING
 	hole_timer = 0.0
@@ -425,6 +441,9 @@ func reset():
 	in_bunker_flag = false
 	landed_surface = "fairway"
 	carry_distance = 0.0
+	_roll_total = 0.0
+	_roll_done  = 0.0
+	_roll_spd0  = 0.0
 	tracer_points.clear()
 	if _tracer_mesh:
 		_tracer_mesh.mesh = null
