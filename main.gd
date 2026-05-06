@@ -147,7 +147,52 @@ func _setup_hole(hole_num: int):
 	# Creek visuals — only the Swilcan Burn crosses hole 1 (and 18)
 	_setup_swilcan_burn()
 
+	# Landmark buildings visible from hole 1
+	if hole_num == 1:
+		_setup_landmarks()
+
 	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+
+func _setup_landmarks() -> void:
+	# Remove previous landmarks if replaying hole
+	for old in get_children():
+		if old.name.begins_with("LM_"):
+			old.queue_free()
+
+	# Each entry: [name, world_x, world_z, width, depth, height, Color]
+	# Positions are Godot world coords relative to hole 1 tee at origin.
+	# R&A Clubhouse — stone grey, just east-northeast of the 1st tee / 18th green
+	# Old Course Hotel — large red-brown landmark at the corner of hole 17
+	# Hamilton Grand — long cream building along the 18th fairway
+	# Town row — two blocks representing St Andrews town south of the course
+	var landmarks := [
+		["LM_RA_Clubhouse",    88,  -95, 48, 18, 14, Color(0.62, 0.60, 0.58)],
+		["LM_Hamilton_Grand",  55,  -65, 60, 14, 11, Color(0.85, 0.80, 0.65)],
+		["LM_OldCourseHotel", 230,  180, 58, 38, 26, Color(0.52, 0.32, 0.26)],
+		["LM_Town_A",         130, -170, 45, 20, 10, Color(0.72, 0.65, 0.55)],
+		["LM_Town_B",          60, -210, 50, 18, 10, Color(0.68, 0.60, 0.50)],
+	]
+
+	for lm in landmarks:
+		var lname: String = lm[0]
+		var lx: float = lm[1]; var lz: float = lm[2]
+		var lw: float = lm[3]; var ld: float = lm[4]; var lh: float = lm[5]
+		var col: Color = lm[6]
+
+		var ground_y := maxf(_raycast_ground_y(lx, lz), 0.0)
+
+		var box := BoxMesh.new()
+		box.size = Vector3(lw, lh, ld)
+		var mat := StandardMaterial3D.new()
+		mat.albedo_color = col
+		mat.roughness = 0.85
+		box.surface_set_material(0, mat)
+
+		var mi := MeshInstance3D.new()
+		mi.name = lname
+		mi.mesh = box
+		mi.global_position = Vector3(lx, ground_y + lh * 0.5, lz)
+		add_child(mi)
 
 func _setup_swilcan_burn() -> void:
 	# Remove old creek mesh if re-setting up hole

@@ -21,6 +21,7 @@ var address_screen: CanvasLayer
 var addressing := false
 var ball: Node3D
 var on_green := false
+var on_tee := false
 var stroke_count := 0
 var green_node = null
 var scorecard: CanvasLayer
@@ -252,7 +253,7 @@ func _input(event):
 		if viewfinder_active:
 			vf_yaw -= event.relative.x * mouse_sensitivity
 			vf_pitch -= event.relative.y * mouse_sensitivity
-			vf_pitch = clamp(vf_pitch, -1.0, 0.3)
+			vf_pitch = clamp(vf_pitch, -1.4, 1.4)
 			rotation.y = vf_yaw
 			$Camera3D.rotation.x = vf_pitch
 		else:
@@ -304,8 +305,9 @@ func _input(event):
 func _open_viewfinder():
 	viewfinder_active = true
 	$HUD/OVBLabel.visible = false
-	# Start viewfinder pointing toward the flag/aim point, not the perpendicular body yaw
-	if aim_point != Vector3.ZERO:
+	# On the tee: snap viewfinder toward the flag so the target is easy to find.
+	# On the course: start from current facing — player finds their own line.
+	if on_tee and aim_point != Vector3.ZERO:
 		var to_aim := aim_point - global_position
 		to_aim.y = 0.0
 		if to_aim.length() > 0.1:
@@ -313,7 +315,7 @@ func _open_viewfinder():
 		else:
 			vf_yaw = yaw
 	else:
-		vf_yaw = yaw
+		vf_yaw = yaw  # start from wherever the player is looking
 	vf_pitch = 0.0
 	rotation.y = vf_yaw
 	$Camera3D.rotation.x = 0.0
@@ -410,6 +412,7 @@ func _connect_green():
 
 func on_player_at_tee(hole: int, par: int, yardage: int):
 	on_green = false
+	on_tee = true
 	address_screen.set_putting_mode(false)
 	address_screen.select_club(0)  # Driver
 	$HUD/AimLabel.text = "Hole %d  Par %d  %d yds  |  V to aim  Space to address" % [hole, par, yardage]
@@ -469,6 +472,7 @@ func _on_shot_confirmed(p_power: float, p_accuracy: float, p_draw_fade: float, p
 	_close_address()
 	_near_ball = false  # re-arm OVB for next approach
 	aim_locked = false  # reset aim — will be set fresh at next OVB
+	on_tee = false
 	$HUD/OVBLabel.visible = false
 	stroke_count += 1
 	var launch_pos = ball.global_position
