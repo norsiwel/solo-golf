@@ -106,6 +106,10 @@ func build_from_hole(tee: Vector3, pin: Vector3, all_tees: Array = [], all_pins:
 				h = base_y + noise.get_noise_2d(world.x, world.z) * noise_strength * noise_mult
 			_heightmap[z * _width + x] = maxf(h, 0.0)
 
+	# Smooth the heightmap to turn sharp pixel edges into rolling swales
+	if _hm_image:
+		_smooth_heightmap(3)
+
 	# Remove old children
 	for child in get_children():
 		child.queue_free()
@@ -264,3 +268,21 @@ func _generate_mesh() -> Mesh:
 			st.set_color(c11); st.add_vertex(p11)
 	st.generate_normals()
 	return st.commit()
+
+func _smooth_heightmap(passes: int) -> void:
+	var sm := PackedFloat32Array()
+	sm.resize(_width * _depth)
+	for _p in passes:
+		for z in _depth:
+			for x in _width:
+				var sum := 0.0
+				var cnt := 0
+				for dz in range(-1, 2):
+					for dx in range(-1, 2):
+						var nx2 := x + dx
+						var nz2 := z + dz
+						if nx2 >= 0 and nx2 < _width and nz2 >= 0 and nz2 < _depth:
+							sum += _heightmap[nz2 * _width + nx2]
+							cnt += 1
+				sm[z * _width + x] = sum / float(cnt)
+		_heightmap = sm

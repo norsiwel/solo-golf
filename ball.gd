@@ -94,8 +94,8 @@ func _get_surface_type(world_x: float, world_z: float) -> String:
 		if abs(world_x - ex) < hw and abs(world_z - ez) < hd:
 			var type: String = entry.get("type", "rough")
 			var name: String = entry.get("name", "")
-			# Swilcan Burn is water even though placed as "bunker"
-			if "burn" in name.to_lower() or "water" in name.to_lower():
+			# Only Swilcan Burn is actual water at St Andrews; other "water"-named meshes are slope data
+			if "burn" in name.to_lower() or "swilcan" in name.to_lower():
 				return "water"
 			if type == "bunker":
 				return "bunker"
@@ -263,11 +263,11 @@ func _process(delta):
 				global_position.x = land_pos.x
 				global_position.z = land_pos.z
 				global_position.y = _get_terrain_y(land_pos.x, land_pos.z) + 0.08
-				# Check cup
+				# Check cup — 0.5m gives a small "gimme" without triggering on putt start position
 				if cup_pos != Vector3.ZERO:
 					var dist_to_cup = Vector2(global_position.x, global_position.z).distance_to(
 						Vector2(cup_pos.x, cup_pos.z))
-					if dist_to_cup < 1.5:
+					if dist_to_cup < 0.5:
 						state = BallState.HOLING
 						hole_timer = 0.0
 						return
