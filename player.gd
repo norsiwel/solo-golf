@@ -31,6 +31,7 @@ var putt_aim_offset := 0.0
 
 # Auto-stance tracking
 var _near_ball := false
+var _stance_cam: Camera3D = null
 
 func _ready():
 	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
@@ -81,6 +82,12 @@ func _setup_address_screen():
 	get_parent().call_deferred("add_child", ball)
 	ball.visible = false
 	ball.connect("ball_holed", _on_ball_holed)
+	# Overhead stance camera — activated when player approaches the ball within 1 m
+	_stance_cam = Camera3D.new()
+	_stance_cam.name = "StanceCam"
+	_stance_cam.fov = 50.0
+	_stance_cam.current = false
+	get_parent().call_deferred("add_child", _stance_cam)
 	# Scorecard
 	scorecard = preload("res://scorecard.gd").new()
 	add_child(scorecard)
@@ -430,6 +437,10 @@ func _on_next_hole():
 func _on_shot_confirmed(p_power: float, p_accuracy: float, p_draw_fade: float, p_loft: float, club: Dictionary):
 	_close_address()
 	_near_ball = false  # re-arm stance snap for next approach
+	# Deactivate stance cam; ball_cam will take over during flight
+	if _stance_cam:
+		_stance_cam.current = false
+	$Camera3D.current = true
 	stroke_count += 1
 	var launch_pos = ball.global_position
 	ball.connect("ball_stopped", _on_ball_stopped, CONNECT_ONE_SHOT)
@@ -474,7 +485,7 @@ func _on_ball_stopped(pos: Vector3, surface: String):
 	if green_node and not on_green:
 		var green_pos = green_node.global_position
 		var dist_to_green = Vector2(pos.x, pos.z).distance_to(Vector2(green_pos.x, green_pos.z))
-		if dist_to_green < 12.0 or surface == "green" or terrain_surface == "green":
+		if dist_to_green < 20.0 or surface == "green" or terrain_surface == "green":
 			on_green = true
 			var cup_world = green_node.get_cup_world_pos()
 			ball.cup_pos = cup_world
@@ -487,6 +498,8 @@ func _on_ball_stopped(pos: Vector3, surface: String):
 
 func _physics_process(delta):
 	_check_ball_stance()
+	if _near_ball and _stance_cam and _stance_cam.is_inside_tree() and _stance_cam.current:
+		_update_stance_cam()
 	if viewfinder_active:
 		_update_yardage()
 	if addressing:
@@ -532,8 +545,28 @@ func _check_ball_stance() -> void:
 			pitch = 0.0
 			$Camera3D.rotation.x = 0.0
 		_near_ball = true
+		# Switch to overhead stance camera
+		if _stance_cam and _stance_cam.is_inside_tree():
+			$Camera3D.current = false
+			_stance_cam.current = true
 	elif _near_ball and dist2d > 1.5:
 		_near_ball = false
+		# Return to player camera
+		if _stance_cam:
+			_stance_cam.current = false
+		$Camera3D.current = true
+
+func _update_stance_cam() -> void:
+	if not ball or not _stance_cam:
+		return
+	# Position camera 4 m above the ball looking straight down.
+	# Use target direction as the "up" vector so the flag sits at top of screen.
+	var target_pos: Vector3 = ball.cup_pos if (on_green and ball.cup_pos != Vector3.ZERO) else aim_point
+	var look_dir := target_pos - ball.global_position
+	look_dir.y = 0.0
+	var up := look_dir.normalized() if look_dir.length() > 0.5 else Vector3(0, 0, -1)
+	_stance_cam.global_position = ball.global_position + Vector3(0, 4.0, 0)
+	_stance_cam.look_at(ball.global_position, up)
 
 func _update_yardage():
 	var camera = $Camera3D

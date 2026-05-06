@@ -15,6 +15,10 @@ func _load_meshes():
 	if not data: return
 	var loaded := 0
 	for entry in data.placements:
+		# Skip unclassified meshes — "other" entries often carry stray water/sea geometry
+		# from the original Unity assets with baked-in blue materials.
+		if entry.get("type", "other") == "other":
+			continue
 		var glb_path: String = "res://" + entry.mesh_file if not entry.mesh_file.begins_with("res://") else entry.mesh_file
 		if not ResourceLoader.exists(glb_path): continue
 		var scene = load(glb_path)

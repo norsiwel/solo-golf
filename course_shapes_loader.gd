@@ -109,14 +109,11 @@ static func apply_green_mesh(mesh_instance: MeshInstance3D, hole_num: int,
 
 	mesh_instance.global_position = Vector3(cx, ground_y + 0.012, cz)
 
-	# Build a bright-green material
-	var mat = mesh_instance.get_surface_override_material(0)
-	if not mat:
-		mat = StandardMaterial3D.new()
-	if mat is StandardMaterial3D:
-		mat.albedo_color = Color(0.14, 0.62, 0.20)
-		mat.roughness = 0.95
-		mesh_instance.set_surface_override_material(0, mat)
+	# Fresh material — avoids inheriting uv1_scale / albedo_texture from the scene asset
+	var mat = StandardMaterial3D.new()
+	mat.albedo_color = Color(0.14, 0.62, 0.20)
+	mat.roughness = 0.95
+	mesh_instance.set_surface_override_material(0, mat)
 
 	var st = SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
