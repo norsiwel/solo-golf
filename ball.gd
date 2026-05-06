@@ -82,8 +82,8 @@ func _load_osm_water() -> void:
 func _point_in_water(wx: float, wz: float) -> bool:
 	for poly in _osm_water_polys:
 		var inside := false
-		var n := poly.size()
-		var j := n - 1
+		var n: int = poly.size()
+		var j: int = n - 1
 		for i in n:
 			var xi: float = poly[i].get("x", 0.0)
 			var yi: float = poly[i].get("z", 0.0)
