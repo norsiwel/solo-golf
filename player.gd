@@ -3,6 +3,7 @@ extends CharacterBody3D
 @export var mouse_sensitivity := 0.002
 @export var walk_speed := 16.0
 @export var gravity := 9.8
+@export var right_handed := true   # false = left-handed (mirror stance)
 
 var yaw := 0.0
 var pitch := 0.0
@@ -246,6 +247,14 @@ func _input(event):
 					_open_address()
 				else:
 					$HUD/AimLabel.text = "Use V to aim first!"
+			if event.keycode == KEY_H and not addressing:
+				right_handed = not right_handed
+				var side = "Right" if right_handed else "Left"
+				$HUD/AimLabel.text = "%s-handed" % side
+				# Re-orient stance immediately
+				var main = get_parent()
+				if main and main.has_method("_reorient_player"):
+					main._reorient_player()
 			if event.keycode == KEY_ESCAPE:
 				if addressing:
 					_close_address()

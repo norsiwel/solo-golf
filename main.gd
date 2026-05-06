@@ -114,8 +114,10 @@ func _setup_hole(hole_num: int):
 	# Spawn player above tee
 	player.global_position = Vector3(tee.x, tee_y + 1.8, tee.z)
 
-	# Face player perpendicular to play direction — golf address stance (left side toward target)
-	player.yaw = atan2(-play_dir.x, -play_dir.z) - PI * 0.5
+	# Face player perpendicular to play direction — golf address stance
+	# Right-handed: left side toward target (-PI/2), Left-handed: right side toward target (+PI/2)
+	var hand_offset := -PI * 0.5 if player.right_handed else PI * 0.5
+	player.yaw = atan2(-play_dir.x, -play_dir.z) + hand_offset
 	player.rotation.y = player.yaw
 	player.pitch = 0.0
 	player.get_node("Camera3D").rotation.x = 0.0
@@ -154,6 +156,20 @@ func _raycast_ground_y(world_x: float, world_z: float) -> float:
 	if result:
 		return result.position.y
 	return 0.0
+
+func _reorient_player():
+	var player = get_node_or_null("Player")
+	var cm = get_node_or_null("CourseManager")
+	if not player or not cm:
+		return
+	var tee = cm.get_tee_position(cm.current_hole)
+	var pin = cm.get_pin_position(cm.current_hole)
+	var play_dir = Vector3(pin.x - tee.x, 0, pin.z - tee.z).normalized()
+	var hand_offset := -PI * 0.5 if player.right_handed else PI * 0.5
+	player.yaw = atan2(-play_dir.x, -play_dir.z) + hand_offset
+	player.rotation.y = player.yaw
+	player.pitch = 0.0
+	player.get_node("Camera3D").rotation.x = 0.0
 
 func go_to_next_hole():
 	var cm = get_node_or_null("CourseManager")
