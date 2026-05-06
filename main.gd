@@ -144,7 +144,38 @@ func _setup_hole(hole_num: int):
 	if hole_map and hole_map.has_method("load_hole"):
 		hole_map.load_hole(hole_num)
 
+	# Creek visuals — only the Swilcan Burn crosses hole 1 (and 18)
+	_setup_swilcan_burn()
+
 	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+
+func _setup_swilcan_burn() -> void:
+	# Remove old creek mesh if re-setting up hole
+	var old = get_node_or_null("SwilcanBurn")
+	if old:
+		old.queue_free()
+
+	# Creek centre from OSM data (Godot world coords, hole 1 normalised)
+	var cx := -278.6
+	var cz := 2.11
+	var cy := maxf(_raycast_ground_y(cx, cz), 0.0) + 0.015
+
+	# Thin water plane — 10m wide, 130m long, angled ~15° to follow the burn diagonal
+	var water := MeshInstance3D.new()
+	water.name = "SwilcanBurn"
+	var plane := PlaneMesh.new()
+	plane.size = Vector2(10.0, 130.0)
+	water.mesh = plane
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color(0.12, 0.35, 0.62, 0.88)
+	mat.roughness = 0.06
+	mat.metallic = 0.0
+	mat.metallic_specular = 0.9
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	water.set_surface_override_material(0, mat)
+	water.global_position = Vector3(cx, cy, cz)
+	water.rotation.y = deg_to_rad(15.0)  # slight diagonal, burn crosses fairway at ~15°
+	add_child(water)
 
 func _raycast_ground_y(world_x: float, world_z: float) -> float:
 	var space = get_world_3d().direct_space_state

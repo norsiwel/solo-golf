@@ -176,6 +176,27 @@ func _setup_hud():
 	putt_aim_label.add_theme_constant_override("outline_size", 4)
 	canvas.add_child(putt_aim_label)
 
+	# Putting cursor — centered crosshair visible on green when not addressing
+	var putt_cursor = Label.new()
+	putt_cursor.name = "PuttCursor"
+	putt_cursor.text = "+"
+	putt_cursor.visible = false
+	putt_cursor.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	putt_cursor.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	putt_cursor.set_anchor(SIDE_LEFT, 0.5)
+	putt_cursor.set_anchor(SIDE_TOP, 0.5)
+	putt_cursor.set_anchor(SIDE_RIGHT, 0.5)
+	putt_cursor.set_anchor(SIDE_BOTTOM, 0.5)
+	putt_cursor.offset_left = -24
+	putt_cursor.offset_right = 24
+	putt_cursor.offset_top = -18
+	putt_cursor.offset_bottom = 18
+	putt_cursor.add_theme_font_size_override("font_size", 32)
+	putt_cursor.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 1.0))
+	putt_cursor.add_theme_color_override("font_outline_color", Color(0, 0, 0, 1))
+	putt_cursor.add_theme_constant_override("outline_size", 4)
+	canvas.add_child(putt_cursor)
+
 	# OVB (over-the-ball) label — visible only when stance cam is active
 	var ovb_label = Label.new()
 	ovb_label.name = "OVBLabel"
@@ -235,6 +256,11 @@ func _input(event):
 			rotation.y = vf_yaw
 			$Camera3D.rotation.x = vf_pitch
 		else:
+			# Exit OVB overhead cam on mouse move so player can scout freely
+			if _near_ball and _stance_cam and _stance_cam.current:
+				_stance_cam.current = false
+				$Camera3D.current = true
+				$HUD/OVBLabel.visible = false
 			yaw -= event.relative.x * mouse_sensitivity
 			pitch -= event.relative.y * mouse_sensitivity
 			pitch = clamp(pitch, -1.2, 1.2)
@@ -242,29 +268,23 @@ func _input(event):
 			$Camera3D.rotation.x = pitch
 
 	if event is InputEventMouseButton:
+		if event.pressed and event.button_index == MOUSE_BUTTON_RIGHT:
+			if on_green and not addressing:
+				_lock_putt_aim_facing()
 		if event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 			if viewfinder_active:
 				_lock_aim()
+			elif on_green and aim_locked and not addressing:
+				_open_address()
 
 	if event is InputEventKey:
 		if event.keycode == KEY_V:
 			if event.pressed:
-				if on_green:
-					if putt_aim_active:
-						_close_putting_aim()
-					else:
-						_open_putting_aim()
-				elif not viewfinder_active:
+				if not on_green and not viewfinder_active:
 					_open_viewfinder()
 			elif not event.pressed and viewfinder_active:
 				_close_viewfinder()
 		if event.pressed:
-			if event.keycode == KEY_LEFT and putt_aim_active:
-				putt_aim_offset -= 3.0
-				_update_putt_aim_label()
-			if event.keycode == KEY_RIGHT and putt_aim_active:
-				putt_aim_offset += 3.0
-				_update_putt_aim_label()
 			if event.keycode == KEY_SPACE and not viewfinder_active:
 				if on_green:
 					_open_address()
@@ -337,41 +357,27 @@ func _close_viewfinder():
 		_stance_cam.current = true
 		$HUD/OVBLabel.visible = true
 
-func _open_putting_aim():
-	putt_aim_active = true
-	putt_aim_offset = 0.0
-	_update_putt_aim_label()
-	$HUD/PuttAimLabel.visible = true
-	$HUD/AimLabel.text = "V: aim  ← → adjust  Space: putt"
-
-func _close_putting_aim():
-	putt_aim_active = false
-	$HUD/PuttAimLabel.visible = false
-
-func _update_putt_aim_label():
-	var deg = int(putt_aim_offset)
-	if deg == 0:
-		$HUD/PuttAimLabel.text = "← STRAIGHT →"
-	elif deg < 0:
-		$HUD/PuttAimLabel.text = "← %d° LEFT" % abs(deg)
-	else:
-		$HUD/PuttAimLabel.text = "%d° RIGHT →" % deg
+func _lock_putt_aim_facing():
+	aim_locked = true
+	var fwd := -global_transform.basis.z
+	fwd.y = 0.0
+	if fwd.length() > 0.01:
+		fwd = fwd.normalized()
+	aim_point = ball.global_position + fwd * 20.0
+	$HUD/AimLabel.text = "AIM SET — left-click to putt  (Space also works)"
 
 func _open_address():
 	addressing = true
-	_close_putting_aim()
 	var shot_dir: Vector3
-	if on_green and ball and ball.cup_pos != Vector3.ZERO:
-		# Calculate putt direction from cup line + player aim offset
-		var cup_dir = (ball.cup_pos - ball.global_position)
-		cup_dir.y = 0.0
-		if cup_dir.length() > 0.01:
-			cup_dir = cup_dir.normalized()
-		else:
-			cup_dir = -global_transform.basis.z
-			cup_dir.y = 0.0
-		shot_dir = cup_dir.rotated(Vector3.UP, deg_to_rad(putt_aim_offset))
+	if on_green:
+		# Ball stays on green surface where it stopped — use player facing as putt direction
+		shot_dir = -global_transform.basis.z
+		shot_dir.y = 0.0
+		if shot_dir.length() > 0.01:
+			shot_dir = shot_dir.normalized()
 		aim_point = ball.global_position + shot_dir * 20.0
+		# Ensure putter is selected
+		address_screen.set_putting_mode(true, ball.stimp if ball else 8.0)
 	else:
 		shot_dir = aim_point - global_position
 		shot_dir.y = 0.0
@@ -379,12 +385,12 @@ func _open_address():
 			shot_dir = -global_transform.basis.z
 			shot_dir.y = 0.0
 		shot_dir = shot_dir.normalized()
-	ball.global_position = global_position + shot_dir * 1.2
-	ball.global_position.y = global_position.y - 0.8
-	ball.visible = true
-	var wind = get_parent().get_node_or_null("WindSystem")
-	if wind:
-		$HUD/AimLabel.text = "AIM: %d yds  |  %s" % [int(aim_yardage), wind.get_wind_description()]
+		ball.global_position = global_position + shot_dir * 1.2
+		ball.global_position.y = global_position.y - 0.8
+		ball.visible = true
+		var wind = get_parent().get_node_or_null("WindSystem")
+		if wind:
+			$HUD/AimLabel.text = "AIM: %d yds  |  %s" % [int(aim_yardage), wind.get_wind_description()]
 	address_screen.open_screen()
 
 func _close_address():
@@ -414,7 +420,7 @@ func on_ball_entered_green(stimp: float, cup_world_pos: Vector3):
 	if ball:
 		ball.cup_pos = cup_world_pos
 		ball.stimp = stimp
-	$HUD/AimLabel.text = "On the green!  Stimp: %.0f  |  Putter selected  |  Press Space to putt" % stimp
+	$HUD/AimLabel.text = "On the green!  Stimp: %.0f  |  Mouse to aim  →  Right-click: set aim  →  Left-click: putt" % stimp
 	address_screen.set_putting_mode(true, stimp)
 
 func _on_ball_holed_out(strokes: int):
@@ -497,7 +503,7 @@ func _on_ball_stopped(pos: Vector3, surface: String):
 		"bunker":
 			$HUD/AimLabel.text = "In the bunker!  %.0f yds away  |  Press W to walk" % dist_yards
 		"green":
-			$HUD/AimLabel.text = "On the green!  Stimp: %.0f  |  Press Space to putt" % (green_node.stimp if green_node else 8.0)
+			$HUD/AimLabel.text = "On the green!  Stimp: %.0f  |  Mouse aim  →  Right-click: set  →  Left-click: putt" % (green_node.stimp if green_node else 8.0)
 		_:
 			$HUD/AimLabel.text = "Ball stopped  %.0f yds away  |  Press W to walk" % dist_yards
 	if surface == "water":
@@ -528,6 +534,8 @@ func _physics_process(delta):
 		_update_stance_cam()
 	if viewfinder_active:
 		_update_yardage()
+	# Putting cursor: show on green when free to aim, hide otherwise
+	$HUD/PuttCursor.visible = on_green and not addressing and not viewfinder_active
 	if addressing:
 		return
 
@@ -536,6 +544,12 @@ func _physics_process(delta):
 	if Input.is_key_pressed(KEY_S): input_dir.y += 1
 	if Input.is_key_pressed(KEY_A): input_dir.x -= 1
 	if Input.is_key_pressed(KEY_D): input_dir.x += 1
+
+	# Exit OVB overhead cam on movement so player can walk and scout
+	if input_dir != Vector2.ZERO and _near_ball and _stance_cam and _stance_cam.current:
+		_stance_cam.current = false
+		$Camera3D.current = true
+		$HUD/OVBLabel.visible = false
 
 	input_dir = input_dir.normalized()
 	var direction := (transform.basis * Vector3(input_dir.x, 0, input_dir.y)).normalized()

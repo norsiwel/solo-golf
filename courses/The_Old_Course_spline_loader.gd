@@ -19,6 +19,12 @@ func _load_meshes():
 		# from the original Unity assets with baked-in blue materials.
 		if entry.get("type", "other") == "other":
 			continue
+		# Skip hazard zone overlays for burns/creeks — they are huge bounding meshes
+		# (238m×261m for Swilcan Burn) that poke through the fairway terrain and appear
+		# as water. Visual creek is handled by a dedicated water plane in main.gd.
+		var entry_name: String = entry.get("name", "").to_lower()
+		if "burn" in entry_name or "swilcan" in entry_name:
+			continue
 		var glb_path: String = "res://" + entry.mesh_file if not entry.mesh_file.begins_with("res://") else entry.mesh_file
 		if not ResourceLoader.exists(glb_path): continue
 		var scene = load(glb_path)

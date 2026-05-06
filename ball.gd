@@ -27,6 +27,9 @@ var landed_surface := "fairway"
 var _placement_data: Array = []
 var _placement_loaded := false
 
+# OSM water polygons for precise Swilcan Burn detection
+var _osm_water_polys: Array = []
+
 # Ball camera
 var ball_cam: Camera3D
 var cam_timer := 0.0
@@ -51,6 +54,7 @@ func _ready():
 	_setup_tracer()
 	_setup_ball_cam()
 	_load_placement_data()
+	_load_osm_water()
 
 func _load_placement_data() -> void:
 	_placement_loaded = true
@@ -61,6 +65,36 @@ func _load_placement_data() -> void:
 	f.close()
 	if data and data.has("placements"):
 		_placement_data = data["placements"]
+
+func _load_osm_water() -> void:
+	var f = FileAccess.open("res://courses/The_Old_Course_osm_shapes.json", FileAccess.READ)
+	if not f:
+		return
+	var data = JSON.parse_string(f.get_as_text())
+	f.close()
+	if not data:
+		return
+	for w in data.get("water", []):
+		var shape: Array = w.get("shape", [])
+		if shape.size() >= 3:
+			_osm_water_polys.append(shape)
+
+func _point_in_water(wx: float, wz: float) -> bool:
+	for poly in _osm_water_polys:
+		var inside := false
+		var n := poly.size()
+		var j := n - 1
+		for i in n:
+			var xi: float = poly[i].get("x", 0.0)
+			var yi: float = poly[i].get("z", 0.0)
+			var xj: float = poly[j].get("x", 0.0)
+			var yj: float = poly[j].get("z", 0.0)
+			if (yi > wz) != (yj > wz) and wx < (xj - xi) * (wz - yi) / (yj - yi) + xi:
+				inside = !inside
+			j = i
+		if inside:
+			return true
+	return false
 
 func _get_terrain_y(world_x: float, world_z: float) -> float:
 	var space := get_world_3d().direct_space_state
@@ -84,7 +118,10 @@ func _get_terrain_normal(world_x: float, world_z: float) -> Vector3:
 	return Vector3.UP
 
 func _get_surface_type(world_x: float, world_z: float) -> String:
-	# Check named mesh zones first (bunker/water from placement data)
+	# Precise water check using actual OSM creek polygon shapes
+	if _point_in_water(world_x, world_z):
+		return "water"
+	# Check mesh placement zones for bunker/fairway classification
 	for entry in _placement_data:
 		var ex: float = entry.get("godot_x", 0.0)
 		var ez: float = entry.get("godot_z", 0.0)
@@ -93,10 +130,6 @@ func _get_surface_type(world_x: float, world_z: float) -> String:
 		var hd: float = ms[1] * 0.5
 		if abs(world_x - ex) < hw and abs(world_z - ez) < hd:
 			var type: String = entry.get("type", "rough")
-			var name: String = entry.get("name", "")
-			# Only Swilcan Burn is actual water at St Andrews; other "water"-named meshes are slope data
-			if "burn" in name.to_lower() or "swilcan" in name.to_lower():
-				return "water"
 			if type == "bunker":
 				return "bunker"
 			if type == "fairway":
