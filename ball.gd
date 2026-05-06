@@ -332,9 +332,9 @@ func _process(delta):
 			if surface == "bunker":
 				in_bunker_flag = true
 			landed_surface = surface
-			var loft_roll_mod := clamp(1.0 - loft * 0.5, 0.02, 1.5)
-			var roll_distance := carry_distance * f_surface * loft_roll_mod * 0.10
-			var roll_speed := roll_distance * 0.8
+			var loft_roll_mod: float = clamp(1.0 - loft * 0.5, 0.02, 1.5)
+			var roll_distance: float = carry_distance * f_surface * loft_roll_mod * 0.10
+			var roll_speed: float = roll_distance * 0.8
 
 			# Slope: deflect roll direction and adjust speed based on terrain gradient
 			var normal := _get_terrain_normal(global_position.x, global_position.z)
