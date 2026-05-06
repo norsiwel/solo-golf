@@ -119,8 +119,20 @@ func _setup_hud():
 
 	var crosshair = Label.new()
 	crosshair.name = "Crosshair"
-	crosshair.text = ""
+	crosshair.text = "·"
 	crosshair.visible = false
+	crosshair.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	crosshair.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	crosshair.set_anchor(SIDE_LEFT, 0.5)
+	crosshair.set_anchor(SIDE_TOP, 0.5)
+	crosshair.set_anchor(SIDE_RIGHT, 0.5)
+	crosshair.set_anchor(SIDE_BOTTOM, 0.5)
+	crosshair.offset_left = -12; crosshair.offset_right = 12
+	crosshair.offset_top = -12; crosshair.offset_bottom = 12
+	crosshair.add_theme_font_size_override("font_size", 24)
+	crosshair.add_theme_color_override("font_color", Color(1.0, 0.9, 0.3))
+	crosshair.add_theme_color_override("font_outline_color", Color(0, 0, 0, 1))
+	crosshair.add_theme_constant_override("outline_size", 3)
 	canvas.add_child(crosshair)
 
 	var yardage_label = Label.new()
@@ -324,7 +336,7 @@ func _open_viewfinder():
 	vf_pitch = 0.0
 	rotation.y = vf_yaw
 	$Camera3D.rotation.x = 0.0
-	$Camera3D.fov = 25.0
+	$Camera3D.fov = 12.0
 	$HUD/VFImage.visible = true
 	$HUD/VFGlass.visible = true
 	$HUD/VFBorder.visible = false
@@ -350,7 +362,7 @@ func _lock_aim():
 
 func _close_viewfinder():
 	viewfinder_active = false
-	$Camera3D.fov = 75.0
+	$Camera3D.fov = 75.0  # restore normal FOV
 	$HUD/VFImage.visible = false
 	$HUD/VFGlass.visible = false
 	$HUD/VFBorder.visible = false
@@ -610,42 +622,42 @@ func _update_yardage():
 	var space_state = get_world_3d().direct_space_state
 	var from = camera.global_position
 	var forward = -camera.global_transform.basis.z
-	var to = from + forward * 500.0
+	var to = from + forward * 700.0
 	var query = PhysicsRayQueryParameters3D.create(from, to)
 	query.exclude = [self]
 	var result = space_state.intersect_ray(query)
 
+	# Flag proximity — 60px radius turns reticle red and labels the pin
 	var hole_geo = get_parent().get_node_or_null("HoleGeometry")
 	var flag_node = hole_geo.get_node_or_null("Flagstick") if hole_geo else null
-	var snapped_to_flag := false
-
+	var near_flag := false
 	if flag_node:
 		var flag_pos = flag_node.global_position
-		# Snap to camera eye-level height on the flag so the projected point
-		# sits near screen center when looking straight at the pin, regardless
-		# of the player's distance or standing height.
-		var flag_snap = Vector3(flag_pos.x, camera.global_position.y, flag_pos.z)
-		var flag_screen = camera.unproject_position(flag_snap)
+		var flag_screen = camera.unproject_position(
+			Vector3(flag_pos.x, camera.global_position.y, flag_pos.z))
 		var screen_center = get_viewport().get_visible_rect().size / 2.0
-		# Tight snap — crosshair turns red and shows FLAG yds only when precisely on flag.
-		# Aim goes where the raycast hits so player can aim off-flag for wind/obstacles.
-		var snap_radius = 25.0
-		if flag_screen.distance_to(screen_center) < snap_radius:
-			var dist_meters = global_position.distance_to(flag_pos)
-			aim_yardage = dist_meters * 1.094
-			aim_point = flag_pos
-			aim_point.y = global_position.y
-			snapped_to_flag = true
+		if flag_screen.distance_to(screen_center) < 60.0:
+			near_flag = true
+			aim_point = Vector3(flag_pos.x, global_position.y, flag_pos.z)
+			aim_yardage = global_position.distance_to(flag_pos) * 1.094
 			$HUD/YardageLabel.text = "FLAG  %d yds" % int(aim_yardage)
-			$HUD/Crosshair.add_theme_color_override("font_color", Color(1.0, 0.2, 0.2, 1.0))
+			$HUD/Crosshair.add_theme_color_override("font_color", Color(1.0, 0.2, 0.2))
 
-	if not snapped_to_flag:
-		$HUD/Crosshair.add_theme_color_override("font_color", Color(1.0, 0.9, 0.3, 1.0))
+	if not near_flag:
+		$HUD/Crosshair.add_theme_color_override("font_color", Color(1.0, 0.9, 0.3))
 		if result:
-			var dist_meters = global_position.distance_to(result.position)
-			aim_yardage = dist_meters * 1.094
+			# Hit terrain, building, tree — show actual distance
+			var dist_m = global_position.distance_to(result.position)
+			aim_yardage = dist_m * 1.094
 			aim_point = result.position
 			$HUD/YardageLabel.text = "%d yds" % int(aim_yardage)
 		else:
+			# Aimed at sky — no distance shown, but project aim horizontally
+			# so the player can shoot over trees / buildings
+			var h_fwd = Vector3(forward.x, 0.0, forward.z)
+			if h_fwd.length() > 0.01:
+				h_fwd = h_fwd.normalized()
+				aim_point = global_position + h_fwd * 450.0
+				aim_point.y = global_position.y
 			aim_yardage = 0.0
-			$HUD/YardageLabel.text = "--- yds"
+			$HUD/YardageLabel.text = "---"

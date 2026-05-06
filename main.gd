@@ -190,11 +190,19 @@ func _setup_landmarks() -> void:
 		mat.roughness = 0.85
 		box.surface_set_material(0, mat)
 
+		# StaticBody so the viewfinder raycast registers a distance hit
+		var body := StaticBody3D.new()
+		body.name = lname
 		var mi := MeshInstance3D.new()
-		mi.name = lname
 		mi.mesh = box
-		mi.global_position = Vector3(lx, ground_y + lh * 0.5, lz)
-		add_child(mi)
+		body.add_child(mi)
+		var col_shape := CollisionShape3D.new()
+		var box_shape := BoxShape3D.new()
+		box_shape.size = Vector3(lw, lh, ld)
+		col_shape.shape = box_shape
+		body.add_child(col_shape)
+		body.global_position = Vector3(lx, ground_y + lh * 0.5, lz)
+		add_child(body)
 
 func _setup_swilcan_burn() -> void:
 	# Remove old creek mesh if re-setting up hole
