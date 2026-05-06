@@ -284,6 +284,12 @@ func _input(event):
 				_lock_aim()
 			elif on_green and aim_locked and not addressing:
 				_open_address()
+		# Scroll wheel zooms the viewfinder (6° = max zoom, 30° = wide)
+		if viewfinder_active:
+			if event.button_index == MOUSE_BUTTON_WHEEL_UP:
+				$Camera3D.fov = clamp($Camera3D.fov - 2.0, 6.0, 30.0)
+			elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+				$Camera3D.fov = clamp($Camera3D.fov + 2.0, 6.0, 30.0)
 
 	if event is InputEventKey:
 		if event.keycode == KEY_V:
