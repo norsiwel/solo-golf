@@ -2,33 +2,47 @@
 
 ## Project Summary
 
-Godot 4.6 single-player golf simulation. Parametric ball physics (not real rigidbody), 3-click meter for shot power/accuracy, viewfinder rangefinder, tee→shot→ball→scoring gameplay loop. Currently a single 180-yard par-3 hole. Uses Jolt 3D physics.
+Godot 4.6 single-player golf simulation. The Old Course, St Andrews — hole 1 fully playable (par 4, ~375 yards). MasterShotEngine equations for carry/roll/putt. 3-click meter for shot power/accuracy. Viewfinder rangefinder with zoom. OVB (over-the-ball) first-person setup. Tee→shot→ball→scoring loop. Uses Jolt 3D physics.
 
 ## Directory Structure
 
 ```
 solo-golf/
-├── project.godot          # Godot 4.6, Forward Plus, main scene: res://main.tscn
-├── main.tscn              # Full 3D scene — ground, trees, tee, green, bunkers, flag
-├── node_3d.tscn           # Empty stub, unused
-├── player.gd              # Central controller: camera, input, viewfinder, HUD, game state
-├── ball.gd                # Parametric ball flight/roll/holing animation
-├── address_screen.gd      # Shot metering UI (3-click meter, club bag, draw/fade, loft)
-├── green.gd               # Green Area3D zone + cup detection, stimp/par config
-├── tee.gd                 # Tee box Area3D zone, emits player_on_tee
-├── scorecard.gd           # Post-hole score display with play-again / next-hole
-├── pg_converter.py        # Perfect Golf .description → Godot .tscn course importer
-├── commit-backup.sh       # Git commit + push helper
-└── project_status.md      # Operating rules for AI agents
+├── project.godot                    # Godot 4.6, Forward Plus, main scene: res://main.tscn
+├── main.tscn                        # Full 3D scene — terrain, tee, green, flag, player
+├── main.gd                          # Hole setup, landmark buildings, Swilcan Burn, course conditions
+├── player.gd                        # Camera, WASD, viewfinder, OVB, HUD, putting, game state
+├── ball.gd                          # MasterShotEngine flight/rollout/putting/HOLING, tracer ribbon
+├── address_screen.gd                # 3-click meter, club bag, draw/fade, loft sliders
+├── green.gd                         # GreenArea3D, cup detection, stimp, check_hole_out()
+├── tee.gd                           # TeeArea3D, emits player_on_tee signal
+├── scorecard.gd                     # Post-hole score display, play-again / next-hole
+├── terrain_generator.gd             # HeightMapShape3D terrain from The_Old_Course_heightmap.png
+├── course_manager.gd                # Loads meta JSON, normalises positions to hole-1 origin
+├── course_shapes_loader.gd          # OSM green polygon → GreenArea collision + GreenMesh
+├── courses/
+│   ├── The_Old_Course_meta.json     # 18-hole tee/pin/par data
+│   ├── The_Old_Course_shapes.json   # Green polygons (OSM)
+│   ├── The_Old_Course_osm_shapes.json  # Water/fairway/rough shapes (OSM)
+│   ├── The_Old_Course_heightmap.png # Grayscale elevation image
+│   ├── The_Old_Course_mesh_placement.json  # Spline mesh positions (loader disabled)
+│   └── The_Old_Course_spline_loader.gd    # Disabled — meshes had no material → fake water
+├── assets/
+│   ├── St.Andrews-course-map-1-18.png  # Full course map (M key)
+│   └── terrain/                     # Fairway/green/rough textures
+├── shot-generator-equations.txt    # MasterShotEngine reference equations
+├── pg_converter.py                 # Perfect Golf → Godot scene importer
+└── project_status.md               # Operating rules for AI agents
 ```
 
 ## Critical Operating Rules
 
-1. **Backup before any change** — use `commit-backup.sh` or commit to git
+1. **Commit before any change** — git is the backup
 2. **Preserve working functionality** — prefer non-destructive additions
 3. **Small, reversible changes** — no large refactors
-4. **Don't remove code without justification** — comment out if unsure
-5. **Respect project structure** — follow existing file organization
+4. **Don't remove code without justification**
+5. **Respect project structure** — follow existing file organisation
+6. **Update CLAUDE.md and project_status.md** whenever committing significant changes
 
 ## Architecture
 
@@ -37,70 +51,160 @@ solo-golf/
 ```
 TeeArea (player enters)
   → tee.gd emits player_on_tee
-  → player.on_player_at_tee() resets putting, shows hole info
+  → player.on_player_at_tee(): resets putting, selects Driver, shows hole info
 
-Player aims (V key → viewfinder, click → lock, Space → address)
-  → address screen opens, 3-click meter runs
-  → address_screen emits shot_confirmed(power, accuracy, draw_fade, loft, club)
+Player walks to ball (within 1 m) → OVB activates
+  → player faces perpendicular to target (flag to left for right-handers)
+  → OVB label shows "V to aim | Space to address"
+
+Player aims:
+  V key → viewfinder opens (12° FOV, mouse-wheel zoom 6°–30°)
+           viewfinder starts oriented at flag/aim_point
+           scroll for zoom, look anywhere (360°)
+           crosshair red + "FLAG Xyd" when within 60 px of flag
+           shows yardage to any solid object; "---" when aimed at sky
+           left-click locks aim (green border), aim_point recorded
+  Escape → closes viewfinder
+
+On green — no viewfinder needed:
+  mouse look to aim direction
+  right-click → lock putt aim in current facing direction
+  left-click (aim locked) → open address screen
+
+Space (aim locked off-green) or left-click (on green) → address screen
+  → 3-click meter: click start, click power, click accuracy
+  → shot_confirmed(power, accuracy, draw_fade, loft, club) emitted
   → player._on_shot_confirmed(): stroke_count++, ball.launch()
 
-Ball states: IDLE → FLYING → ROLLING → STOPPED  (or → HOLING on cup drop)
-  → ball emits ball_stopped(position, in_bunker)
-  → player shows distance, calls green.check_hole_out() if on green
+Ball states: IDLE → FLYING → ROLLING → CAM_HOLD → STOPPED
+  FLYING: parametric arc, tracer ribbon updated, ball-cam follows
+  ROLLING: _init_rollout() called ONCE at landing; linear decel using
+           _roll_total / _roll_done / _roll_spd0; slope deflects dir
+  CAM_HOLD: 2.5 s camera hold on landing, then STOPPED + ball_stopped signal
+  → player._on_ball_stopped(): surface detection, green check, HUD update
 
-Cup hit:
-  → ball enters HOLING animation → emits ball_holed
-  → green.gd emits ball_holed_out(strokes)
-  → player shows scorecard
+On green (ball stopped):
+  → green.check_hole_out() if dist ≤ cup_radius (0.27 m) → ball_holed_out
+  → player._on_ball_holed_out() → ball.hole_out() starts HOLING animation
+  → HOLING: ball lerps to cup, shrinks, sinks → ball_holed signal
+  → player._on_ball_holed() → scorecard.show_hole_result()
 
 Scorecard:
-  → emits play_again or next_hole (both reset to tee currently)
+  → play_again → _setup_hole(same) resets everything
+  → next_hole  → go_to_next_hole() (increments, wraps at 18)
 ```
 
 ### Key Script Responsibilities
 
 | Script | Extends | Responsibility |
 |--------|---------|----------------|
-| player.gd | CharacterBody3D | Camera, WASD move, input, viewfinder, HUD, game state, signal wiring |
-| ball.gd | Node3D | Parametric flight arc, rollout, putting, bunker detection, hole-out animation, tracer |
-| address_screen.gd | CanvasLayer (10) | Club selection, 3-click power/accuracy meter, draw/fade, loft sliders |
-| green.gd | Area3D | Green zone, stimp/par export, cup position, `check_hole_out()` |
+| player.gd | CharacterBody3D | Camera, WASD, viewfinder (V/zoom/aim), OVB, green putting controls, HUD, signals |
+| ball.gd | Node3D | MasterShotEngine launch, rollout, putt rolling, HOLING animation, tracer ribbon |
+| address_screen.gd | CanvasLayer (10) | Club selection, 3-click meter, draw/fade slider, loft slider, putting mode |
+| green.gd | Area3D | Green zone, stimp, cup position, check_hole_out() |
 | tee.gd | Area3D | Tee zone detection, hole metadata |
-| scorecard.gd | CanvasLayer (20) | Score naming, color coding, play-again/next-hole buttons |
+| scorecard.gd | CanvasLayer (20) | Score naming, colour coding, play-again/next-hole |
+| terrain_generator.gd | StaticBody3D | HeightMapShape3D terrain, surface type, colour zones |
+| course_manager.gd | Node | JSON loading, position normalisation to hole-1 origin |
+| main.gd | Node3D | Hole setup, landmarks (StaticBody3D), Swilcan Burn water plane |
 
-### Ball Physics (Not Real Physics)
+### MasterShotEngine (ball.gd)
 
-Ball flight uses a parametric curve: `peak_height * 4.0 * t * (1.0 - t)`. Landing position calculated from power, club yards, accuracy error, and draw/fade offset. Rollout is a percentage of flight distance modified by loft and bunker status. Putting mode uses stimps-based max distance with ease-out deceleration. Holing animation: lerp to cup, shrink, sink below ground over 0.7s.
+**Carry** (non-putt):
+```
+C = club_yards_m / D_MAX           # club factor (D_MAX = 250 m)
+L = lie_factor                     # tee/fairway=1.0, rough=0.85, deep_rough=0.70, bunker=0.50
+L_f = 1.0 + loft * 0.15           # high loft = slightly more carry
+carry = D_MAX * power * C * L * accuracy * L_f
+lateral = draw_fade * 15.0 + (1-accuracy) * 15.0 * random(-1..1)
+```
+
+**Rollout** (computed ONCE in `_init_rollout()` at moment of landing):
+```
+_roll_total = carry * F_surface * loft_roll_mod * 0.10 * course_firmness
+F_surface: fairway=1.0, rough=0.75, deep_rough=0.60, green=0.80, bunker/water=0.0
+loft_roll_mod = clamp(1.0 - loft*0.5, 0.02, 1.5)
+course_firmness: 0.7=Wet, 1.0=Normal, 1.3=Firm (random each hole)
+_roll_spd0 = clamp(_roll_total * 1.5, 0.3, 10.0)
+Linear decel: spd = _roll_spd0 * (1 - _roll_done / _roll_total)
+```
+
+**Putt** (MasterShotEngine formula):
+```
+roll_dist = dist_to_pin * (stimp / 8.0) * power
+lateral = accuracy_error * random
+stimp: randomised 8–13 each hole
+```
 
 ### Viewfinder System
 
-- Press V to toggle (FOV narrows to 25)
-- Flag snap: within 60px of flagstick → snap to flag, red crosshair
-- Left-click locks aim, green border
-- Raycast in `_update_yardage()` shows distance
-- Aim must be locked before Space can open address screen
+- V key opens viewfinder (FOV starts 12°)
+- Mouse wheel: scroll up = zoom in (min 6°), scroll down = zoom out (max 30°)
+- Starts oriented toward flag/aim_point (tee shot convenience)
+- Pitch: ±1.4 rad (can look ground to sky)
+- Flag snap: 60 px radius → red crosshair + "FLAG Xyd"
+- Raycast 700 m → shows yardage to terrain, buildings, any StaticBody3D
+- No hit (sky): shows "---", aim_point set to horizontal forward at 450 m
+- Left-click locks aim; Space opens address if aim locked (off green)
 
-### Club Bag (from address_screen.gd)
+### OVB (Over-the-Ball) System
 
-Driver 300y, 3W 260, 5W 240, 4I 220, 5I 205, 6I 190, 7I 175, 8I 160, 9I 145, PW 130, GW 115, SW 95, LW 75, Putter 30y. Tab/Shift+Tab to cycle.
+- Triggers when player walks within 1 m of stopped visible ball
+- Player body oriented PERPENDICULAR to shot direction (flag to LEFT for right-handers)
+- No overhead stance cam — pure first-person with OVB info label overlay
+- WASD / mouse exits OVB zone naturally; returning re-triggers
+- aim_locked resets on enter AND exit AND shot confirmed
+- On green: replaced by putting cursor (+) and right-click/left-click controls
 
-### Main Scene Layout (main.tscn)
+### Water Detection (Swilcan Burn only)
 
-Tee at origin, green at (0, 0.02, -165), flagstick at (0, 0, -165). Bunkers at (-16, -163) and (14, -170). Five trees scattered on fairway. Ground is 400×400 plane. Green is 22×16 box. Cup radius: 0.27m.
+Water in `ball.gd _point_in_water()` uses 6 circles (7 m radius) along the burn centreline.
+Only the Swilcan Burn is water on hole 1. Other "water" meshes from Unity assets are suppressed.
+Visual: thin 10×130 m water plane at the burn centre in main.gd `_setup_swilcan_burn()`.
 
-### pg_converter.py
+### Per-Hole Randomisation (main.gd `_setup_hole()`)
 
-Reads Perfect Golf `.description` JSON from a zip → generates Godot `.tscn` scene files per hole. Handles coordinate transform (Unity left-handed → Godot right-handed, flips Z). Picks preferred tee (Championship > Tournament > Back > Member > Challenge) and medium pin. Outputs companion metadata JSON.
+- `green_area.stimp` = `randf_range(8.0, 13.0)` — green speed
+- `ball.course_firmness` = `randf_range(0.7, 1.3)` — rollout modifier (Wet/Normal/Firm)
+- Both shown in HUD at hole start
 
-## Known Limitations
+### Landmark Buildings (main.gd `_setup_landmarks()`)
 
-- Scorecard hardcoded to hole 1 / par 3 / 180 yards — not dynamic
-- `_on_next_hole` just calls `_on_play_again` — no multi-hole support
-- Ball has no collision shape — green `body_entered` won't fire, hole-out checked manually after `ball_stopped`
-- Bunker detection uses manual position checks (fragile, not Area3D signals)
+Hole 1 only. Each is a StaticBody3D + BoxMesh + BoxShape3D (raycast-visible):
+- LM_RA_Clubhouse — grey stone, NE of 1st tee
+- LM_Hamilton_Grand — cream, along 18th fairway side
+- LM_OldCourseHotel — red-brown, corner of 17th
+- LM_Town_A, LM_Town_B — sandy, south (St Andrews town)
+
+### Club Bag (address_screen.gd)
+
+Driver 300y, 3W 260, 5W 240, 4I 220, 5I 205, 6I 190, 7I 175, 8I 160, 9I 145, PW 130, GW 115, SW 95, LW 75, Putter 30y. Tab/Shift+Tab to cycle. Putter auto-selected on green.
+
+### Key Controls
+
+| Key / Input | Action |
+|------------|--------|
+| WASD | Walk |
+| Mouse | Look (always free, 360° horizontal) |
+| V (hold) | Open viewfinder |
+| Mouse wheel | Zoom viewfinder (6°–30°) |
+| Left-click (VF) | Lock aim |
+| Space | Open address screen (aim must be locked off-green) |
+| Right-click (green) | Lock putt aim in current facing direction |
+| Left-click (green, aim locked) | Open address screen for putt |
+| M | Toggle full-screen St Andrews course map |
+| H | Toggle left/right handed |
+| Escape | Close address screen / release mouse |
+
+## Known Limitations / TODO
+
+- Rollout still needs tuning (feels fast on firm conditions)
+- Green detection uses distance checks — could use OSM polygon for precision
 - No audio
-- UI minimal / unpolished
-- Course data from only one hardcoded hole
+- Spline mesh loader disabled (meshes had no material, caused visual water)
+- Multi-hole navigation works but only hole 1 has terrain/landmarks
+- Hole-out animation timing: scorecard shows after 0.8 s animation completes
+- Buildings are placeholder boxes — no real models yet
 
 ## Dependencies
 
