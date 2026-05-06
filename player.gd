@@ -256,11 +256,6 @@ func _input(event):
 			rotation.y = vf_yaw
 			$Camera3D.rotation.x = vf_pitch
 		else:
-			# Exit OVB overhead cam on mouse move so player can scout freely
-			if _near_ball and _stance_cam and _stance_cam.current:
-				_stance_cam.current = false
-				$Camera3D.current = true
-				$HUD/OVBLabel.visible = false
 			yaw -= event.relative.x * mouse_sensitivity
 			pitch -= event.relative.y * mouse_sensitivity
 			pitch = clamp(pitch, -1.2, 1.2)
