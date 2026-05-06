@@ -39,8 +39,8 @@ signal ball_stopped(position: Vector3, surface: String)
 
 # Tracer
 var tracer_points: Array[Vector3] = []
-var tracer_mesh: ImmediateMesh
-var tracer_instance: MeshInstance3D
+var _tracer_mm: MultiMesh = null
+var _tracer_mmi: MultiMeshInstance3D = null
 
 const YARDS_TO_METERS := 0.9144
 const BASE_ROLLOUT := 0.10
@@ -117,19 +117,31 @@ func _setup_ball_cam():
 	add_child(ball_cam)
 
 func _setup_tracer():
-	tracer_mesh = ImmediateMesh.new()
-	tracer_instance = MeshInstance3D.new()
-	tracer_instance.mesh = tracer_mesh
-	tracer_instance.name = "BallTracer"
-	var mat = StandardMaterial3D.new()
-	mat.albedo_color = Color(1, 1, 1, 0.8)
+	# Use MultiMesh spheres — ImmediateMesh line strips are unreliable in Forward+
+	var sphere := SphereMesh.new()
+	sphere.radius = 0.07
+	sphere.height = 0.14
+	sphere.radial_segments = 6
+	sphere.rings = 4
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color(1.0, 1.0, 0.4, 1.0)
+	mat.emission_enabled = true
+	mat.emission = Color(1.0, 1.0, 0.4)
+	mat.emission_energy_multiplier = 1.2
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	tracer_instance.material_override = mat
+	sphere.surface_set_material(0, mat)
+	_tracer_mm = MultiMesh.new()
+	_tracer_mm.transform_format = MultiMesh.TRANSFORM_3D
+	_tracer_mm.mesh = sphere
+	_tracer_mm.instance_count = 0
+	_tracer_mmi = MultiMeshInstance3D.new()
+	_tracer_mmi.name = "BallTracer"
+	_tracer_mmi.multimesh = _tracer_mm
 	var scene = get_tree().current_scene
 	if scene:
-		scene.call_deferred("add_child", tracer_instance)
+		scene.call_deferred("add_child", _tracer_mmi)
 	else:
-		call_deferred("add_child", tracer_instance)
+		call_deferred("add_child", _tracer_mmi)
 
 func launch(from: Vector3, p_power: float, p_accuracy: float, p_draw_fade: float, p_loft: float, aim_target: Vector3, p_club_yards: float, p_is_putt: bool = false, p_stimp: float = 8.0):
 	power = p_power
@@ -348,15 +360,21 @@ func _process(delta):
 
 
 func _draw_tracer():
-	if tracer_mesh == null or tracer_instance == null:
+	if not _tracer_mm or not _tracer_mmi:
 		return
-	tracer_mesh.clear_surfaces()
-	if tracer_points.size() < 2:
+	var n := tracer_points.size()
+	if n < 2:
+		_tracer_mm.instance_count = 0
 		return
-	tracer_mesh.surface_begin(Mesh.PRIMITIVE_LINE_STRIP)
-	for pt in tracer_points:
-		tracer_mesh.surface_add_vertex(tracer_instance.to_local(pt))
-	tracer_mesh.surface_end()
+	# Sample up to 24 evenly-spaced dots along the arc
+	var count := mini(n, 24)
+	_tracer_mm.instance_count = count
+	for i in count:
+		var idx := int(float(i) / float(count - 1) * float(n - 1)) if count > 1 else 0
+		_tracer_mm.set_instance_transform(i, Transform3D(Basis(), tracer_points[clamp(idx, 0, n - 1)]))
+
+func is_stopped() -> bool:
+	return state == BallState.STOPPED
 
 func reset():
 	state = BallState.IDLE
@@ -364,7 +382,7 @@ func reset():
 	in_bunker_flag = false
 	landed_surface = "fairway"
 	tracer_points.clear()
-	if tracer_mesh:
-		tracer_mesh.clear_surfaces()
+	if _tracer_mm:
+		_tracer_mm.instance_count = 0
 	_restore_player_cam()
 	visible = false

@@ -510,19 +510,19 @@ func _physics_process(delta):
 	move_and_slide()
 
 func _check_ball_stance() -> void:
-	# When the player walks within ~2 ft of a stopped ball, snap to address stance
-	if addressing or on_green or viewfinder_active:
+	if addressing or viewfinder_active:
 		return
 	if not ball or not ball.visible:
 		return
-	if ball.state != ball.BallState.STOPPED:
+	if not ball.is_stopped():
 		return
-	# Use 2D distance so vertical height difference doesn't prevent the snap
 	var dx := global_position.x - ball.global_position.x
 	var dz := global_position.z - ball.global_position.z
 	var dist2d := sqrt(dx * dx + dz * dz)
 	if not _near_ball and dist2d < 0.7:
-		var play_dir := aim_point - ball.global_position
+		# On green aim at cup; everywhere else aim at last locked target
+		var target := ball.cup_pos if (on_green and ball.cup_pos != Vector3.ZERO) else aim_point
+		var play_dir := target - ball.global_position
 		play_dir.y = 0.0
 		if play_dir.length() > 0.5:
 			play_dir = play_dir.normalized()
