@@ -6,6 +6,7 @@ var current_course: Dictionary = {}
 var current_hole: int = 1
 var current_tee_type: String = "Championship"
 var current_pin_difficulty: String = "Medium"
+var play_mode: String = "full"  # "quick" (1 hole), "nine" (9 holes), "full" (18 holes)
 var stroke_count: int = 0
 var scorecard: Array = []
 

@@ -23,92 +23,109 @@ color = Color(0.08, 0.1, 0.08, 1)
 [node name="VBoxContainer" type="VBoxContainer" parent="."]
 layout_mode = 1
 anchor_left = 0.04
-anchor_top = 0.08
+anchor_top = 0.05
 anchor_right = 0.42
-anchor_bottom = 0.92
+anchor_bottom = 0.97
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/separation = 12
+theme_override_constants/separation = 8
 
 [node name="TitleLabel" type="Label" parent="VBoxContainer"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 32
+theme_override_font_sizes/font_size = 20
 theme_override_colors/font_color = Color(0.9, 0.85, 0.4, 1)
 text = "Open World Golf"
 horizontal_alignment = 1
+clip_text = true
 
 [node name="CourseList" type="ItemList" parent="VBoxContainer"]
 layout_mode = 2
-custom_minimum_size = Vector2(0, 320)
+custom_minimum_size = Vector2(0, 200)
+size_flags_vertical = 3
 
-[node name="PlayButton" type="Button" parent="VBoxContainer"]
+[node name="ModeButtons" type="HBoxContainer" parent="VBoxContainer"]
 layout_mode = 2
-custom_minimum_size = Vector2(0, 52)
-theme_override_font_sizes/font_size = 20
-text = "Play Round"
+custom_minimum_size = Vector2(0, 54)
+theme_override_constants/separation = 6
+
+[node name="QuickRoundButton" type="Button" parent="VBoxContainer/ModeButtons"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 14
+text = "Quick Round"
 disabled = true
+
+[node name="NineHolesButton" type="Button" parent="VBoxContainer/ModeButtons"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 14
+text = "9 Holes"
+disabled = true
+
+[node name="FullRoundButton" type="Button" parent="VBoxContainer/ModeButtons"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 14
+text = "Full Round"
+disabled = true
+
+[node name="LoadingLabel" type="Label" parent="VBoxContainer"]
+visible = false
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+theme_override_colors/font_color = Color(0.9, 0.7, 0.2, 1)
+text = ""
+horizontal_alignment = 1
 
 [node name="Panel" type="Panel" parent="."]
 layout_mode = 1
 anchor_left = 0.44
-anchor_top = 0.08
-anchor_right = 0.96
-anchor_bottom = 0.92
+anchor_top = 0.05
+anchor_right = 0.97
+anchor_bottom = 0.97
 grow_horizontal = 2
 grow_vertical = 2
 
 [node name="SplashImage" type="TextureRect" parent="Panel"]
 layout_mode = 1
 anchor_right = 1.0
-anchor_bottom = 0.58
+anchor_bottom = 0.60
 grow_horizontal = 2
 grow_vertical = 2
 stretch_mode = 6
 
 [node name="CourseName" type="Label" parent="Panel"]
 layout_mode = 1
-anchor_top = 0.60
+anchor_top = 0.62
 anchor_right = 1.0
-anchor_bottom = 0.72
+anchor_bottom = 0.74
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_font_sizes/font_size = 22
+theme_override_font_sizes/font_size = 20
 text = ""
 horizontal_alignment = 1
+clip_text = true
 
 [node name="Author" type="Label" parent="Panel"]
 layout_mode = 1
-anchor_top = 0.73
+anchor_top = 0.75
 anchor_right = 1.0
-anchor_bottom = 0.83
+anchor_bottom = 0.85
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_font_sizes/font_size = 14
+theme_override_font_sizes/font_size = 13
 theme_override_colors/font_color = Color(0.6, 0.8, 0.6, 1)
 text = ""
 horizontal_alignment = 1
 
 [node name="HoleCount" type="Label" parent="Panel"]
 layout_mode = 1
-anchor_top = 0.84
+anchor_top = 0.86
 anchor_right = 1.0
-anchor_bottom = 0.93
+anchor_bottom = 0.95
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_font_sizes/font_size = 14
+theme_override_font_sizes/font_size = 13
 theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
-text = ""
-horizontal_alignment = 1
-
-[node name="LoadingLabel" type="Label" parent="."]
-visible = false
-layout_mode = 1
-anchor_left = 0.25
-anchor_top = 0.93
-anchor_right = 0.75
-anchor_bottom = 0.99
-grow_horizontal = 2
-grow_vertical = 2
-theme_override_colors/font_color = Color(0.9, 0.7, 0.2, 1)
 text = ""
 horizontal_alignment = 1

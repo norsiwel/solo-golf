@@ -1,28 +1,32 @@
 extends Control
 class_name CourseSelectScreen
 
-# Attach to a Control node in course_select.tscn.
-# Expected node tree (see owg_course_system.md for full spec):
+# Node tree (scenes/course_select.tscn):
 #   CourseSelectScreen (Control)
 #   ├── Background (ColorRect)
 #   ├── VBoxContainer
 #   │   ├── TitleLabel
-#   │   ├── CourseList (ItemList)
-#   │   └── PlayButton (Button)
-#   ├── Panel
-#   │   ├── SplashImage (TextureRect)
-#   │   ├── CourseName (Label)
-#   │   ├── Author (Label)
-#   │   └── HoleCount (Label)
-#   └── LoadingLabel (Label)
+#   │   ├── CourseList (ItemList)           ← expands to fill space
+#   │   ├── ModeButtons (HBoxContainer)
+#   │   │   ├── QuickRoundButton (Button)
+#   │   │   ├── NineHolesButton (Button)
+#   │   │   └── FullRoundButton (Button)
+#   │   └── LoadingLabel (Label)
+#   └── Panel
+#       ├── SplashImage (TextureRect)
+#       ├── CourseName (Label)
+#       ├── Author (Label)
+#       └── HoleCount (Label)
 
-@onready var course_list    = $VBoxContainer/CourseList
+@onready var course_list       = $VBoxContainer/CourseList
 @onready var course_name_label = $Panel/CourseName
-@onready var author_label   = $Panel/Author
-@onready var hole_count_label = $Panel/HoleCount
-@onready var splash_image   = $Panel/SplashImage
-@onready var play_button    = $VBoxContainer/PlayButton
-@onready var loading_label  = $LoadingLabel
+@onready var author_label      = $Panel/Author
+@onready var hole_count_label  = $Panel/HoleCount
+@onready var splash_image      = $Panel/SplashImage
+@onready var quick_button      = $VBoxContainer/ModeButtons/QuickRoundButton
+@onready var nine_button       = $VBoxContainer/ModeButtons/NineHolesButton
+@onready var full_button       = $VBoxContainer/ModeButtons/FullRoundButton
+@onready var loading_label     = $VBoxContainer/LoadingLabel
 
 var loader: CourseLoader
 var available_courses: Array = []
@@ -35,9 +39,12 @@ func _ready():
 	loader.course_ready.connect(_on_course_ready)
 	loader.load_progress.connect(_on_load_progress)
 	loader.load_failed.connect(_on_load_failed)
-	play_button.pressed.connect(_on_play_pressed)
 
-	play_button.disabled = true
+	quick_button.pressed.connect(func(): _start_load("quick"))
+	nine_button.pressed.connect(func(): _start_load("nine"))
+	full_button.pressed.connect(func(): _start_load("full"))
+
+	_set_buttons_disabled(true)
 	loading_label.visible = false
 
 	_populate_course_list()
@@ -70,7 +77,7 @@ func _on_course_selected(index: int):
 	course_name_label.text = info.name
 	author_label.text = "by " + info.get("author", "")
 	hole_count_label.text = str(info.hole_count) + " holes"
-	play_button.disabled = false
+	_set_buttons_disabled(false)
 
 	_load_splash_preview(info)
 
@@ -98,14 +105,27 @@ func _load_splash_preview(info: Dictionary):
 		reader.close()
 
 
-func _on_play_pressed():
+func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.echo:
+		if event.keycode in [KEY_ENTER, KEY_KP_ENTER] and selected_index >= 0:
+			_start_load("full")
+
+
+func _start_load(mode: String) -> void:
 	if selected_index < 0:
 		return
+	GameState.play_mode = mode
 	var info = available_courses[selected_index]
-	play_button.disabled = true
+	_set_buttons_disabled(true)
 	loading_label.visible = true
 	loading_label.text = "Loading course..."
 	loader.load_course(info.zip_path)
+
+
+func _set_buttons_disabled(is_disabled: bool) -> void:
+	quick_button.disabled = is_disabled
+	nine_button.disabled = is_disabled
+	full_button.disabled = is_disabled
 
 
 func _on_load_progress(step: String, percent: float):
@@ -119,4 +139,4 @@ func _on_course_ready(course_data: Dictionary):
 
 func _on_load_failed(reason: String):
 	loading_label.text = "Failed: " + reason
-	play_button.disabled = false
+	_set_buttons_disabled(false)
