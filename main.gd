@@ -15,9 +15,10 @@ func _start_spline_loader():
 	add_child(loader)
 
 func _load_standrews():
-	# OWG path: CourseSelectScreen already loaded the course into GameState and
-	# CourseManager._ready() called _setup_from_owg_data() — nothing left to do.
+	# OWG path: terrain already built by CourseManager._setup_from_owg_data().
+	# Just place the player on the course.
 	if not GameState.current_course.is_empty():
+		_setup_hole_owg(GameState.current_course, 1)
 		return
 
 	var cm = get_node_or_null("CourseManager")
@@ -33,6 +34,76 @@ func _load_standrews():
 		return
 
 	_setup_hole(1)
+
+
+func _setup_hole_owg(course_data: Dictionary, hole_num: int) -> void:
+	var player = get_node_or_null("Player")
+	if not player:
+		push_error("Main: Missing Player node for OWG setup")
+		return
+
+	# Pull championship tee + first pin from OWG course.json
+	var tee_pos := Vector3.ZERO
+	var pin_pos := Vector3.ZERO
+	var par := 4
+
+	for hole in course_data.get("holes", []):
+		if hole.get("hole_number") != hole_num:
+			continue
+		for tee in hole.get("tees", []):
+			if tee.get("type") == "Championship":
+				var p = tee.get("position", {})
+				tee_pos = Vector3(p.get("x", 0.0), p.get("y", 0.0), p.get("z", 0.0))
+				par = int(str(tee.get("par", "4")).replace("_", ""))
+				break
+		var pins = hole.get("pins", [])
+		if pins.size() > 0:
+			var p = pins[0].get("position", {})
+			pin_pos = Vector3(p.get("x", 0.0), p.get("y", 0.0), p.get("z", 0.0))
+		break
+
+	if tee_pos == Vector3.ZERO:
+		push_error("Main: OWG hole %d championship tee not found" % hole_num)
+		return
+
+	# Spawn +2 m above tee — gravity settles player onto terrain surface
+	player.global_position = Vector3(tee_pos.x, tee_pos.y + 2.0, tee_pos.z)
+
+	# Orient perpendicular to tee→pin (flag to left for right-handers)
+	if pin_pos != Vector3.ZERO:
+		var play_dir = Vector3(pin_pos.x - tee_pos.x, 0.0, pin_pos.z - tee_pos.z).normalized()
+		var hand_offset := -PI * 0.5 if player.right_handed else PI * 0.5
+		player.yaw = atan2(-play_dir.x, -play_dir.z) + hand_offset
+		player.rotation.y = player.yaw
+		player.pitch = 0.0
+		player.get_node("Camera3D").rotation.x = 0.0
+		player.aim_point = pin_pos
+
+	# Reset game state
+	player.stroke_count = 0
+	player.on_green = false
+	player.aim_locked = false
+
+	# Place ball on tee
+	if player.ball:
+		player.ball.reset()
+		player.ball.course_firmness = randf_range(0.7, 1.3)
+		player.ball.cup_pos = Vector3.ZERO
+		player.ball.global_position = Vector3(tee_pos.x, tee_pos.y + 0.08, tee_pos.z)
+		player.ball.visible = true
+
+	if player.address_screen:
+		player.address_screen.set_putting_mode(false)
+
+	# HUD
+	var aim_label = player.get_node_or_null("HUD/AimLabel")
+	if aim_label:
+		aim_label.text = "%s  |  Hole %d  Par %d  |  V to aim" % [
+			course_data.get("name", "OWG Course"), hole_num, par
+		]
+
+	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+	print("Main: OWG hole %d — player spawned at %s" % [hole_num, str(player.global_position)])
 
 func _setup_hole(hole_num: int):
 	var cm = get_node_or_null("CourseManager")
