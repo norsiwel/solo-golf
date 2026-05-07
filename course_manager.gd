@@ -13,9 +13,10 @@ var owg_loader: CourseLoader
 
 func _ready():
 	_scan_courses()
-	# OWG path: if CourseSelectScreen already loaded a course, set it up
+	# OWG path: defer so TerrainGenerator._ready() finishes before we overwrite
+	# _hm_image and call build_from_hole().
 	if not GameState.current_course.is_empty():
-		_setup_from_owg_data(GameState.current_course)
+		call_deferred("_setup_from_owg_data", GameState.current_course)
 
 func _scan_courses():
 	available_courses.clear()

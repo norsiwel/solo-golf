@@ -23,6 +23,11 @@ const HM_Y_GODOT_OFFSET: float = -23.6  # converts Unity Y → Godot world Y
 
 var _hm_image: Image = null
 
+# Set by load_heightmap() when an OWG course is active; zero = use Old Course constants
+var _owg_size_x: float = 0.0
+var _owg_size_z: float = 0.0
+var _owg_scale_y: float = 0.0
+
 var _heightmap: PackedFloat32Array
 var _width: int
 var _depth: int
@@ -38,6 +43,10 @@ var _mesh_instance: MeshInstance3D
 var _collision_shape: CollisionShape3D
 
 func _ready() -> void:
+	# OWG path: CourseManager will call load_heightmap() after all _ready() calls finish.
+	# Skip loading the built-in PNG here so it can't overwrite the OWG image.
+	if not GameState.current_course.is_empty():
+		return
 	if ResourceLoader.exists(HM_PATH):
 		_hm_image = Image.load_from_file(HM_PATH)
 		print("TerrainGenerator: heightmap loaded %dx%d" % [_hm_image.get_width(), _hm_image.get_height()])
@@ -45,34 +54,49 @@ func _ready() -> void:
 		push_warning("TerrainGenerator: heightmap not found, using noise")
 
 func _sample_real_height(world_x: float, world_z: float) -> float:
-	# Map normalized Godot world coords → heightmap UV → Godot Y
+	if _owg_size_x > 0.0:
+		# OWG coordinate system: converter flips Unity X → Godot X = -Unity_X.
+		# Terrain covers Godot x: 0 → -_owg_size_x,  z: 0 → _owg_size_z.
+		# Heightmap was stored after np.flipud so row 0 = low Godot Z.
+		var u: float = clampf(-world_x / _owg_size_x, 0.0, 1.0)
+		var v: float = clampf( world_z / _owg_size_z, 0.0, 1.0)
+		var px: int = int(u * float(_hm_image.get_width()  - 1))
+		var py: int = int(v * float(_hm_image.get_height() - 1))
+		return _hm_image.get_pixel(px, py).r * _owg_scale_y
+	# Old Course built-in heightmap — hardcoded Unity→Godot constants
 	var u: float = 1.0 - (world_x + HM_X_OFFSET) / HM_WORLD_SIZE
 	var v: float = (HM_Z_ZERO - world_z) / HM_WORLD_SIZE
 	u = clampf(u, 0.0, 1.0)
 	v = clampf(v, 0.0, 1.0)
-	var px: int = int(u * float(_hm_image.get_width() - 1))
+	var px: int = int(u * float(_hm_image.get_width()  - 1))
 	var py: int = int(v * float(_hm_image.get_height() - 1))
-	var raw: float = _hm_image.get_pixel(px, py).r  # 0.0–1.0
-	return raw * HM_HEIGHT_SCALE + HM_Y_BASE + HM_Y_GODOT_OFFSET
+	return _hm_image.get_pixel(px, py).r * HM_HEIGHT_SCALE + HM_Y_BASE + HM_Y_GODOT_OFFSET
 
 ## Load a heightmap from an absolute or user:// path (OWG extracted course).
 ## Replaces the built-in heightmap; subsequent build_from_hole() calls use it.
 func load_heightmap(path: String) -> void:
-	var img = Image.new()
-	var err = img.load(path)
-	if err != OK:
+	var img = Image.load_from_file(path)
+	if img == null:
 		push_error("TerrainGenerator: Failed to load heightmap from " + path)
+		_owg_size_x = 0.0  # fall back to Old Course constants
 		return
 	_hm_image = img
-	# Read optional terrain_meta.json for scale overrides alongside the heightmap
+	# Read terrain_meta.json for OWG scale values
 	var meta_path = path.get_base_dir() + "/terrain_meta.json"
 	if FileAccess.file_exists(meta_path):
 		var meta = _load_terrain_meta(meta_path)
-		print("TerrainGenerator: terrain_meta loaded — scale_y=%.2f scale_x=%.2f" % [
-			meta.get("scale_y", HM_HEIGHT_SCALE),
-			meta.get("scale_x", 1.0)
+		_owg_size_x  = meta.get("terrain_size_x", 0.0)
+		_owg_size_z  = meta.get("terrain_size_z", 0.0)
+		_owg_scale_y = meta.get("scale_y",         0.0)
+		print("TerrainGenerator: OWG meta — size %.1fx%.1f m, scale_y %.2f" % [
+			_owg_size_x, _owg_size_z, _owg_scale_y
 		])
-	print("TerrainGenerator: heightmap loaded from %s (%dx%d)" % [path, img.get_width(), img.get_height()])
+	else:
+		push_warning("TerrainGenerator: no terrain_meta.json alongside " + path)
+		_owg_size_x = 0.0
+	print("TerrainGenerator: OWG heightmap loaded %dx%d from %s" % [
+		img.get_width(), img.get_height(), path
+	])
 
 
 func _load_terrain_meta(path: String) -> Dictionary:
