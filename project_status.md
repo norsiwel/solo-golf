@@ -16,7 +16,7 @@ This document is for **AI coding agents** working on Solo Golf. It gives current
 
 ---
 
-## Current State (2026-05-07)
+## Current State (2026-05-07 — updated)
 
 **Stage:** Mid Development — playable hole 1, OWG course loading system implemented
 
@@ -37,7 +37,9 @@ This document is for **AI coding agents** working on Solo Golf. It gives current
 - Full-screen course map (M key) showing St.Andrews-course-map-1-18.png
 - Multi-hole structure via CourseManager (only hole 1 terrain/landmarks built)
 - OWG course loading: GameState autoload, CourseLoader ZIP scanner, CourseSelectScreen
-- OWG terrain: baked .scn scene instantiated at runtime (Road to Vostok approach)
+- OWG terrain: runtime heightmap PNG loading → load_heightmap() → build_from_hole()
+- Course select screen: visible at 1152×648, three play-mode buttons, Enter key support
+- OWG-The-Old-Course.zip generated and placed in res://courses/ (284 MB, 18 holes)
 
 ### Active Issues / Needs Work
 - Rollout distance may feel too long or short — needs in-game tuning
@@ -48,7 +50,8 @@ This document is for **AI coding agents** working on Solo Golf. It gives current
 - Spline mesh loader is disabled (meshes had no material, caused "water everywhere" visual)
 - Scorecard shows after 0.8 s HOLING animation — feels slightly delayed
 - Course only playable as hole 1; next-hole wraps but terrain/landmarks not rebuilt for other holes
-- course_select.tscn not yet created — needs to be built in the Godot editor
+- OWG terrain height sampling still uses Old Course UV constants — needs calibration from terrain_meta.json for correct elevation on OWG courses
+- Player/flagstick/green not yet positioned from OWG course data (only terrain built)
 
 ---
 
@@ -61,9 +64,10 @@ This document is for **AI coding agents** working on Solo Golf. It gives current
 | main.gd | OWG terrain skip + landmarks + Swilcan Burn | skips build_from_hole() if OWGTerrain present |
 | terrain_generator.gd | Added load_heightmap() stub | Not used for OWG courses; built-in PNG still used for The Old Course |
 | course_manager.gd | OWG zip path added | _setup_from_owg_data() instantiates baked terrain scene |
-| game_state.gd | NEW — Autoload | Cross-scene: current_course, hole, scorecard |
-| course_loader.gd | NEW — CourseLoader class | Scans OWG-*.zip, extracts terrain.scn + splash |
-| course_select.gd | NEW — CourseSelectScreen | Pre-game picker; scene not yet built in editor |
+| game_state.gd | NEW — Autoload | Cross-scene: current_course, hole, scorecard, play_mode |
+| course_loader.gd | NEW — CourseLoader class | Scans OWG-*.zip, extracts heightmap.png + splash |
+| course_select.gd | NEW — CourseSelectScreen | Pre-game picker; Quick/9/Full Round buttons; Enter key |
+| scenes/course_select.tscn | NEW | Built as .tscn; stretch mode + explicit anchors fix viewport |
 | hole_map.gd | Replaced with static course image | M key |
 | courses/The_Old_Course_spline_loader.gd | Disabled (return early) | Re-enable when meshes have materials |
 | course_shapes_loader.gd | Green polygon from OSM shapes JSON | |
@@ -73,8 +77,9 @@ This document is for **AI coding agents** working on Solo Golf. It gives current
 ## Development Priorities
 
 ### High
-- Build course_select.tscn in the Godot editor (script is ready, scene is not)
-- Test OWG ZIP loading end-to-end with a real course package
+- Calibrate OWG terrain height sampling to use terrain_meta.json scale values (not hardcoded Old Course constants)
+- Position player, flagstick, and green from OWG course JSON data (currently only terrain is built)
+- Test OWG full round end-to-end with OWG-The-Old-Course.zip
 - Tune rollout distances (course condition feel)
 - Audio — even basic crowd/ball sounds
 

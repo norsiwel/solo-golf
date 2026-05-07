@@ -4,7 +4,7 @@
 
 Godot 4.6 single-player golf simulation. The Old Course, St Andrews — hole 1 fully playable (par 4, ~375 yards). MasterShotEngine equations for carry/roll/putt. 3-click meter for shot power/accuracy. Viewfinder rangefinder with zoom. OVB (over-the-ball) first-person setup. Tee→shot→ball→scoring loop. Uses Jolt 3D physics.
 
-OWG (Open World Golf) course loading system is in place: pre-game course selection screen, ZIP-based course packages, baked terrain scenes loaded at runtime.
+OWG (Open World Golf) course loading system is in place: pre-game course selection screen (Quick Round / 9 Holes / Full Round), ZIP-based course packages, runtime heightmap terrain generation. Viewport: 1152×648, stretch mode canvas_items/expand.
 
 ## Directory Structure
 
@@ -233,25 +233,29 @@ terrain/terrain.scn      # pre-baked Godot binary scene: StaticBody3D + MeshInst
 images/<splash.jpg>      # optional splash image for course select screen
 ```
 
-**Terrain baking rule:** The terrain scene must be authored in the Godot editor (not generated at runtime) so that HeightMapShape3D collision data is pre-computed and ready on scene load — same approach as Road to Vostok. Do NOT try to load a raw PNG heightmap at runtime from user://; it bypasses the import pipeline and produces unreliable pixel data.
+**Terrain loading (Option A — active):** `course_loader.gd` extracts `terrain/heightmap.png` and `terrain/terrain_meta.json` from the ZIP to `user://courses/<name>/terrain/`. `CourseManager._setup_from_owg_data()` calls `hole_terrain.load_heightmap(path)` (sets `_hm_image`), then `hole_terrain.build_from_hole(tee, pin, all_tees, all_pins)` to construct the mesh and `HeightMapShape3D` collision at runtime.
 
-**Fallback (Option A):** If baked-scene loading proves problematic, swap to extracting `terrain/heightmap.f32` (raw PackedFloat32Array bytes) and feeding directly into `HeightMapShape3D.map_data` — avoids the image import pipeline entirely. Code comment in `course_loader.gd` documents this.
+**Known gap:** `_sample_real_height()` in `terrain_generator.gd` still uses hardcoded Old Course UV constants. For OWG courses these need to be replaced by values from `terrain_meta.json` (scale_x, scale_y, terrain_size_x/z).
 
-**course_select.tscn** must be created in the Godot editor (cannot be scripted). Node tree:
+**course_select.tscn** lives at `res://scenes/course_select.tscn` and is authored as a text scene (not requiring the editor). Node tree:
 ```
-CourseSelectScreen (Control) ← course_select.gd
-├── Background (ColorRect)
-├── VBoxContainer
-│   ├── TitleLabel
-│   ├── CourseList (ItemList)   ← item_selected → _on_course_selected
-│   └── PlayButton (Button)     ← pressed → _on_play_pressed
-├── Panel
-│   ├── SplashImage (TextureRect)
-│   ├── CourseName (Label)
-│   ├── Author (Label)
-│   └── HoleCount (Label)
-└── LoadingLabel (Label)        ← visible=false in inspector
+CourseSelectScreen (Control) ← course_select.gd; anchors 0/0/1/1, offsets 0
+├── Background (ColorRect)     ← anchors 0/0/1/1, offsets 0
+├── VBoxContainer              ← anchors 4%/5%/42%/97%
+│   ├── TitleLabel             ← 20px, clip_text=true
+│   ├── CourseList (ItemList)  ← size_flags_vertical EXPAND+FILL
+│   ├── ModeButtons (HBoxContainer)
+│   │   ├── QuickRoundButton   ← _start_load("quick")
+│   │   ├── NineHolesButton    ← _start_load("nine")
+│   │   └── FullRoundButton    ← _start_load("full") / Enter key
+│   └── LoadingLabel           ← visible=false until loading
+└── Panel                      ← anchors 44%/5%/97%/97%
+    ├── SplashImage (TextureRect)
+    ├── CourseName (Label)
+    ├── Author (Label)
+    └── HoleCount (Label)
 ```
+Root Control and Background must use **explicit anchor values** (not `anchors_preset`), plus `offset_*=0`, or Godot may override them and collapse the layout.
 
 ## Known Limitations / TODO
 
