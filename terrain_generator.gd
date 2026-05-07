@@ -55,6 +55,35 @@ func _sample_real_height(world_x: float, world_z: float) -> float:
 	var raw: float = _hm_image.get_pixel(px, py).r  # 0.0–1.0
 	return raw * HM_HEIGHT_SCALE + HM_Y_BASE + HM_Y_GODOT_OFFSET
 
+## Load a heightmap from an absolute or user:// path (OWG extracted course).
+## Replaces the built-in heightmap; subsequent build_from_hole() calls use it.
+func load_heightmap(path: String) -> void:
+	var img = Image.new()
+	var err = img.load(path)
+	if err != OK:
+		push_error("TerrainGenerator: Failed to load heightmap from " + path)
+		return
+	_hm_image = img
+	# Read optional terrain_meta.json for scale overrides alongside the heightmap
+	var meta_path = path.get_base_dir() + "/terrain_meta.json"
+	if FileAccess.file_exists(meta_path):
+		var meta = _load_terrain_meta(meta_path)
+		print("TerrainGenerator: terrain_meta loaded — scale_y=%.2f scale_x=%.2f" % [
+			meta.get("scale_y", HM_HEIGHT_SCALE),
+			meta.get("scale_x", 1.0)
+		])
+	print("TerrainGenerator: heightmap loaded from %s (%dx%d)" % [path, img.get_width(), img.get_height()])
+
+
+func _load_terrain_meta(path: String) -> Dictionary:
+	var f = FileAccess.open(path, FileAccess.READ)
+	if not f:
+		return {}
+	var json = JSON.new()
+	json.parse(f.get_as_text())
+	return json.get_data()
+
+
 func build_from_hole(tee: Vector3, pin: Vector3, all_tees: Array = [], all_pins: Array = []):
 	# Collect all known points
 	var points: Array[Vector3] = [tee, pin]

@@ -8,8 +8,14 @@ var current_hole := 0
 var course_meta := {}
 var available_courses: Array[String] = []
 
+# OWG zip-based loader — populated when coming from CourseSelectScreen
+var owg_loader: CourseLoader
+
 func _ready():
 	_scan_courses()
+	# OWG path: if CourseSelectScreen already loaded a course, set it up
+	if not GameState.current_course.is_empty():
+		_setup_from_owg_data(GameState.current_course)
 
 func _scan_courses():
 	available_courses.clear()
@@ -112,3 +118,55 @@ func get_total_holes() -> int:
 
 func get_course_name() -> String:
 	return course_meta.get("name", current_course_name)
+
+
+# ── OWG ZIP-based loading ──────────────────────────────────────────────────
+
+## Called when a course was loaded by CourseSelectScreen via CourseLoader.
+## Passes heightmap to terrain and positions player at hole 1 championship tee.
+## Node paths assume CourseManager is a child of the main scene root.
+func _setup_from_owg_data(course_data: Dictionary) -> void:
+	var scene_root = get_parent()
+
+	var heightmap_path = course_data.get("heightmap_path", "")
+	if heightmap_path != "":
+		var hole_terrain = scene_root.get_node_or_null("HoleTerrain")
+		if hole_terrain and hole_terrain.has_method("load_heightmap"):
+			hole_terrain.load_heightmap(heightmap_path)
+
+	var tee_pos = _owg_get_tee_vec3(course_data, 1, "Championship")
+	var player = scene_root.get_node_or_null("Player")
+	if player and tee_pos != Vector3.ZERO:
+		player.global_position = tee_pos
+
+	var pins = _owg_get_pins(course_data, 1)
+	if pins.size() > 0:
+		var pin_node = scene_root.get_node_or_null("HoleGeometry/Flagstick")
+		if pin_node:
+			pin_node.global_position = pins[0].position
+
+	print("CourseManager: OWG course loaded — ", course_data.get("name", "Unknown"))
+
+
+func _owg_get_tee_vec3(course_data: Dictionary, hole_num: int, tee_type: String) -> Vector3:
+	for hole in course_data.get("holes", []):
+		if hole.get("hole_number") == hole_num:
+			for tee in hole.get("tees", []):
+				if tee.get("type") == tee_type:
+					var p = tee.get("position", {})
+					return Vector3(p.get("x", 0.0), p.get("y", 0.0), p.get("z", 0.0))
+	return Vector3.ZERO
+
+
+func _owg_get_pins(course_data: Dictionary, hole_num: int) -> Array:
+	for hole in course_data.get("holes", []):
+		if hole.get("hole_number") == hole_num:
+			var pins = []
+			for pin in hole.get("pins", []):
+				var p = pin.get("position", {})
+				pins.append({
+					"position": Vector3(p.get("x", 0.0), p.get("y", 0.0), p.get("z", 0.0)),
+					"difficulty": pin.get("difficulty", "Medium")
+				})
+			return pins
+	return []
