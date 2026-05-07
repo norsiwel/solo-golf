@@ -4,7 +4,7 @@
 
 Godot 4.6 single-player golf simulation. The Old Course, St Andrews — hole 1 fully playable (par 4, ~375 yards). MasterShotEngine equations for carry/roll/putt. 3-click meter for shot power/accuracy. Viewfinder rangefinder with zoom. OVB (over-the-ball) first-person setup. Tee→shot→ball→scoring loop. Uses Jolt 3D physics.
 
-OWG (Open World Golf) course loading system is in place: pre-game course selection screen (Quick Round / 9 Holes / Full Round), ZIP-based course packages, runtime heightmap terrain generation. Viewport: 1152×648, stretch mode canvas_items/expand.
+OWG (Open World Golf) course loading system is fully wired: pre-game course selection screen (Quick Round / 9 Holes / Full Round), ZIP-based course packages, runtime heightmap terrain, player spawned at OWG tee position. Player can shoot on OWG terrain. Viewport: 1152×648, stretch mode canvas_items/expand.
 
 ## Directory Structure
 
@@ -235,7 +235,7 @@ images/<splash.jpg>      # optional splash image for course select screen
 
 **Terrain loading (Option A — active):** `course_loader.gd` extracts `terrain/heightmap.png` and `terrain/terrain_meta.json` from the ZIP to `user://courses/<name>/terrain/`. `CourseManager._setup_from_owg_data()` calls `hole_terrain.load_heightmap(path)` (sets `_hm_image`), then `hole_terrain.build_from_hole(tee, pin, all_tees, all_pins)` to construct the mesh and `HeightMapShape3D` collision at runtime.
 
-**Known gap:** `_sample_real_height()` in `terrain_generator.gd` still uses hardcoded Old Course UV constants. For OWG courses these need to be replaced by values from `terrain_meta.json` (scale_x, scale_y, terrain_size_x/z).
+**UV mapping:** `_sample_real_height()` branches on `_owg_size_x > 0`. OWG path: `u = -world_x / terrain_size_x`, `v = world_z / terrain_size_z`, `height = pixel.r * scale_y`. Old Course path uses hardcoded constants unchanged. Scale values stored in `_owg_size_x/z` and `_owg_scale_y`, populated by `load_heightmap()` reading `terrain_meta.json`.
 
 **course_select.tscn** lives at `res://scenes/course_select.tscn` and is authored as a text scene (not requiring the editor). Node tree:
 ```
@@ -259,6 +259,8 @@ Root Control and Background must use **explicit anchor values** (not `anchors_pr
 
 ## Known Limitations / TODO
 
+- **OWG terrain untextured** — TerrainGenerator material still uses `res://assets/terrain/surface_fairway_alt.png`; OWG textures at `user://courses/OWG-The-Old-Course/textures/` not yet applied
+- **OWG course objects missing** — `_setup_hole_owg()` places only the player; flagstick, tee markers, buildings not yet instantiated for OWG path
 - Rollout still needs tuning (feels fast on firm conditions)
 - Green detection uses distance checks — could use OSM polygon for precision
 - No audio
