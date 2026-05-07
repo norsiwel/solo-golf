@@ -123,45 +123,42 @@ func get_course_name() -> String:
 # ── OWG ZIP-based loading ──────────────────────────────────────────────────
 
 ## Called when a course was loaded by CourseSelectScreen via CourseLoader.
-## Loads the pre-baked terrain scene (StaticBody3D + mesh + collision authored in editor).
+## Passes the extracted heightmap to TerrainGenerator, then triggers build_from_hole()
+## so the walkable mesh and HeightMapShape3D collision are constructed at runtime.
 ## Node paths assume CourseManager is a child of the main scene root.
 func _setup_from_owg_data(course_data: Dictionary) -> void:
 	var scene_root = get_parent()
+	var hole_terrain = scene_root.get_node_or_null("HoleTerrain")
 
-	# Load the baked terrain scene extracted from the ZIP into user://
-	var terrain_path = course_data.get("terrain_scene_path", "")
-	if terrain_path != "":
-		var terrain_res = ResourceLoader.load(terrain_path)
-		if terrain_res:
-			# Remove any previously added OWG terrain
-			var old = scene_root.get_node_or_null("OWGTerrain")
-			if old:
-				old.queue_free()
-			var terrain_instance = terrain_res.instantiate()
-			terrain_instance.name = "OWGTerrain"
-			scene_root.add_child(terrain_instance)
-			# Park the runtime TerrainGenerator so it doesn't conflict
-			var hole_terrain = scene_root.get_node_or_null("HoleTerrain")
-			if hole_terrain:
-				hole_terrain.process_mode = Node.PROCESS_MODE_DISABLED
-				hole_terrain.visible = false
+	# Load heightmap into TerrainGenerator so _sample_real_height() uses OWG data
+	var heightmap_path = course_data.get("heightmap_path", "")
+	if heightmap_path != "":
+		if hole_terrain and hole_terrain.has_method("load_heightmap"):
+			hole_terrain.load_heightmap(heightmap_path)
 		else:
-			push_error("CourseManager: Failed to load terrain scene from " + terrain_path)
+			push_warning("CourseManager: HoleTerrain missing or has no load_heightmap()")
 	else:
-		push_warning("CourseManager: OWG course has no terrain_scene_path")
+		push_warning("CourseManager: OWG course has no heightmap_path in course_data")
 
+	# Get hole 1 championship tee and first pin to define the terrain bounds
 	var tee_pos = _owg_get_tee_vec3(course_data, 1, "Championship")
-	var player = scene_root.get_node_or_null("Player")
-	if player and tee_pos != Vector3.ZERO:
-		player.global_position = tee_pos
-
 	var pins = _owg_get_pins(course_data, 1)
-	if pins.size() > 0:
-		var pin_node = scene_root.get_node_or_null("HoleGeometry/Flagstick")
-		if pin_node:
-			pin_node.global_position = pins[0].position
+	var pin_pos = pins[0].position if pins.size() > 0 else Vector3.ZERO
 
-	print("CourseManager: OWG course loaded — ", course_data.get("name", "Unknown"))
+	# Build walkable terrain mesh + HeightMapShape3D collision from the loaded heightmap
+	if hole_terrain and hole_terrain.has_method("build_from_hole"):
+		var all_tees_raw: Array = []
+		var all_pins_raw: Array = []
+		for hole in course_data.get("holes", []):
+			if hole.get("hole_number") == 1:
+				for t in hole.get("tees", []):
+					all_tees_raw.append(t.get("position", {}))
+				for p in hole.get("pins", []):
+					all_pins_raw.append(p.get("position", {}))
+				break
+		hole_terrain.build_from_hole(tee_pos, pin_pos, all_tees_raw, all_pins_raw)
+
+	print("CourseManager: OWG terrain built — ", course_data.get("name", "Unknown"))
 
 
 func _owg_get_tee_vec3(course_data: Dictionary, hole_num: int, tee_type: String) -> Vector3:

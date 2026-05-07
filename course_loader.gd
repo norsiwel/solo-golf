@@ -101,22 +101,20 @@ func load_course(zip_path: String) -> void:
 	current_course = json.get_data()
 	emit_signal("load_progress", "Loading terrain...", 0.2)
 
-	# Option B (active): baked terrain scene — StaticBody3D + mesh + collision
-	# authored in the Godot editor and saved as terrain/terrain.scn inside the ZIP.
-	# Option A (fallback): raw float array at terrain/heightmap.f32 — if B proves
-	# unworkable, swap to reading that file and feeding bytes directly into
-	# HeightMapShape3D.map_data without the Godot import pipeline.
-	var terrain_scene_local = ""
-	for candidate in ["terrain/terrain.scn", "terrain/terrain.tscn"]:
-		if reader.file_exists(candidate):
-			var ext = candidate.get_extension()
-			var dest = extract_path + "terrain/terrain." + ext
-			_write_file(dest, reader.read_file(candidate))
-			terrain_scene_local = dest
-			break
+	# Extract heightmap PNG — TerrainGenerator.load_heightmap() loads it at runtime
+	# and build_from_hole() constructs the walkable mesh + HeightMapShape3D collision.
+	var heightmap_local = ""
+	if reader.file_exists("terrain/heightmap.png"):
+		var dest = extract_path + "terrain/heightmap.png"
+		_write_file(dest, reader.read_file("terrain/heightmap.png"))
+		heightmap_local = dest
+	else:
+		push_warning("CourseLoader: no terrain/heightmap.png in " + zip_path)
 
-	if terrain_scene_local == "":
-		push_warning("CourseLoader: no baked terrain scene found in " + zip_path)
+	# Extract terrain scale metadata (scale_y, scale_x, etc.) if present
+	if reader.file_exists("terrain/terrain_meta.json"):
+		_write_file(extract_path + "terrain/terrain_meta.json",
+			reader.read_file("terrain/terrain_meta.json"))
 
 	emit_signal("load_progress", "Loading splash...", 0.7)
 
@@ -129,7 +127,7 @@ func load_course(zip_path: String) -> void:
 	reader.close()
 
 	current_course["extract_path"] = extract_path
-	current_course["terrain_scene_path"] = terrain_scene_local
+	current_course["heightmap_path"] = heightmap_local
 
 	emit_signal("load_progress", "Ready!", 1.0)
 	emit_signal("course_ready", current_course)

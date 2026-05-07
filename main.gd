@@ -47,11 +47,10 @@ func _setup_hole(hole_num: int):
 	var tee = cm.get_tee_position(hole_num)
 	var pin = cm.get_pin_position(hole_num)
 
-	# Build per-hole terrain from tee/pin waypoints.
-	# Skipped when an OWG pre-baked terrain scene is already in the tree.
+	# Build per-hole terrain from tee/pin waypoints (JSON/dev path).
+	# OWG path: terrain already built by CourseManager._setup_from_owg_data().
 	var hole_terrain = get_node_or_null("HoleTerrain")
-	var owg_terrain = get_node_or_null("OWGTerrain")
-	if hole_terrain and hole_terrain.has_method("build_from_hole") and not owg_terrain:
+	if hole_terrain and hole_terrain.has_method("build_from_hole"):
 		var all_tees = hole.get("all_tees", [])
 		var all_pins = hole.get("all_pins", [])
 		hole_terrain.build_from_hole(
