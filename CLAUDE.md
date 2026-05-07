@@ -1,4 +1,4 @@
-# Solo Golf — CLAUDE.md
+# Open World Golf — CLAUDE.md
 
 ## Project Summary
 

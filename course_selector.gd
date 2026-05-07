@@ -52,7 +52,7 @@ func _build_ui():
 	add_child(title)
 
 	var subtitle = Label.new()
-	subtitle.text = "Solo Golf"
+	subtitle.text = "Open World Golf"
 	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	subtitle.set_anchor(SIDE_LEFT,   0.25)
 	subtitle.set_anchor(SIDE_TOP,    0.19)

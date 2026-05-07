@@ -14,7 +14,7 @@ compatibility/default_parent_skeleton_in_mesh_instance_3d=true
 
 [application]
 
-config/name="Solo Golf"
+config/name="Open World Golf"
 run/main_scene="res://scenes/course_select.tscn"
 config/features=PackedStringArray("4.6", "Forward Plus")
 config/icon="res://icon.svg"
@@ -25,9 +25,6 @@ GameState="*res://game_state.gd"
 
 [display]
 
-window/size/viewport_width=1152
-window/size/viewport_height=648
-window/size/resizable=true
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
 

@@ -1,8 +1,8 @@
-# Project Status — Solo Golf (AI Agent Version)
+# Project Status — Open World Golf (AI Agent Version)
 
 ## Purpose
 
-This document is for **AI coding agents** working on Solo Golf. It gives current state, active issues, and mandatory operating rules.
+This document is for **AI coding agents** working on Open World Golf. It gives current state, active issues, and mandatory operating rules.
 
 ---
 
