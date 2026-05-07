@@ -15,6 +15,11 @@ func _start_spline_loader():
 	add_child(loader)
 
 func _load_standrews():
+	# OWG path: CourseSelectScreen already loaded the course into GameState and
+	# CourseManager._ready() called _setup_from_owg_data() — nothing left to do.
+	if not GameState.current_course.is_empty():
+		return
+
 	var cm = get_node_or_null("CourseManager")
 	var player = get_node_or_null("Player")
 	var hole_geo = get_node_or_null("HoleGeometry")

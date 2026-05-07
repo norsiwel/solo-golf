@@ -1,0 +1,114 @@
+[gd_scene load_steps=2 format=3 uid="uid://cjk8nrp4xtq5m"]
+
+[ext_resource type="Script" uid="uid://b9wf3yv6mdk2h" path="res://course_select.gd" id="1_script"]
+
+[node name="CourseSelectScreen" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_script")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.08, 0.1, 0.08, 1)
+
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchor_left = 0.04
+anchor_top = 0.08
+anchor_right = 0.42
+anchor_bottom = 0.92
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 12
+
+[node name="TitleLabel" type="Label" parent="VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 32
+theme_override_colors/font_color = Color(0.9, 0.85, 0.4, 1)
+text = "Open World Golf"
+horizontal_alignment = 1
+
+[node name="CourseList" type="ItemList" parent="VBoxContainer"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 320)
+
+[node name="PlayButton" type="Button" parent="VBoxContainer"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 52)
+theme_override_font_sizes/font_size = 20
+text = "Play Round"
+disabled = true
+
+[node name="Panel" type="Panel" parent="."]
+layout_mode = 1
+anchor_left = 0.44
+anchor_top = 0.08
+anchor_right = 0.96
+anchor_bottom = 0.92
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="SplashImage" type="TextureRect" parent="Panel"]
+layout_mode = 1
+anchor_right = 1.0
+anchor_bottom = 0.58
+grow_horizontal = 2
+grow_vertical = 2
+stretch_mode = 6
+
+[node name="CourseName" type="Label" parent="Panel"]
+layout_mode = 1
+anchor_top = 0.60
+anchor_right = 1.0
+anchor_bottom = 0.72
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 22
+text = ""
+horizontal_alignment = 1
+
+[node name="Author" type="Label" parent="Panel"]
+layout_mode = 1
+anchor_top = 0.73
+anchor_right = 1.0
+anchor_bottom = 0.83
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0.6, 0.8, 0.6, 1)
+text = ""
+horizontal_alignment = 1
+
+[node name="HoleCount" type="Label" parent="Panel"]
+layout_mode = 1
+anchor_top = 0.84
+anchor_right = 1.0
+anchor_bottom = 0.93
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
+text = ""
+horizontal_alignment = 1
+
+[node name="LoadingLabel" type="Label" parent="."]
+visible = false
+layout_mode = 1
+anchor_left = 0.25
+anchor_top = 0.93
+anchor_right = 0.75
+anchor_bottom = 0.99
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(0.9, 0.7, 0.2, 1)
+text = ""
+horizontal_alignment = 1

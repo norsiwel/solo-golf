@@ -35,6 +35,7 @@ func _ready():
 	loader.course_ready.connect(_on_course_ready)
 	loader.load_progress.connect(_on_load_progress)
 	loader.load_failed.connect(_on_load_failed)
+	play_button.pressed.connect(_on_play_pressed)
 
 	play_button.disabled = true
 	loading_label.visible = false
