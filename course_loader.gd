@@ -101,35 +101,24 @@ func load_course(zip_path: String) -> void:
 	current_course = json.get_data()
 	emit_signal("load_progress", "Loading terrain...", 0.2)
 
-	if reader.file_exists("terrain/heightmap.png"):
-		_write_file(extract_path + "terrain/heightmap.png",
-			reader.read_file("terrain/heightmap.png"))
+	# Option B (active): baked terrain scene — StaticBody3D + mesh + collision
+	# authored in the Godot editor and saved as terrain/terrain.scn inside the ZIP.
+	# Option A (fallback): raw float array at terrain/heightmap.f32 — if B proves
+	# unworkable, swap to reading that file and feeding bytes directly into
+	# HeightMapShape3D.map_data without the Godot import pipeline.
+	var terrain_scene_local = ""
+	for candidate in ["terrain/terrain.scn", "terrain/terrain.tscn"]:
+		if reader.file_exists(candidate):
+			var ext = candidate.get_extension()
+			var dest = extract_path + "terrain/terrain." + ext
+			_write_file(dest, reader.read_file(candidate))
+			terrain_scene_local = dest
+			break
 
-	if reader.file_exists("terrain/terrain_meta.json"):
-		_write_file(extract_path + "terrain/terrain_meta.json",
-			reader.read_file("terrain/terrain_meta.json"))
+	if terrain_scene_local == "":
+		push_warning("CourseLoader: no baked terrain scene found in " + zip_path)
 
-	emit_signal("load_progress", "Loading surface maps...", 0.4)
-
-	for i in range(4):
-		var splat_path = "terrain/splat/alphamap_%d.png" % i
-		if reader.file_exists(splat_path):
-			_write_file(extract_path + splat_path, reader.read_file(splat_path))
-
-	emit_signal("load_progress", "Loading textures...", 0.6)
-
-	var priority_textures = [
-		"textures/fairway2.png",
-		"textures/grasstest.png",
-		"textures/grasstest1.png",
-		"textures/BunkerSandRake.png",
-		"textures/GravelPath.png",
-		"textures/Grass_normal_1.png",
-		"textures/Grass_normal_3.png",
-	]
-	for tex_path in priority_textures:
-		if reader.file_exists(tex_path):
-			_write_file(extract_path + tex_path, reader.read_file(tex_path))
+	emit_signal("load_progress", "Loading splash...", 0.7)
 
 	var splash = current_course.get("splash_image", "")
 	if splash != "" and reader.file_exists("images/" + splash):
@@ -139,10 +128,8 @@ func load_course(zip_path: String) -> void:
 
 	reader.close()
 
-	emit_signal("load_progress", "Building terrain...", 0.8)
-
 	current_course["extract_path"] = extract_path
-	current_course["heightmap_path"] = extract_path + "terrain/heightmap.png"
+	current_course["terrain_scene_path"] = terrain_scene_local
 
 	emit_signal("load_progress", "Ready!", 1.0)
 	emit_signal("course_ready", current_course)

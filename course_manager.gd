@@ -123,16 +123,32 @@ func get_course_name() -> String:
 # ── OWG ZIP-based loading ──────────────────────────────────────────────────
 
 ## Called when a course was loaded by CourseSelectScreen via CourseLoader.
-## Passes heightmap to terrain and positions player at hole 1 championship tee.
+## Loads the pre-baked terrain scene (StaticBody3D + mesh + collision authored in editor).
 ## Node paths assume CourseManager is a child of the main scene root.
 func _setup_from_owg_data(course_data: Dictionary) -> void:
 	var scene_root = get_parent()
 
-	var heightmap_path = course_data.get("heightmap_path", "")
-	if heightmap_path != "":
-		var hole_terrain = scene_root.get_node_or_null("HoleTerrain")
-		if hole_terrain and hole_terrain.has_method("load_heightmap"):
-			hole_terrain.load_heightmap(heightmap_path)
+	# Load the baked terrain scene extracted from the ZIP into user://
+	var terrain_path = course_data.get("terrain_scene_path", "")
+	if terrain_path != "":
+		var terrain_res = ResourceLoader.load(terrain_path)
+		if terrain_res:
+			# Remove any previously added OWG terrain
+			var old = scene_root.get_node_or_null("OWGTerrain")
+			if old:
+				old.queue_free()
+			var terrain_instance = terrain_res.instantiate()
+			terrain_instance.name = "OWGTerrain"
+			scene_root.add_child(terrain_instance)
+			# Park the runtime TerrainGenerator so it doesn't conflict
+			var hole_terrain = scene_root.get_node_or_null("HoleTerrain")
+			if hole_terrain:
+				hole_terrain.process_mode = Node.PROCESS_MODE_DISABLED
+				hole_terrain.visible = false
+		else:
+			push_error("CourseManager: Failed to load terrain scene from " + terrain_path)
+	else:
+		push_warning("CourseManager: OWG course has no terrain_scene_path")
 
 	var tee_pos = _owg_get_tee_vec3(course_data, 1, "Championship")
 	var player = scene_root.get_node_or_null("Player")

@@ -42,9 +42,11 @@ func _setup_hole(hole_num: int):
 	var tee = cm.get_tee_position(hole_num)
 	var pin = cm.get_pin_position(hole_num)
 
-	# Build per-hole terrain from tee/pin waypoints
+	# Build per-hole terrain from tee/pin waypoints.
+	# Skipped when an OWG pre-baked terrain scene is already in the tree.
 	var hole_terrain = get_node_or_null("HoleTerrain")
-	if hole_terrain and hole_terrain.has_method("build_from_hole"):
+	var owg_terrain = get_node_or_null("OWGTerrain")
+	if hole_terrain and hole_terrain.has_method("build_from_hole") and not owg_terrain:
 		var all_tees = hole.get("all_tees", [])
 		var all_pins = hole.get("all_pins", [])
 		hole_terrain.build_from_hole(
