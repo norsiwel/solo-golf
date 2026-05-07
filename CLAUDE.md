@@ -4,34 +4,42 @@
 
 Godot 4.6 single-player golf simulation. The Old Course, St Andrews — hole 1 fully playable (par 4, ~375 yards). MasterShotEngine equations for carry/roll/putt. 3-click meter for shot power/accuracy. Viewfinder rangefinder with zoom. OVB (over-the-ball) first-person setup. Tee→shot→ball→scoring loop. Uses Jolt 3D physics.
 
+OWG (Open World Golf) course loading system is in place: pre-game course selection screen, ZIP-based course packages, baked terrain scenes loaded at runtime.
+
 ## Directory Structure
 
 ```
 solo-golf/
-├── project.godot                    # Godot 4.6, Forward Plus, main scene: res://main.tscn
+├── project.godot                    # Godot 4.6, Forward Plus, Autoload: GameState
 ├── main.tscn                        # Full 3D scene — terrain, tee, green, flag, player
-├── main.gd                          # Hole setup, landmark buildings, Swilcan Burn, course conditions
+├── main.gd                          # Hole setup, landmarks, Swilcan Burn, course conditions
 ├── player.gd                        # Camera, WASD, viewfinder, OVB, HUD, putting, game state
 ├── ball.gd                          # MasterShotEngine flight/rollout/putting/HOLING, tracer ribbon
 ├── address_screen.gd                # 3-click meter, club bag, draw/fade, loft sliders
 ├── green.gd                         # GreenArea3D, cup detection, stimp, check_hole_out()
 ├── tee.gd                           # TeeArea3D, emits player_on_tee signal
 ├── scorecard.gd                     # Post-hole score display, play-again / next-hole
-├── terrain_generator.gd             # HeightMapShape3D terrain from The_Old_Course_heightmap.png
-├── course_manager.gd                # Loads meta JSON, normalises positions to hole-1 origin
+├── terrain_generator.gd             # HeightMapShape3D terrain (used for The Old Course built-in)
+├── course_manager.gd                # JSON loading + OWG zip path; normalises positions
+├── course_loader.gd                 # OWG: scans OWG-*.zip, extracts terrain.scn + splash
+├── course_select.gd                 # OWG: pre-game course selection screen controller
+├── game_state.gd                    # Autoload (GameState): cross-scene course/scoring state
 ├── course_shapes_loader.gd          # OSM green polygon → GreenArea collision + GreenMesh
+├── course_selector.gd               # In-game CanvasLayer course selector (existing JSON courses)
 ├── courses/
 │   ├── The_Old_Course_meta.json     # 18-hole tee/pin/par data
 │   ├── The_Old_Course_shapes.json   # Green polygons (OSM)
 │   ├── The_Old_Course_osm_shapes.json  # Water/fairway/rough shapes (OSM)
-│   ├── The_Old_Course_heightmap.png # Grayscale elevation image
+│   ├── The_Old_Course_heightmap.png # Grayscale elevation image (editor-imported)
 │   ├── The_Old_Course_mesh_placement.json  # Spline mesh positions (loader disabled)
 │   └── The_Old_Course_spline_loader.gd    # Disabled — meshes had no material → fake water
+│   └── OWG-*.zip                    # Drop OWG course packages here (scanned at startup)
 ├── assets/
 │   ├── St.Andrews-course-map-1-18.png  # Full course map (M key)
 │   └── terrain/                     # Fairway/green/rough textures
 ├── shot-generator-equations.txt    # MasterShotEngine reference equations
-├── pg_converter.py                 # Perfect Golf → Godot scene importer
+├── owg_course_system.md            # OWG course system design doc
+├── pg_to_owg_converter.py          # Perfect Golf → OWG ZIP converter
 └── project_status.md               # Operating rules for AI agents
 ```
 
@@ -104,8 +112,11 @@ Scorecard:
 | green.gd | Area3D | Green zone, stimp, cup position, check_hole_out() |
 | tee.gd | Area3D | Tee zone detection, hole metadata |
 | scorecard.gd | CanvasLayer (20) | Score naming, colour coding, play-again/next-hole |
-| terrain_generator.gd | StaticBody3D | HeightMapShape3D terrain, surface type, colour zones |
-| course_manager.gd | Node | JSON loading, position normalisation to hole-1 origin |
+| terrain_generator.gd | StaticBody3D | HeightMapShape3D terrain from editor-imported PNG; surface type; colour zones |
+| course_manager.gd | Node | JSON loading + OWG zip setup; position normalisation to hole-1 origin |
+| course_loader.gd | Node (CourseLoader) | Scans OWG-*.zip; extracts terrain.scn + splash; emits course_ready |
+| course_select.gd | Control (CourseSelectScreen) | Pre-game course picker; hands course_data to GameState; changes scene |
+| game_state.gd | Node (Autoload: GameState) | Cross-scene state: current_course, hole, scorecard, tee type |
 | main.gd | Node3D | Hole setup, landmarks (StaticBody3D), Swilcan Burn water plane |
 
 ### MasterShotEngine (ball.gd)
@@ -195,6 +206,52 @@ Driver 300y, 3W 260, 5W 240, 4I 220, 5I 205, 6I 190, 7I 175, 8I 160, 9I 145, PW 
 | M | Toggle full-screen St Andrews course map |
 | H | Toggle left/right handed |
 | Escape | Close address screen / release mouse |
+
+### OWG Course Loading System
+
+**Flow:**
+```
+Launch → course_select.tscn (CourseSelectScreen)
+  → CourseLoader.scan_available_courses() scans res://courses/ for OWG-*.zip
+  → Player picks course, clicks Play
+  → CourseLoader.load_course(zip_path):
+      extracts terrain/terrain.scn → user://courses/<name>/terrain/terrain.scn
+      extracts images/<splash> for preview
+      emits course_ready(course_data)
+  → GameState.current_course = course_data
+  → change_scene_to_file("res://main.tscn")
+  → course_manager._ready(): GameState not empty → _setup_from_owg_data()
+      ResourceLoader.load(terrain_scene_path).instantiate() → "OWGTerrain" node
+      HoleTerrain (TerrainGenerator) disabled — OWG terrain handles collision
+  → main.gd._setup_hole(): skips build_from_hole() if OWGTerrain present
+```
+
+**OWG ZIP package format (`OWG-<CourseName>.zip`):**
+```
+course.json              # name, author, hole_count, splash_image, holes[]{hole_number, tees[], pins[]}
+terrain/terrain.scn      # pre-baked Godot binary scene: StaticBody3D + MeshInstance3D + CollisionShape3D
+images/<splash.jpg>      # optional splash image for course select screen
+```
+
+**Terrain baking rule:** The terrain scene must be authored in the Godot editor (not generated at runtime) so that HeightMapShape3D collision data is pre-computed and ready on scene load — same approach as Road to Vostok. Do NOT try to load a raw PNG heightmap at runtime from user://; it bypasses the import pipeline and produces unreliable pixel data.
+
+**Fallback (Option A):** If baked-scene loading proves problematic, swap to extracting `terrain/heightmap.f32` (raw PackedFloat32Array bytes) and feeding directly into `HeightMapShape3D.map_data` — avoids the image import pipeline entirely. Code comment in `course_loader.gd` documents this.
+
+**course_select.tscn** must be created in the Godot editor (cannot be scripted). Node tree:
+```
+CourseSelectScreen (Control) ← course_select.gd
+├── Background (ColorRect)
+├── VBoxContainer
+│   ├── TitleLabel
+│   ├── CourseList (ItemList)   ← item_selected → _on_course_selected
+│   └── PlayButton (Button)     ← pressed → _on_play_pressed
+├── Panel
+│   ├── SplashImage (TextureRect)
+│   ├── CourseName (Label)
+│   ├── Author (Label)
+│   └── HoleCount (Label)
+└── LoadingLabel (Label)        ← visible=false in inspector
+```
 
 ## Known Limitations / TODO
 

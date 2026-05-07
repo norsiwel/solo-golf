@@ -16,9 +16,9 @@ This document is for **AI coding agents** working on Solo Golf. It gives current
 
 ---
 
-## Current State (2026-05-06)
+## Current State (2026-05-07)
 
-**Stage:** Mid Development — playable hole 1, most core systems working
+**Stage:** Mid Development — playable hole 1, OWG course loading system implemented
 
 ### What Works
 - Full shot loop: tee → OVB → viewfinder aim → address screen → shot → rollout → scoring
@@ -36,6 +36,8 @@ This document is for **AI coding agents** working on Solo Golf. It gives current
 - Landmark buildings as StaticBody3D (raycast-visible from viewfinder)
 - Full-screen course map (M key) showing St.Andrews-course-map-1-18.png
 - Multi-hole structure via CourseManager (only hole 1 terrain/landmarks built)
+- OWG course loading: GameState autoload, CourseLoader ZIP scanner, CourseSelectScreen
+- OWG terrain: baked .scn scene instantiated at runtime (Road to Vostok approach)
 
 ### Active Issues / Needs Work
 - Rollout distance may feel too long or short — needs in-game tuning
@@ -46,6 +48,7 @@ This document is for **AI coding agents** working on Solo Golf. It gives current
 - Spline mesh loader is disabled (meshes had no material, caused "water everywhere" visual)
 - Scorecard shows after 0.8 s HOLING animation — feels slightly delayed
 - Course only playable as hole 1; next-hole wraps but terrain/landmarks not rebuilt for other holes
+- course_select.tscn not yet created — needs to be built in the Godot editor
 
 ---
 
@@ -55,8 +58,12 @@ This document is for **AI coding agents** working on Solo Golf. It gives current
 |------|------------------|-------|
 | ball.gd | MasterShotEngine + rollout refactor | _init_rollout() called once at landing |
 | player.gd | OVB, viewfinder, putting controls | on_tee flag, vf_yaw starts at flag |
-| main.gd | Landmarks, Swilcan Burn, course conditions | firmness + stimp randomised here |
-| terrain_generator.gd | Green zone 14→24 m | |
+| main.gd | OWG terrain skip + landmarks + Swilcan Burn | skips build_from_hole() if OWGTerrain present |
+| terrain_generator.gd | Added load_heightmap() stub | Not used for OWG courses; built-in PNG still used for The Old Course |
+| course_manager.gd | OWG zip path added | _setup_from_owg_data() instantiates baked terrain scene |
+| game_state.gd | NEW — Autoload | Cross-scene: current_course, hole, scorecard |
+| course_loader.gd | NEW — CourseLoader class | Scans OWG-*.zip, extracts terrain.scn + splash |
+| course_select.gd | NEW — CourseSelectScreen | Pre-game picker; scene not yet built in editor |
 | hole_map.gd | Replaced with static course image | M key |
 | courses/The_Old_Course_spline_loader.gd | Disabled (return early) | Re-enable when meshes have materials |
 | course_shapes_loader.gd | Green polygon from OSM shapes JSON | |
@@ -66,11 +73,13 @@ This document is for **AI coding agents** working on Solo Golf. It gives current
 ## Development Priorities
 
 ### High
+- Build course_select.tscn in the Godot editor (script is ready, scene is not)
+- Test OWG ZIP loading end-to-end with a real course package
 - Tune rollout distances (course condition feel)
 - Audio — even basic crowd/ball sounds
-- Fix remaining green detection edge cases
 
 ### Medium
+- Fix remaining green detection edge cases
 - Replace placeholder landmark boxes with simple 3D models
 - Re-enable spline meshes with grass material overrides
 - Multi-hole terrain build (per-hole terrain generator call)
@@ -79,3 +88,14 @@ This document is for **AI coding agents** working on Solo Golf. It gives current
 - AI opponents
 - Weather system (visual rain/wind effects)
 - Leaderboard / persistent scoring
+
+---
+
+## OWG Course Package Format
+
+A valid OWG course ZIP (`OWG-<Name>.zip`) must contain:
+- `course.json` — metadata (name, author, hole_count, splash_image, holes array)
+- `terrain/terrain.scn` — pre-baked Godot scene (StaticBody3D + mesh + collision)
+- `images/<splash>` — optional preview image
+
+**Terrain baking:** author the terrain StaticBody3D in the Godot editor, then save as a binary `.scn`. Do not use runtime PNG heightmap loading — it bypasses the import pipeline. (Option A fallback: raw float array at `terrain/heightmap.f32` — see comment in course_loader.gd.)
