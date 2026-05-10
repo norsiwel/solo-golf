@@ -14,12 +14,12 @@ class_name TerrainGenerator
 # UV formula: u = 1 - (world_x + 1785.42) / 2156.9 ; v = (166.66 - world_z) / 2156.9
 const HM_PATH := "res://courses/The_Old_Course_heightmap.png"
 const GRASS_UV_SCALE := 12.0        # metres per texture repeat
-const HM_WORLD_SIZE: float = 2156.9
-const HM_X_OFFSET: float = 1785.42   # normalized_x + this = shifted Unity X
-const HM_Z_ZERO: float = 166.66      # Unity Z at normalized world Z = 0
-const HM_HEIGHT_SCALE: float = 6.4   # 0-255 maps to 0–6.4 m (Unity elevation)
-const HM_Y_BASE: float = 21.92       # Unity minimum elevation (m)
-const HM_Y_GODOT_OFFSET: float = -23.6  # converts Unity Y → Godot world Y
+const HM_WORLD_SIZE: float = 2271.1  # The Old Course terrain size (from meta)
+const HM_X_OFFSET: float = 2271.1
+const HM_Z_ZERO: float = 0.0
+const HM_HEIGHT_SCALE: float = 100.497  # scale_y * 2
+const HM_Y_BASE: float = 0.0
+const HM_Y_GODOT_OFFSET: float = 0.0
 
 var _hm_image: Image = null
 var _owg_fairway_tex: Texture2D = null
