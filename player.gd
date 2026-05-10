@@ -165,7 +165,7 @@ func _setup_hud():
 
 	var aim_label = Label.new()
 	aim_label.name = "AimLabel"
-	aim_label.text = ""
+	aim_label.text = "ESC = Change Course  |  V to aim  |  Space to address"
 	aim_label.set_anchor(SIDE_LEFT, 0.5)
 	aim_label.set_anchor(SIDE_TOP, 0.08)
 	aim_label.add_theme_font_size_override("font_size", 20)
@@ -318,7 +318,8 @@ func _input(event):
 				if addressing:
 					_close_address()
 				else:
-					Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
+					# ESC returns to course selector
+					get_tree().change_scene_to_file("res://scenes/course_select.tscn")
 
 func _open_viewfinder():
 	viewfinder_active = true

@@ -154,11 +154,13 @@ func _setup_tracer():
 	_tracer_mesh = MeshInstance3D.new()
 	_tracer_mesh.name = "BallTracer"
 	_tracer_mesh.material_override = mat
+	_tracer_mesh.top_level = true # Ensure it uses global coords even if parented weirdly
+	
 	var scene = get_tree().current_scene
 	if scene:
 		scene.call_deferred("add_child", _tracer_mesh)
 	else:
-		call_deferred("add_child", _tracer_mesh)
+		get_tree().root.call_deferred("add_child", _tracer_mesh)
 
 func launch(from: Vector3, p_power: float, p_accuracy: float, p_draw_fade: float, p_loft: float, aim_target: Vector3, p_club_yards: float, p_is_putt: bool = false, p_stimp: float = 8.0):
 	power = p_power
@@ -422,7 +424,9 @@ func _init_rollout() -> void:
 	landed_surface = surface
 	var loft_roll_mod: float = clamp(1.0 - loft * 0.5, 0.02, 1.5)
 	# course_firmness: 0.7=wet/slow, 1.0=normal, 1.3=firm/fast
-	_roll_total = carry_distance * f_surface * loft_roll_mod * 0.10 * course_firmness
+	# Tuned: 0.08 base factor, and firmness impact dampened (50% effectiveness)
+	var firmness_mod = 1.0 + (course_firmness - 1.0) * 0.5
+	_roll_total = carry_distance * f_surface * loft_roll_mod * 0.08 * firmness_mod
 	_roll_done  = 0.0
 	# Initial speed gives a visible roll that decelerates to stop over _roll_total metres
 	_roll_spd0  = clamp(_roll_total * 1.5, 0.3, 10.0)

@@ -1,4 +1,4 @@
-[gd_scene load_steps=34 format=3 uid="uid://dvcp2wpqd25c6"]
+[gd_scene load_steps=33 format=3 uid="uid://dvcp2wpqd25c6"]
 
 [ext_resource type="Script" uid="uid://cch7i6fyywjos" path="res://main.gd" id="1_main"]
 [ext_resource type="Script" uid="uid://bagc1rj48iic7" path="res://player.gd" id="2_player"]
@@ -6,7 +6,6 @@
 [ext_resource type="Script" uid="uid://o7u3tpuf6tj0" path="res://wind_hud.gd" id="4_wind_hud"]
 [ext_resource type="Script" uid="uid://jqwulnyojnii" path="res://hole_map.gd" id="5_map"]
 [ext_resource type="Script" uid="uid://bfp36uxh8t7xy" path="res://course_manager.gd" id="6_cm"]
-[ext_resource type="Script" uid="uid://bwhtl5fornkmt" path="res://course_selector.gd" id="7_cs"]
 [ext_resource type="Script" uid="uid://jnuydiewf0yg" path="res://green.gd" id="8_green"]
 [ext_resource type="Script" uid="uid://btr64vpnrmohl" path="res://tee.gd" id="9_tee"]
 [ext_resource type="Script" uid="uid://cvn4viqosvqe4" path="res://flag_animator.gd" id="10_flag"]
@@ -109,9 +108,6 @@ script = ExtResource("5_map")
 
 [node name="CourseManager" type="Node" parent="."]
 script = ExtResource("6_cm")
-
-[node name="CourseSelector" type="CanvasLayer" parent="."]
-script = ExtResource("7_cs")
 
 [node name="FallbackGround" type="StaticBody3D" parent="."]
 

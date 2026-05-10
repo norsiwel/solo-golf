@@ -48,6 +48,18 @@ func _build_ui():
 	hint.add_theme_constant_override("outline_size", 3)
 	add_child(hint)
 
+func set_map_image(path: String):
+	if not map_control:
+		return
+		
+	var img = Image.load_from_file(path)
+	if img:
+		var tex = ImageTexture.create_from_image(img)
+		map_control.texture = tex
+		print("HoleMap: Loaded map from " + path)
+	else:
+		push_warning("HoleMap: Failed to load map from " + path)
+
 func _input(event):
 	if event is InputEventKey and event.pressed and not event.echo:
 		if event.keycode == KEY_M:

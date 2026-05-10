@@ -99,35 +99,32 @@ func load_course(zip_path: String) -> void:
 		return
 
 	current_course = json.get_data()
-	emit_signal("load_progress", "Loading terrain...", 0.2)
+	emit_signal("load_progress", "Extracting assets...", 0.2)
 
-	# Extract heightmap PNG — TerrainGenerator.load_heightmap() loads it at runtime
-	# and build_from_hole() constructs the walkable mesh + HeightMapShape3D collision.
-	var heightmap_local = ""
-	if reader.file_exists("terrain/heightmap.png"):
-		var dest = extract_path + "terrain/heightmap.png"
-		_write_file(dest, reader.read_file("terrain/heightmap.png"))
-		heightmap_local = dest
-	else:
-		push_warning("CourseLoader: no terrain/heightmap.png in " + zip_path)
+	# Extract ALL files from the ZIP to the user directory
+	var files = reader.get_files()
+	for i in range(files.size()):
+		var fpath = files[i]
+		if fpath.ends_with("/"): # skip directories, _write_file handles creation
+			continue
+		
+		var bytes = reader.read_file(fpath)
+		_write_file(extract_path + fpath, bytes)
+		
+		if i % 10 == 0:
+			emit_signal("load_progress", "Extracting %d/%d..." % [i, files.size()], 0.2 + 0.5 * (float(i)/files.size()))
 
-	# Extract terrain scale metadata (scale_y, scale_x, etc.) if present
-	if reader.file_exists("terrain/terrain_meta.json"):
-		_write_file(extract_path + "terrain/terrain_meta.json",
-			reader.read_file("terrain/terrain_meta.json"))
-
-	emit_signal("load_progress", "Loading splash...", 0.7)
-
+	# Set paths for specific known assets
+	if FileAccess.file_exists(extract_path + "terrain/heightmap.png"):
+		current_course["heightmap_path"] = extract_path + "terrain/heightmap.png"
+	
 	var splash = current_course.get("splash_image", "")
-	if splash != "" and reader.file_exists("images/" + splash):
-		var bytes = reader.read_file("images/" + splash)
-		_write_file(extract_path + "images/" + splash, bytes)
+	if splash != "" and FileAccess.file_exists(extract_path + "images/" + splash):
 		current_course["splash_local_path"] = extract_path + "images/" + splash
 
 	reader.close()
 
 	current_course["extract_path"] = extract_path
-	current_course["heightmap_path"] = heightmap_local
 
 	emit_signal("load_progress", "Ready!", 1.0)
 	emit_signal("course_ready", current_course)

@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dxwiwhcgf8saw"
-path="res://.godot/imported/golfers-stance.png-a63c318a38c570afc84328dd3e5fad38.ctex"
+uid="uid://dy7ollfi84we1"
+path="res://.godot/imported/Open-world-title.png-928e6ce752e79c4f8bf0b20e0d2532a8.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://golfers-stance.png"
-dest_files=["res://.godot/imported/golfers-stance.png-a63c318a38c570afc84328dd3e5fad38.ctex"]
+source_file="res://Open-world-title.png"
+dest_files=["res://.godot/imported/Open-world-title.png-928e6ce752e79c4f8bf0b20e0d2532a8.ctex"]
 
 [params]
 

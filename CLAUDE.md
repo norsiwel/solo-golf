@@ -2,45 +2,45 @@
 
 ## Project Summary
 
-Godot 4.6 single-player golf simulation. The Old Course, St Andrews — hole 1 fully playable (par 4, ~375 yards). MasterShotEngine equations for carry/roll/putt. 3-click meter for shot power/accuracy. Viewfinder rangefinder with zoom. OVB (over-the-ball) first-person setup. Tee→shot→ball→scoring loop. Uses Jolt 3D physics.
+Godot 4.6 single-player walking golf simulation. Two playable courses: The Old Course St Andrews and Sunset Valley GC (Perfect Golf conversion). Full gameplay loop: walk to ball, aim with viewfinder, address screen, shot, ball flight with tracer, rollout, putting, hole-out, scorecard. Uses Jolt 3D physics.
 
-OWG (Open World Golf) course loading system is fully wired: pre-game course selection screen (Quick Round / 9 Holes / Full Round), ZIP-based course packages, runtime heightmap terrain, player spawned at OWG tee position. Player can shoot on OWG terrain. Viewport: 1152×648, stretch mode canvas_items/expand.
+OWG course loading system fully operational: title screen → course selector (card UI with splash images) → game. Runtime heightmap terrain with verified coordinate math (0.001m mean error vs Unity tee positions). ESC returns to course selector from anywhere in game.
 
 ## Directory Structure
 
 ```
-solo-golf/
+open-world-golf/
 ├── project.godot                    # Godot 4.6, Forward Plus, Autoload: GameState
-├── main.tscn                        # Full 3D scene — terrain, tee, green, flag, player
-├── main.gd                          # Hole setup, landmarks, Swilcan Burn, course conditions
-├── player.gd                        # Camera, WASD, viewfinder, OVB, HUD, putting, game state
-├── ball.gd                          # MasterShotEngine flight/rollout/putting/HOLING, tracer ribbon
-├── address_screen.gd                # 3-click meter, club bag, draw/fade, loft sliders
-├── green.gd                         # GreenArea3D, cup detection, stimp, check_hole_out()
-├── tee.gd                           # TeeArea3D, emits player_on_tee signal
-├── scorecard.gd                     # Post-hole score display, play-again / next-hole
-├── terrain_generator.gd             # HeightMapShape3D terrain (used for The Old Course built-in)
-├── course_manager.gd                # JSON loading + OWG zip path; normalises positions
-├── course_loader.gd                 # OWG: scans OWG-*.zip, extracts terrain.scn + splash
-├── course_select.gd                 # OWG: pre-game course selection screen controller
-├── game_state.gd                    # Autoload (GameState): cross-scene course/scoring state
-├── course_shapes_loader.gd          # OSM green polygon → GreenArea collision + GreenMesh
-├── course_selector.gd               # In-game CanvasLayer course selector (existing JSON courses)
+├── main.tscn / main.gd              # Game scene, hole setup, OWG setup, landmarks
+├── player.gd                        # Camera, WASD, viewfinder, OVB, HUD, putting
+├── ball.gd                          # MasterShotEngine flight/rollout/putting/holing, tracer
+├── address_screen.gd                # 3-click meter, club bag, draw/fade, loft
+├── green.gd                         # GreenArea3D, cup detection, stimp
+├── tee.gd                           # TeeArea3D detection
+├── scorecard.gd                     # Post-hole score display
+├── terrain_generator.gd             # Runtime heightmap terrain (HeightMapShape3D)
+├── course_manager.gd                # JSON/OWG loading, position normalisation
+├── course_loader.gd                 # Scans/extracts OWG-*.zip packages
+├── course_select.gd                 # Card-based course selector UI
+├── title_screen.gd                  # Title screen with asset preload
+├── game_state.gd                    # Autoload: cross-scene state
+├── course_shapes_loader.gd          # OSM green polygon → collision
+├── alphamap_reader.gd               # Multi-layer splatmap surface detection
+├── hole_map.gd                      # Overhead course map display
+├── wind_system.gd / wind_hud.gd     # Wind simulation and HUD
+├── flag_animator.gd                 # Flag waving animation
+├── scorecard.gd                     # Hole result display
+├── scenes/
+│   ├── title_screen.tscn            # Entry point: shows Open-world-title.png
+│   ├── course_select.tscn           # HSplitContainer card selector
+│   └── course_select.tscn           # Course selection UI
 ├── courses/
-│   ├── The_Old_Course_meta.json     # 18-hole tee/pin/par data
-│   ├── The_Old_Course_shapes.json   # Green polygons (OSM)
-│   ├── The_Old_Course_osm_shapes.json  # Water/fairway/rough shapes (OSM)
-│   ├── The_Old_Course_heightmap.png # Grayscale elevation image (editor-imported)
-│   ├── The_Old_Course_mesh_placement.json  # Spline mesh positions (loader disabled)
-│   └── The_Old_Course_spline_loader.gd    # Disabled — meshes had no material → fake water
-│   └── OWG-*.zip                    # Drop OWG course packages here (scanned at startup)
-├── assets/
-│   ├── St.Andrews-course-map-1-18.png  # Full course map (M key)
-│   └── terrain/                     # Fairway/green/rough textures
-├── shot-generator-equations.txt    # MasterShotEngine reference equations
-├── owg_course_system.md            # OWG course system design doc
-├── pg_to_owg_converter.py          # Perfect Golf → OWG ZIP converter
-└── project_status.md               # Operating rules for AI agents
+│   ├── The_Old_Course_*.json/png/gd # Built-in St Andrews data
+│   ├── OWG-The-Old-Course.zip       # Converted OWG package
+│   └── OWG-Sunset-Valley-GC.zip    # Converted OWG package
+├── assets/terrain/                  # Fallback surface textures
+├── tools/                           # Pipeline scripts (fetch_osm, obj_to_glb etc)
+└── pg_to_owg_converter.py           # Perfect Golf → OWG converter (FIXED orientation)
 ```
 
 ## Critical Operating Rules
@@ -49,227 +49,95 @@ solo-golf/
 2. **Preserve working functionality** — prefer non-destructive additions
 3. **Small, reversible changes** — no large refactors
 4. **Don't remove code without justification**
-5. **Respect project structure** — follow existing file organisation
-6. **Update CLAUDE.md and project_status.md** whenever committing significant changes
+5. **Update CLAUDE.md and project_status.md** whenever committing
 
-## Architecture
-
-### Signal Flow — Gameplay Loop
+## Scene Flow
 
 ```
-TeeArea (player enters)
-  → tee.gd emits player_on_tee
-  → player.on_player_at_tee(): resets putting, selects Driver, shows hole info
-
-Player walks to ball (within 1 m) → OVB activates
-  → player faces perpendicular to target (flag to left for right-handers)
-  → OVB label shows "V to aim | Space to address"
-
-Player aims:
-  V key → viewfinder opens (12° FOV, mouse-wheel zoom 6°–30°)
-           viewfinder starts oriented at flag/aim_point
-           scroll for zoom, look anywhere (360°)
-           crosshair red + "FLAG Xyd" when within 60 px of flag
-           shows yardage to any solid object; "---" when aimed at sky
-           left-click locks aim (green border), aim_point recorded
-  Escape → closes viewfinder
-
-On green — no viewfinder needed:
-  mouse look to aim direction
-  right-click → lock putt aim in current facing direction
-  left-click (aim locked) → open address screen
-
-Space (aim locked off-green) or left-click (on green) → address screen
-  → 3-click meter: click start, click power, click accuracy
-  → shot_confirmed(power, accuracy, draw_fade, loft, club) emitted
-  → player._on_shot_confirmed(): stroke_count++, ball.launch()
-
-Ball states: IDLE → FLYING → ROLLING → CAM_HOLD → STOPPED
-  FLYING: parametric arc, tracer ribbon updated, ball-cam follows
-  ROLLING: _init_rollout() called ONCE at landing; linear decel using
-           _roll_total / _roll_done / _roll_spd0; slope deflects dir
-  CAM_HOLD: 2.5 s camera hold on landing, then STOPPED + ball_stopped signal
-  → player._on_ball_stopped(): surface detection, green check, HUD update
-
-On green (ball stopped):
-  → green.check_hole_out() if dist ≤ cup_radius (0.27 m) → ball_holed_out
-  → player._on_ball_holed_out() → ball.hole_out() starts HOLING animation
-  → HOLING: ball lerps to cup, shrinks, sinks → ball_holed signal
-  → player._on_ball_holed() → scorecard.show_hole_result()
-
-Scorecard:
-  → play_again → _setup_hole(same) resets everything
-  → next_hole  → go_to_next_hole() (increments, wraps at 18)
+title_screen.tscn  (Open-world-title.png, scans courses, ENTER)
+    ↓
+course_select.tscn  (card UI: course name, author, holes, splash image, ▶ Play button)
+    ↓  CourseLoader extracts zip → user://courses/<name>/
+GameState.current_course = course_data
+    ↓
+main.tscn  (ESC → back to course_select)
 ```
 
-### Key Script Responsibilities
+## Heightmap Coordinate System (CRITICAL — verified 0.001m error)
 
-| Script | Extends | Responsibility |
-|--------|---------|----------------|
-| player.gd | CharacterBody3D | Camera, WASD, viewfinder (V/zoom/aim), OVB, green putting controls, HUD, signals |
-| ball.gd | Node3D | MasterShotEngine launch, rollout, putt rolling, HOLING animation, tracer ribbon |
-| address_screen.gd | CanvasLayer (10) | Club selection, 3-click meter, draw/fade slider, loft slider, putting mode |
-| green.gd | Area3D | Green zone, stimp, cup position, check_hole_out() |
-| tee.gd | Area3D | Tee zone detection, hole metadata |
-| scorecard.gd | CanvasLayer (20) | Score naming, colour coding, play-again/next-hole |
-| terrain_generator.gd | StaticBody3D | HeightMapShape3D terrain from editor-imported PNG; surface type; colour zones |
-| course_manager.gd | Node | JSON loading + OWG zip setup; position normalisation to hole-1 origin |
-| course_loader.gd | Node (CourseLoader) | Scans OWG-*.zip; extracts terrain.scn + splash; emits course_ready |
-| course_select.gd | Control (CourseSelectScreen) | Pre-game course picker; hands course_data to GameState; changes scene |
-| game_state.gd | Node (Autoload: GameState) | Cross-scene state: current_course, hole, scorecard, tee type |
-| main.gd | Node3D | Hole setup, landmarks (StaticBody3D), Swilcan Burn water plane |
-
-### MasterShotEngine (ball.gd)
-
-**Carry** (non-putt):
-```
-C = club_yards_m / D_MAX           # club factor (D_MAX = 250 m)
-L = lie_factor                     # tee/fairway=1.0, rough=0.85, deep_rough=0.70, bunker=0.50
-L_f = 1.0 + loft * 0.15           # high loft = slightly more carry
-carry = D_MAX * power * C * L * accuracy * L_f
-lateral = draw_fade * 15.0 + (1-accuracy) * 15.0 * random(-1..1)
+Unity terrain heights are stored as uint16 fractions. Correct extraction:
+```python
+effective_scale_y = scale.y * 2.0   # Unity uses scale*2 internally
+arr = arr.T           # transpose rows/cols
+arr = np.flipud(arr)  # flip rows
+arr = np.fliplr(arr)  # flip cols
 ```
 
-**Rollout** (computed ONCE in `_init_rollout()` at moment of landing):
-```
-_roll_total = carry * F_surface * loft_roll_mod * 0.10 * course_firmness
-F_surface: fairway=1.0, rough=0.75, deep_rough=0.60, green=0.80, bunker/water=0.0
-loft_roll_mod = clamp(1.0 - loft*0.5, 0.02, 1.5)
-course_firmness: 0.7=Wet, 1.0=Normal, 1.3=Firm (random each hole)
-_roll_spd0 = clamp(_roll_total * 1.5, 0.3, 10.0)
-Linear decel: spd = _roll_spd0 * (1 - _roll_done / _roll_total)
+Godot sampling in `_sample_real_height()`:
+```gdscript
+u = clamp(1.0 + world_x / size_x, 0.0, 1.0)   # world_x is negative
+v = clamp(1.0 - world_z / size_z, 0.0, 1.0)
 ```
 
-**Putt** (MasterShotEngine formula):
-```
-roll_dist = dist_to_pin * (stimp / 8.0) * power
-lateral = accuracy_error * random
-stimp: randomised 8–13 each hole
-```
+terrain_meta.json `scale_y` = Unity scale.y × 2.
 
-### Viewfinder System
+## Terrain Generator (terrain_generator.gd)
 
-- V key opens viewfinder (FOV starts 12°)
-- Mouse wheel: scroll up = zoom in (min 6°), scroll down = zoom out (max 30°)
-- Starts oriented toward flag/aim_point (tee shot convenience)
-- Pitch: ±1.4 rad (can look ground to sky)
-- Flag snap: 60 px radius → red crosshair + "FLAG Xyd"
-- Raycast 700 m → shows yardage to terrain, buildings, any StaticBody3D
-- No hit (sky): shows "---", aim_point set to horizontal forward at 450 m
-- Left-click locks aim; Space opens address if aim locked (off green)
+- `resolution = 256`, `margin = 120.0` — builds 256×256 grid around hole bounds
+- `build_from_hole(tee, pin, all_tees, all_pins)` — samples heightmap per grid point
+- `HeightMapShape3D` scale = `Vector3(_step_x, 1.0, _step_z)`, positioned at bounds center
+- Splatmap loaded via `load_textures()` — case-insensitive file_map lookup
+- Shader blends fairway(R), green(G), rough(B) channels
+- UV in shader: `u = -world_x / safe_size_x`, `v = world_z / safe_size_z`
 
-### OVB (Over-the-Ball) System
+## OWG Converter (pg_to_owg_converter.py)
 
-- Triggers when player walks within 1 m of stopped visible ball
-- Player body oriented PERPENDICULAR to shot direction (flag to LEFT for right-handers)
-- No overhead stance cam — pure first-person with OVB info label overlay
-- WASD / mouse exits OVB zone naturally; returning re-triggers
-- aim_locked resets on enter AND exit AND shot confirmed
-- On green: replaced by putting cursor (+) and right-click/left-click controls
+Converts Perfect Golf .zip (unity3d bundle) → OWG .zip:
+- Heightmap: extracted, orientation corrected (T+flipud+fliplr), scale_y×2
+- Splatmaps: terrain/splat/alphamap_0..N.png
+- Textures: all Texture2D assets → textures/ with classified texture_map.json
+- course.json: all tees/pins/shots with Godot coords (X flipped)
+- Visual mesh in terrain.tscn: 257×257 ArrayMesh with real vertex heights (NOT flat PlaneMesh)
+- Water/ocean/lake objects filtered from spawn list
 
-### Water Detection (Swilcan Burn only)
+## Water Planes (TODO next session)
 
-Water in `ball.gd _point_in_water()` uses 6 circles (7 m radius) along the burn centreline.
-Only the Swilcan Burn is water on hole 1. Other "water" meshes from Unity assets are suppressed.
-Visual: thin 10×130 m water plane at the burn centre in main.gd `_setup_swilcan_burn()`.
+PG courses use `PP_waterplane` GameObjects at a fixed Y height. Terrain is sculpted
+below that Y to create ponds. Strategy:
+1. Extract PP_waterplane Y positions from MonoBehaviour/Transform in unity3d
+2. Store in course.json as `water_planes: [{y, bounds}]`
+3. Render as semi-transparent plane in Godot at that Y
+4. ball.gd water detection uses Y < water_plane_y within bounds
 
-### Per-Hole Randomisation (main.gd `_setup_hole()`)
+Course designer: Perfect Golf is installed at Steam/steamapps/common/Perfect Golf.
+Consider downloading PG course designer for reference on terrain sculpting format.
 
-- `green_area.stimp` = `randf_range(8.0, 13.0)` — green speed
-- `ball.course_firmness` = `randf_range(0.7, 1.3)` — rollout modifier (Wet/Normal/Firm)
-- Both shown in HUD at hole start
+## Known Issues / TODO
 
-### Landmark Buildings (main.gd `_setup_landmarks()`)
-
-Hole 1 only. Each is a StaticBody3D + BoxMesh + BoxShape3D (raycast-visible):
-- LM_RA_Clubhouse — grey stone, NE of 1st tee
-- LM_Hamilton_Grand — cream, along 18th fairway side
-- LM_OldCourseHotel — red-brown, corner of 17th
-- LM_Town_A, LM_Town_B — sandy, south (St Andrews town)
-
-### Club Bag (address_screen.gd)
-
-Driver 300y, 3W 260, 5W 240, 4I 220, 5I 205, 6I 190, 7I 175, 8I 160, 9I 145, PW 130, GW 115, SW 95, LW 75, Putter 30y. Tab/Shift+Tab to cycle. Putter auto-selected on green.
-
-### Key Controls
-
-| Key / Input | Action |
-|------------|--------|
-| WASD | Walk |
-| Mouse | Look (always free, 360° horizontal) |
-| V (hold) | Open viewfinder |
-| Mouse wheel | Zoom viewfinder (6°–30°) |
-| Left-click (VF) | Lock aim |
-| Space | Open address screen (aim must be locked off-green) |
-| Right-click (green) | Lock putt aim in current facing direction |
-| Left-click (green, aim locked) | Open address screen for putt |
-| M | Toggle full-screen St Andrews course map |
-| H | Toggle left/right handed |
-| Escape | Close address screen / release mouse |
-
-### OWG Course Loading System
-
-**Flow:**
-```
-Launch → course_select.tscn (CourseSelectScreen)
-  → CourseLoader.scan_available_courses() scans res://courses/ for OWG-*.zip
-  → Player picks course, clicks Play
-  → CourseLoader.load_course(zip_path):
-      extracts terrain/terrain.scn → user://courses/<name>/terrain/terrain.scn
-      extracts images/<splash> for preview
-      emits course_ready(course_data)
-  → GameState.current_course = course_data
-  → change_scene_to_file("res://main.tscn")
-  → course_manager._ready(): GameState not empty → _setup_from_owg_data()
-      ResourceLoader.load(terrain_scene_path).instantiate() → "OWGTerrain" node
-      HoleTerrain (TerrainGenerator) disabled — OWG terrain handles collision
-  → main.gd._setup_hole(): skips build_from_hole() if OWGTerrain present
-```
-
-**OWG ZIP package format (`OWG-<CourseName>.zip`):**
-```
-course.json              # name, author, hole_count, splash_image, holes[]{hole_number, tees[], pins[]}
-terrain/terrain.scn      # pre-baked Godot binary scene: StaticBody3D + MeshInstance3D + CollisionShape3D
-images/<splash.jpg>      # optional splash image for course select screen
-```
-
-**Terrain loading (Option A — active):** `course_loader.gd` extracts `terrain/heightmap.png` and `terrain/terrain_meta.json` from the ZIP to `user://courses/<name>/terrain/`. `CourseManager._setup_from_owg_data()` calls `hole_terrain.load_heightmap(path)` (sets `_hm_image`), then `hole_terrain.build_from_hole(tee, pin, all_tees, all_pins)` to construct the mesh and `HeightMapShape3D` collision at runtime.
-
-**UV mapping:** `_sample_real_height()` branches on `_owg_size_x > 0`. OWG path: `u = -world_x / terrain_size_x`, `v = world_z / terrain_size_z`, `height = pixel.r * scale_y`. Old Course path uses hardcoded constants unchanged. Scale values stored in `_owg_size_x/z` and `_owg_scale_y`, populated by `load_heightmap()` reading `terrain_meta.json`.
-
-**course_select.tscn** lives at `res://scenes/course_select.tscn` and is authored as a text scene (not requiring the editor). Node tree:
-```
-CourseSelectScreen (Control) ← course_select.gd; anchors 0/0/1/1, offsets 0
-├── Background (ColorRect)     ← anchors 0/0/1/1, offsets 0
-├── VBoxContainer              ← anchors 4%/5%/42%/97%
-│   ├── TitleLabel             ← 20px, clip_text=true
-│   ├── CourseList (ItemList)  ← size_flags_vertical EXPAND+FILL
-│   ├── ModeButtons (HBoxContainer)
-│   │   ├── QuickRoundButton   ← _start_load("quick")
-│   │   ├── NineHolesButton    ← _start_load("nine")
-│   │   └── FullRoundButton    ← _start_load("full") / Enter key
-│   └── LoadingLabel           ← visible=false until loading
-└── Panel                      ← anchors 44%/5%/97%/97%
-    ├── SplashImage (TextureRect)
-    ├── CourseName (Label)
-    ├── Author (Label)
-    └── HoleCount (Label)
-```
-Root Control and Background must use **explicit anchor values** (not `anchors_preset`), plus `offset_*=0`, or Godot may override them and collapse the layout.
-
-## Known Limitations / TODO
-
-- **OWG terrain untextured** — TerrainGenerator material still uses `res://assets/terrain/surface_fairway_alt.png`; OWG textures at `user://courses/OWG-The-Old-Course/textures/` not yet applied
-- **OWG course objects missing** — `_setup_hole_owg()` places only the player; flagstick, tee markers, buildings not yet instantiated for OWG path
-- Rollout still needs tuning (feels fast on firm conditions)
-- Green detection uses distance checks — could use OSM polygon for precision
+- **Terrain not yet walkable for hills** — HeightMapShape3D collision alignment
+  needs verification in-engine; the math is correct but physics body position
+  may need adjustment
+- Splatmap textures loading (case-insensitive fix applied) — verify in next run
+- Water planes not yet extracted/rendered for OWG courses
+- Course objects (trees, buildings) spawn as placeholder boxes
 - No audio
-- Spline mesh loader disabled (meshes had no material, caused visual water)
-- Multi-hole navigation works but only hole 1 has terrain/landmarks
-- Hole-out animation timing: scorecard shows after 0.8 s animation completes
-- Buildings are placeholder boxes — no real models yet
+- Old Course built-in path still uses original meta.json / heightmap constants
+- Multi-hole navigation: only hole 1 terrain built; subsequent holes rebuild terrain
+
+## Key Controls
+
+| Key | Action |
+|-----|--------|
+| WASD | Walk |
+| V | Open viewfinder (hold) |
+| Mouse wheel | Zoom viewfinder |
+| Left-click (VF) | Lock aim |
+| Space | Address screen |
+| Right-click (green) | Lock putt aim |
+| H | Toggle handedness |
+| ESC | Back to course selector |
 
 ## Dependencies
 
-- Godot 4.6 with Forward Plus rendering
-- Jolt Physics 3D
+- Godot 4.6, Forward Plus, Jolt Physics 3D
+- Python: UnityPy, Pillow, numpy (for converter)

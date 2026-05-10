@@ -5,8 +5,8 @@ class_name TerrainGenerator
 # Uses HeightMapShape3D for reliable CharacterBody3D collision
 # Attach to a StaticBody3D node, call build_from_hole() from main.gd
 
-@export var resolution: int = 128
-@export var margin: float = 80.0
+@export var resolution: int = 256
+@export var margin: float = 120.0
 @export var noise_strength: float = 0.4
 @export var noise_scale: float = 0.025
 
@@ -22,6 +22,67 @@ const HM_Y_BASE: float = 21.92       # Unity minimum elevation (m)
 const HM_Y_GODOT_OFFSET: float = -23.6  # converts Unity Y → Godot world Y
 
 var _hm_image: Image = null
+var _owg_fairway_tex: Texture2D = null
+var _owg_rough_tex: Texture2D = null
+var _owg_green_tex: Texture2D = null
+var _owg_splatmap_tex: Texture2D = null
+var _owg_splatmap_image: Image = null
+
+# Map Unity Prefab names to local Godot assets
+const ASSET_MAP = {
+	"Tree_Conifer": "res://assets/terrain/tree_conifer.png", # Placeholder: should be .tscn/.glb
+	"Tree_Conifer_Small": "res://assets/terrain/tree_conifer_small.png",
+	"Bush": "res://assets/terrain/bush.png",
+	"Bush_Billboard": "res://assets/terrain/bush_billboard.png",
+}
+
+const SPLAT_SHADER = """
+shader_type spatial;
+
+uniform sampler2D splatmap : source_color, filter_linear;
+uniform sampler2D fairway_tex : source_color, filter_linear_mipmap;
+uniform sampler2D green_tex : source_color, filter_linear_mipmap;
+uniform sampler2D rough_tex : source_color, filter_linear_mipmap;
+
+uniform vec4 green_tint : source_color = vec4(0.15, 0.58, 0.14, 1.0);
+uniform float uv_scale = 12.0;
+uniform float owg_size_x = 2271.0;
+uniform float owg_size_z = 2271.0;
+
+varying vec3 world_pos;
+
+void vertex() {
+	world_pos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+}
+
+void fragment() {
+	// Guard against zero terrain size (divide-by-zero produces NaN/garbage UVs)
+	float safe_size_x = max(owg_size_x, 1.0);
+	float safe_size_z = max(owg_size_z, 1.0);
+	vec2 s_uv = vec2(-world_pos.x / safe_size_x, world_pos.z / safe_size_z);
+	vec3 splat = texture(splatmap, s_uv).rgb;
+	
+	vec2 detail_uv = world_pos.xz / max(uv_scale, 0.1);
+	
+	vec3 fairway = texture(fairway_tex, detail_uv).rgb;
+	vec3 green = texture(green_tex, detail_uv).rgb * green_tint.rgb;
+	vec3 rough = texture(rough_tex, detail_uv).rgb;
+	
+	// Blend based on RGB: R=Fairway, G=Green, B=Rough
+	vec3 final_color = fairway * splat.r + green * splat.g + rough * splat.b;
+	
+	// Fallback to fairway if splat is empty
+	float total = splat.r + splat.g + splat.b;
+	if (total < 0.1) {
+		final_color = fairway;
+	} else {
+		final_color /= total; // normalize if overlap
+	}
+	
+	ALBEDO = final_color * COLOR.rgb;
+	ROUGHNESS = 0.85;
+}
+"""
 
 # Set by load_heightmap() when an OWG course is active; zero = use Old Course constants
 var _owg_size_x: float = 0.0
@@ -55,11 +116,10 @@ func _ready() -> void:
 
 func _sample_real_height(world_x: float, world_z: float) -> float:
 	if _owg_size_x > 0.0:
-		# OWG coordinate system: converter flips Unity X → Godot X = -Unity_X.
-		# Terrain covers Godot x: 0 → -_owg_size_x,  z: 0 → _owg_size_z.
-		# Heightmap was stored after np.flipud so row 0 = low Godot Z.
-		var u: float = clampf(-world_x / _owg_size_x, 0.0, 1.0)
-		var v: float = clampf( world_z / _owg_size_z, 0.0, 1.0)
+		# Heightmap saved with: transpose + flipud + fliplr
+		# Verified 0m error: u = 1-(-wx/sx) = 1+wx/sx, v = 1 - wz/sz
+		var u: float = clampf(1.0 + world_x / _owg_size_x, 0.0, 1.0)
+		var v: float = clampf(1.0 - world_z / _owg_size_z, 0.0, 1.0)
 		var px: int = int(u * float(_hm_image.get_width()  - 1))
 		var py: int = int(v * float(_hm_image.get_height() - 1))
 		return _hm_image.get_pixel(px, py).r * _owg_scale_y
@@ -108,7 +168,93 @@ func _load_terrain_meta(path: String) -> Dictionary:
 	return json.get_data()
 
 
+## Load textures from an absolute or user:// path (OWG extracted course).
+func load_textures(dir_path: String) -> void:
+	# Build map of lowercase_name -> actual_filename for case-insensitive matching
+	var file_map = {}  # lowercase -> original
+	var dir = DirAccess.open(dir_path)
+	if not dir:
+		push_warning("TerrainGenerator: Cannot open texture dir: " + dir_path)
+		return
+	dir.list_dir_begin()
+	var file_name = dir.get_next()
+	while file_name != "":
+		if not dir.current_is_dir():
+			file_map[file_name.to_lower()] = file_name
+		file_name = dir.get_next()
+	dir.list_dir_end()
+
+	print("TerrainGenerator: scanning %d textures in: %s" % [file_map.size(), dir_path])
+
+	# Helper: load first match from a list of candidate lowercase names
+	var _load_first = func(candidates: Array) -> ImageTexture:
+		for cname in candidates:
+			if cname in file_map:
+				var img = Image.load_from_file(dir_path + "/" + file_map[cname])
+				if img:
+					print("TerrainGenerator: loaded " + file_map[cname])
+					return ImageTexture.create_from_image(img)
+		# Also try partial match
+		for key in file_map:
+			for cname in candidates:
+				# strip .png and check if key contains it
+				var stem = cname.replace(".png", "")
+				if stem in key and key.ends_with(".png"):
+					var img = Image.load_from_file(dir_path + "/" + file_map[key])
+					if img:
+						print("TerrainGenerator: loaded (partial) " + file_map[key])
+						return ImageTexture.create_from_image(img)
+		return null
+
+	_owg_fairway_tex = _load_first.call(["fairway.png", "fairway2.png", "o_fairwayplain.png", "base_fairway.png", "surface_fairway.png", "skygrass_fair.png"])
+	_owg_green_tex   = _load_first.call(["green.png", "skygrass_green.png", "o_greenfringe.png", "pickupgreen.png", "surface_green.png"])
+	_owg_rough_tex   = _load_first.call(["terrainrough.png", "o_rough2desat.png", "meshlightrough.png", "base_rough1.png", "surface_rough.png"])
+
+	# Splatmap — try alphamaps from terrain/splat/ first, then textures folder
+	var splat_candidates = ["splatalpha_0.png", "splatalpha 0.png", "splatmap.png", "alphamap_0.png", "alphamap.png"]
+	_owg_splatmap_tex = null
+	_owg_splatmap_image = null
+
+	# Try textures folder
+	for cname in splat_candidates:
+		if cname in file_map:
+			var img = Image.load_from_file(dir_path + "/" + file_map[cname])
+			if img:
+				_owg_splatmap_image = img
+				_owg_splatmap_tex = ImageTexture.create_from_image(img)
+				print("TerrainGenerator: loaded splatmap: " + file_map[cname])
+				break
+
+	# Try terrain/splat/ subfolder
+	if not _owg_splatmap_tex:
+		var splat_dir = dir_path.get_base_dir() + "/terrain/splat"
+		var sd = DirAccess.open(splat_dir)
+		if sd:
+			sd.list_dir_begin()
+			var fn = sd.get_next()
+			while fn != "":
+				if fn.to_lower() in splat_candidates or "alphamap" in fn.to_lower():
+					var img = Image.load_from_file(splat_dir + "/" + fn)
+					if img:
+						_owg_splatmap_image = img
+						_owg_splatmap_tex = ImageTexture.create_from_image(img)
+						print("TerrainGenerator: loaded splatmap from terrain/splat/: " + fn)
+						break
+				fn = sd.get_next()
+
+	if not _owg_splatmap_tex:
+		push_warning("TerrainGenerator: No splatmap found — terrain will use flat color zones")
+
+
 func build_from_hole(tee: Vector3, pin: Vector3, all_tees: Array = [], all_pins: Array = []):
+	# Cleanup previous terrain to prevent Z-fighting and "under the surface" issues
+	if _mesh_instance:
+		_mesh_instance.queue_free()
+		_mesh_instance = null
+	if _collision_shape:
+		_collision_shape.queue_free()
+		_collision_shape = null
+		
 	# Collect all known points
 	var points: Array[Vector3] = [tee, pin]
 	for t in all_tees:
@@ -169,19 +315,18 @@ func build_from_hole(tee: Vector3, pin: Vector3, all_tees: Array = [], all_pins:
 		child.queue_free()
 
 	# Collision shape
+	# HeightMapShape3D in Godot 4 centers itself at origin.
+	# Scale x/z so each cell = one step. Position at bounds center.
 	var shape = HeightMapShape3D.new()
 	shape.map_width = _width
 	shape.map_depth = _depth
 	shape.map_data = _heightmap
 	_collision_shape = CollisionShape3D.new()
 	_collision_shape.shape = shape
-	# Scale each cell to match actual terrain step size, then center
-	var cell_sx = _bounds.size.x / (_width - 1)
-	var cell_sz = _bounds.size.z / (_depth - 1)
-	_collision_shape.scale = Vector3(cell_sx, 1.0, cell_sz)
+	_collision_shape.scale = Vector3(_step_x, 1.0, _step_z)
 	_collision_shape.position = Vector3(
 		_origin.x + _bounds.size.x * 0.5,
-		0,
+		0.0,
 		_origin.z + _bounds.size.z * 0.5
 	)
 	add_child(_collision_shape)
@@ -190,15 +335,46 @@ func build_from_hole(tee: Vector3, pin: Vector3, all_tees: Array = [], all_pins:
 	_mesh_instance = MeshInstance3D.new()
 	_mesh_instance.mesh = _generate_mesh()
 	_mesh_instance.position = _origin
-	var mat = StandardMaterial3D.new()
-	mat.vertex_color_use_as_albedo = true
-	mat.roughness = 0.92
-	mat.metallic = 0.0
-	var fairway_tex = load("res://assets/terrain/surface_fairway_alt.png")
-	if fairway_tex:
-		mat.albedo_texture = fairway_tex
-		mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
-	_mesh_instance.material_override = mat
+	
+	if _owg_splatmap_tex:
+		var mat := ShaderMaterial.new()
+		var shader := Shader.new()
+		shader.code = SPLAT_SHADER
+		mat.shader = shader
+		mat.set_shader_parameter("splatmap", _owg_splatmap_tex)
+		
+		# Fallbacks for all textures
+		var f_tex = _owg_fairway_tex if _owg_fairway_tex else load("res://assets/terrain/surface_fairway.png")
+		var g_tex = _owg_green_tex if _owg_green_tex else load("res://assets/terrain/surface_green.png")
+		var r_tex = _owg_rough_tex if _owg_rough_tex else load("res://assets/terrain/surface_rough.png")
+		
+		mat.set_shader_parameter("fairway_tex", f_tex)
+		mat.set_shader_parameter("green_tex", g_tex)
+		mat.set_shader_parameter("rough_tex", r_tex)
+		
+		mat.set_shader_parameter("uv_scale", GRASS_UV_SCALE)
+		mat.set_shader_parameter("owg_size_x", _owg_size_x)
+		mat.set_shader_parameter("owg_size_z", _owg_size_z)
+		mat.set_shader_parameter("green_tint", Color(0.15, 0.58, 0.14))
+		_mesh_instance.material_override = mat
+	else:
+		# No splatmap — use vertex color zones + tiled grass texture
+		var mat = StandardMaterial3D.new()
+		mat.vertex_color_use_as_albedo = true
+		mat.roughness = 0.92
+		mat.metallic = 0.0
+		# Use UV1 for the tiled texture (set per-vertex in _generate_mesh)
+		var base_tex = _owg_fairway_tex
+		if base_tex == null:
+			base_tex = load("res://assets/terrain/surface_fairway.png")
+		if base_tex == null:
+			base_tex = load("res://assets/terrain/grass.png")
+		if base_tex:
+			mat.albedo_texture = base_tex
+			mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+			# UV1 scale is handled per-vertex in _generate_mesh (GRASS_UV_SCALE)
+		_mesh_instance.material_override = mat
+	
 	add_child(_mesh_instance)
 
 	print("TerrainGenerator: Built %dx%d terrain for hole" % [_width, _depth])
@@ -229,6 +405,21 @@ func get_normal_at(world_x: float, world_z: float) -> Vector3:
 	return Vector3(hl - hr, 2.0 * s, hd - hu).normalized()
 
 func get_surface_type(world_x: float, world_z: float) -> String:
+	if _owg_splatmap_image:
+		# Map world coords to splatmap pixel
+		var u: float = clampf(-world_x / _owg_size_x, 0.0, 1.0)
+		var v: float = clampf( world_z / _owg_size_z, 0.0, 1.0)
+		var px: int = int(u * float(_owg_splatmap_image.get_width()  - 1))
+		var py: int = int(v * float(_owg_splatmap_image.get_height() - 1))
+		var col: Color = _owg_splatmap_image.get_pixel(px, py)
+		
+		# Prioritize by strongest channel: R=Fairway, G=Green, B=Rough
+		if col.g > col.r and col.g > col.b:
+			return "green"
+		if col.r > col.b:
+			return "fairway"
+		return "rough"
+
 	if _heightmap.is_empty():
 		return "rough"
 	var world = Vector3(world_x, 0, world_z)
@@ -282,6 +473,9 @@ func _distance_to_path(pos: Vector3, path: Array) -> float:
 	return min_d
 
 func _zone_color(world_x: float, world_z: float) -> Color:
+	if _owg_splatmap_image:
+		return Color.WHITE # splatmap handles all coloring via shader
+		
 	var world = Vector3(world_x, 0, world_z)
 	var d = _distance_to_path(world, _path)
 	var tee_d = world.distance_to(_tee)
@@ -342,3 +536,88 @@ func _smooth_heightmap(passes: int) -> void:
 							cnt += 1
 				sm[z * _width + x] = sum / float(cnt)
 		_heightmap = sm
+
+## Reads Unity object list (JSON) and spawns Godot scenes at those positions.
+## Rules: Godot_x = -Unity_x.
+func spawn_unity_objects(object_list: Array, container: Node3D) -> void:
+	if not container:
+		return
+		
+	# Clear previous objects
+	for child in container.get_children():
+		child.queue_free()
+		
+	print("TerrainGenerator: Spawning %d Unity objects..." % object_list.size())
+	
+	var count := 0
+	for obj in object_list:
+		if count >= 2000:
+			print("TerrainGenerator: Reached 2000 object limit, skipping rest")
+			break
+			
+		var prefab_name: String = obj.get("prefab_name", obj.get("name", "Unknown"))
+		
+		# Skip terrain/surface objects and water planes
+		var lname = prefab_name.to_lower()
+		if "terrain" in lname or "green" in lname or "fairway" in lname \
+				or "rough" in lname or "bunker" in lname or "water" in lname \
+				or "ocean" in lname or "lake" in lname or "pond" in lname \
+				or "sea" in lname or "river" in lname:
+			continue
+			
+		var unity_pos = obj.get("position", {"x":0, "y":0, "z":0})
+		var unity_rot = obj.get("rotation", {"x":0, "y":0, "z":0, "w":1})
+		var unity_scale = obj.get("scale", {"x":1, "y":1, "z":1})
+		
+		# Conversion: Godot_x = -Unity_x
+		var godot_pos = Vector3(-unity_pos.x, unity_pos.y, unity_pos.z)
+		var godot_quat = Quaternion(unity_rot.x, unity_rot.y, unity_rot.z, unity_rot.w)
+		var godot_scale = Vector3(unity_scale.x, unity_scale.y, unity_scale.z)
+		
+		# Ground the object using the heightmap if available
+		godot_pos.y = get_height_at(godot_pos.x, godot_pos.z)
+		
+		# Find Godot asset
+		var asset_path = ASSET_MAP.get(prefab_name, "")
+		
+		# Generic fallbacks
+		if asset_path == "":
+			if "tree" in lname or "conifer" in lname:
+				asset_path = ASSET_MAP["Tree_Conifer"]
+			elif "bush" in lname:
+				asset_path = ASSET_MAP["Bush"]
+		
+		var node: Node3D
+		if asset_path != "" and (asset_path.ends_with(".tscn") or asset_path.ends_with(".glb")):
+			var scene = load(asset_path)
+			if scene:
+				node = scene.instantiate()
+		
+		# If no scene found, use a placeholder (Sprite3D for billboards or CSGBox for buildings)
+		if not node:
+			if asset_path != "" and asset_path.ends_with(".png"):
+				var sprite = Sprite3D.new()
+				sprite.texture = load(asset_path)
+				sprite.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+				sprite.pixel_size = 0.05
+				node = sprite
+			else:
+				# Default fallback for everything else
+				var mi = MeshInstance3D.new()
+				var box = BoxMesh.new()
+				mi.mesh = box
+				node = mi
+				
+				# Tint fallback
+				var mat = StandardMaterial3D.new()
+				if "tree" in prefab_name.to_lower() or "bush" in prefab_name.to_lower():
+					mat.albedo_color = Color(0.2, 0.5, 0.2)
+				else:
+					mat.albedo_color = Color(0.6, 0.5, 0.4)
+				mi.material_override = mat
+
+		container.add_child(node)
+		node.global_position = godot_pos
+		node.quaternion = godot_quat
+		node.scale = godot_scale
+		count += 1

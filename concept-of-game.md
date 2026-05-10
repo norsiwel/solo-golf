@@ -1,11 +1,11 @@
-# SOLO GOLF — Game Concept Document
+# Open World GOLF — Game Concept Document
 ### "It's golf. Just like the real life experience."
 
 ---
 
 ## Vision Statement
 
-Solo Golf is a first-person golf simulation that recreates the complete experience of playing a real round of golf — not a game about golf, but golf itself rendered in a game engine. No avatars. No cheat cameras. No shortcuts. Just you, your rangefinder, your caddie's voice, and the course.
+Open World Golf is a first-person golf simulation that recreates the complete experience of playing a real round of golf — not a game about golf, but golf itself rendered in a game engine. No avatars. No cheat cameras. No shortcuts. Just you, your rangefinder, your caddie's voice, and the course.
 
 ---
 
@@ -68,12 +68,8 @@ This is intentional. The same meter for everyone means:
 - **Mirrors real golf** — tournament players use the same ball, same basic clubs
 
 ### Club Auto-Selection with Override
-The caddie recommends the right club based on distance, wind, lie, elevation and pin position. The player can always override.
+The game recommends the right club based on distance, wind, lie, elevation and pin position. The player can always override.
 
-The caddie explains the reasoning rather than showing raw numbers:
-- *"162 yards, slight helping wind, I've got the 7 iron in the bag"*
-- *"Going with the 6? Playing it safe, good thinking with that pin position"*
-- *"A 3 wood from 140 yards? This I have to see..."*
 
 ---
 
@@ -105,34 +101,11 @@ No two rounds play the same even on the same course. Modifiers stack multiplicat
 - Bunker stance
 - Rough depth
 
-The caddie communicates all of this in plain language. The player never sees a modifier percentage — they hear *"cold morning, ball won't fly as far, but the ground is firm so you'll get some run."*
 
 ---
 
-## The Caddie Voice
 
-The caddie is the voice of the game. Not an NPC, not a tutorial system — the living narrator of your round.
 
-**Pre-shot:**
-*"162 to the flag, wind left to right about 10mph, I'd take one more club"*
-
-**Reading putts:**
-*"Slight right to left break, maybe a ball outside right edge"*
-
-**Course knowledge:**
-*"Watch the Road Hole bunker on 17, it's eaten more cards than any other hole in golf"*
-
-**Reacting to shots:**
-*"Caught that a bit thin, should still find the fairway"*
-*"Get in the hole! You'll be buying the drinks tonight!"*
-
-**Weather:**
-*"Getting a bit lively out here"*
-*"That's us, straight to the bar"*
-*"Course is playing long now, take more club everywhere"*
-*"Worth coming back out for this view though"*
-
----
 
 ## The Ball
 

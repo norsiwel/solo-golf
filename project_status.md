@@ -1,119 +1,89 @@
-# Project Status — Open World Golf (AI Agent Version)
+# Open World Golf — Project Status
 
-## Purpose
+## Current State (May 2026)
 
-This document is for **AI coding agents** working on Open World Golf. It gives current state, active issues, and mandatory operating rules.
+### Working
+- Full gameplay loop: walk → aim → shoot → roll → putt → hole-out → scorecard
+- Title screen (Open-world-title.png) → course selector → game → ESC back to selector
+- Course selector: card UI with splash images, course name/author/holes, ▶ Play button
+- Both courses load and are playable: The Old Course (built-in) and Sunset Valley GC (OWG)
+- Runtime heightmap terrain with correct coordinate math (verified 0.001m vs Unity)
+- Shot tracer (yellow line), wind system, viewfinder rangefinder
+- Putting system with stimp, cup detection, hole-out animation
+- Scorecard with play-again / next-hole
 
----
+### Heightmap Breakthrough (this session)
+The OWG converter was extracting Unity heightmaps with wrong orientation AND wrong scale.
+Fix: `arr = arr.T; arr = np.flipud(arr); arr = np.fliplr(arr); scale_y *= 2.0`
+Result: 0.001m mean error across all 18 Sunset Valley tee positions.
+UV sampling in GDScript: `u = 1.0 + world_x/size_x`, `v = 1.0 - world_z/size_z`
 
-## ⚠️ CRITICAL OPERATING RULES
+### In Progress
+- Terrain walkability — HeightMapShape3D collision should now work with corrected
+  heightmap, but needs in-engine verification. Player should stand on hills not float.
+- Splatmap textures — case-insensitive file_map lookup added, should now find
+  SplatAlpha_0.png correctly for Sunset Valley
 
-1. **Commit to git before any change** — this is the backup
-2. **Preserve working functionality** — non-destructive additions preferred
-3. **Small, reversible changes** — no large refactors without explicit instruction
-4. **Update CLAUDE.md and this file** after any significant commit
-5. **Respect project structure** — follow existing file organisation
+### Next Session Priorities
 
----
+1. **Verify terrain walkability** — run Sunset Valley, confirm player walks on hills
+2. **Water planes** — extract PP_waterplane Y from unity3d bundle, render in Godot
+   - PG uses flat planes at fixed Y; terrain sculpted below = pond
+   - Extract from MonoBehaviour/Transform in the course bundle
+   - Store in course.json as water_planes array
+3. **Splatmap textures** — confirm fairway/rough/green shader is applying correctly
+4. **Course objects** — replace placeholder boxes with billboard sprites for trees
+5. **Old Course reconversion** — apply the same heightmap fix to standrewsv1.zip
+   (currently uses hand-crafted meta with hardcoded constants)
 
-## Current State (2026-05-07)
+## File Inventory
 
-**Stage:** Mid Development — OWG course loading end-to-end working; player spawns and shoots on OWG terrain
+### Core Game Scripts
+- main.gd — hole setup, OWG path, landmarks (NO baked terrain.tscn loading)
+- player.gd — ESC → course selector, all gameplay controls
+- terrain_generator.gd — resolution=256, margin=120, corrected UV sampling
+- course_loader.gd — extracts all files from OWG zip on load
+- course_select.gd — HSplitContainer card UI
+- title_screen.gd — scans courses in background thread
 
-### What Works
-- Full shot loop: tee → OVB → viewfinder aim → address screen → shot → rollout → scoring
-- MasterShotEngine carry/rollout/putt equations integrated in ball.gd
-- OVB (over-the-ball) first-person setup with perpendicular address stance
-- Viewfinder: 12° FOV, mouse-wheel zoom 6°–30°, 360° spin, yardage to any solid object
-- Putting: mouse look to aim, right-click set, left-click putt, auto-putter on green
-- Green detection: terrain zone (24 m from pin) + proximity check (40 m from green centre)
-- Swilcan Burn: visual water plane + precise circle-based hazard detection
-- Course conditions: random stimp (8–13) and firmness (Wet/Normal/Firm) each hole
-- Rollout: computed once at landing, linear deceleration, slope-aware
-- Tracer: solid ribbon (cross-section quads), ends at landing point
-- Ball-cam follows shot in flight with sky environment
-- Hole-out: only via green.gd check_hole_out (0.27 m), HOLING animation plays
-- Landmark buildings as StaticBody3D (raycast-visible from viewfinder)
-- Full-screen course map (M key) showing St.Andrews-course-map-1-18.png
-- Multi-hole structure via CourseManager (only hole 1 terrain/landmarks built)
-- **OWG course select screen** — visible at 1152×648, Quick/9/Full Round buttons, Enter key
-- **OWG course loading** — GameState autoload, CourseLoader ZIP scanner, extracts heightmap + splash
-- **OWG terrain generation** — runtime PNG loading → load_heightmap() → build_from_hole() with correct UV mapping from terrain_meta.json (scale_y=50.25, terrain_size 2271×2271)
-- **OWG player spawn** — _setup_hole_owg() reads championship tee from course.json, spawns +2 m above tee, orients perpendicular to pin, resets ball/stroke/HUD
-- **OWG shooting works** — MasterShotEngine + rollout functioning on OWG terrain surface
+### Converter
+- pg_to_owg_converter.py — FIXED: scale_y*2, T+flipud+fliplr orientation
+  Run: `python3 pg_to_owg_converter.py <course.zip> -o courses/`
+  Then delete user://courses/<name>/ cache before testing
 
-### Active Issues / Needs Work
+### Course Packages (res://courses/)
+- OWG-The-Old-Course.zip — needs reconversion with fixed heightmap math
+- OWG-Sunset-Valley-GC.zip — reconverted with correct orientation ✓
 
-#### OWG Visual (next session)
-- **Terrain has no texture** — TerrainGenerator still uses `res://assets/terrain/surface_fairway_alt.png`; extracted OWG textures at `user://courses/OWG-The-Old-Course/textures/` are not applied
-- **Course objects not placed** — flagstick, tee markers, and landmark buildings are missing on OWG path; `_setup_hole_owg()` does not yet instantiate scene geometry for these
+### Reference Data (not in game)
+- /home/ron/Downloads/PG-golf courses/ — original PG zip files
+- /home/ron/.local/share/Steam/steamapps/common/Perfect Golf/ — PG game install
+  (useful for studying water plane format, course designer)
 
-#### Existing (Old Course path)
-- Rollout distance may feel too long or short — needs in-game tuning
-- Green detection still occasionally misses (OSM polygon check would be more precise)
-- Putting ball occasionally doesn't appear — green detection fallback in _open_address helps
-- Buildings are placeholder boxes — no real 3D models
-- No audio
-- Spline mesh loader is disabled (meshes had no material, caused "water everywhere" visual)
-- Scorecard shows after 0.8 s HOLING animation — feels slightly delayed
-- Course only playable as hole 1; next-hole wraps but terrain/landmarks not rebuilt for other holes
+## Architecture Notes
 
----
+### Why Runtime Terrain (not baked .tscn)
+The baked terrain.tscn approach was tried and abandoned. The 137MB text .tscn
+with ArrayMesh vertices had coordinate alignment issues between visual mesh and
+collision shape. Runtime `build_from_hole()` samples the heightmap PNG directly
+using world coordinates — simpler, correct, and proven to work.
 
-## File-by-File Quick Reference
+### Coordinate System
+- Unity: left-handed, X right, Y up, Z forward
+- Godot: right-handed, X right, Y up, Z forward  
+- Conversion: Godot_X = -Unity_X (X axis flipped)
+- Terrain UV: u = 1 + world_x/size_x, v = 1 - world_z/size_z
 
-| File | Last Major Change | Notes |
-|------|------------------|-------|
-| ball.gd | MasterShotEngine + rollout refactor | _init_rollout() called once at landing |
-| player.gd | OVB, viewfinder, putting controls | on_tee flag, vf_yaw starts at flag |
-| main.gd | _setup_hole_owg() for OWG path | reads tee/pin from course.json, spawns player |
-| terrain_generator.gd | OWG UV mapping + timing fix | _owg_size_x/z/y vars; _sample_real_height() branches on OWG vs Old Course |
-| course_manager.gd | _setup_from_owg_data() deferred | call_deferred fixes _ready() race with TerrainGenerator |
-| game_state.gd | NEW — Autoload | Cross-scene: current_course, hole, scorecard, play_mode |
-| course_loader.gd | NEW — CourseLoader class | Scans OWG-*.zip, extracts heightmap.png + terrain_meta.json + splash |
-| course_select.gd | NEW — CourseSelectScreen | Pre-game picker; Quick/9/Full Round buttons; Enter key |
-| scenes/course_select.tscn | NEW | Explicit anchors 0/0/1/1 + display stretch settings fix viewport |
-| hole_map.gd | Replaced with static course image | M key |
-| courses/The_Old_Course_spline_loader.gd | Disabled (return early) | Re-enable when meshes have materials |
-| course_shapes_loader.gd | Green polygon from OSM shapes JSON | |
-
----
-
-## Development Priorities
-
-### High (next session)
-- **Apply OWG textures to terrain** — use fairway/rough PNGs from `user://courses/OWG-The-Old-Course/textures/` in TerrainGenerator material
-- **Place course objects on OWG path** — flagstick, tee markers, and buildings from course.json positions in `_setup_hole_owg()`
-- Tune rollout distances (course condition feel)
-
-### Medium
-- Green detection for OWG courses (OSM polygon not available; use pin-distance fallback or course.json green data)
-- Replace placeholder landmark boxes with simple 3D models
-- Re-enable spline meshes with grass material overrides
-- Multi-hole OWG support (call _setup_hole_owg() for holes 2–18)
-
-### Low
-- Audio — even basic crowd/ball sounds
-- AI opponents
-- Weather system (visual rain/wind effects)
-- Leaderboard / persistent scoring
-
----
-
-## OWG Course Package Format
-
-A valid OWG course ZIP (`OWG-<Name>.zip`) must contain:
+### OWG Package Format
 ```
-course.json              # name, author, hole_count, holes[]{hole_number, tees[], pins[]}
-terrain/heightmap.png    # 2049×2049 16-bit grayscale — extracted to user://courses/<name>/
-terrain/terrain_meta.json  # scale_y, terrain_size_x/z for UV mapping
-images/<splash>          # optional preview image for course select screen
-textures/*.png           # fairway, rough, bunker textures — not yet applied to terrain
+course.json          — holes, tees, pins, terrain meta, splash image name
+terrain/
+  heightmap.png      — 16-bit grayscale, orientation corrected
+  terrain_meta.json  — width, height, scale_x/y/z, terrain_size_x/z
+  splat/
+    alphamap_0..N.png — surface blend maps (R=fairway, G=green, B=rough)
+    splat_layers.json
+  terrain.tscn       — baked scene (not currently used)
+textures/            — all Unity Texture2D assets as PNG
+images/              — splash.jpg, flag.jpg
 ```
-
-**Coordinate system:** OWG JSON uses Godot coordinates (Unity X flipped: Godot_x = -Unity_x, z unchanged).
-- Hole 1 championship tee: (-1882, 24.61, 181.82)
-- Terrain covers Godot x: 0 → -2271, z: 0 → 2271
-- UV mapping: `u = -world_x / terrain_size_x`, `v = world_z / terrain_size_z`
-
-**Timing rule:** `CourseManager._setup_from_owg_data()` is called via `call_deferred()` so it runs after all `_ready()` calls complete, including `TerrainGenerator._ready()`. `main.gd._load_standrews()` is also deferred, and fires after `_setup_from_owg_data()` (CourseManager's deferred call is queued first). This guarantees terrain collision exists when the player is spawned.

@@ -128,6 +128,16 @@ func get_course_name() -> String:
 ## so the walkable mesh and HeightMapShape3D collision are constructed at runtime.
 ## Node paths assume CourseManager is a child of the main scene root.
 func _setup_from_owg_data(course_data: Dictionary) -> void:
+	# Store the OWG data as the active course metadata
+	course_meta = course_data
+	current_course_name = course_data.get("name", "OWG Course")
+	current_hole = 1
+	
+	# Normalize hole data: ensure "hole" key exists for compatibility
+	for hole in course_meta.get("holes", []):
+		if not hole.has("hole"):
+			hole["hole"] = hole.get("hole_number", 0)
+
 	var scene_root = get_parent()
 	var hole_terrain = scene_root.get_node_or_null("HoleTerrain")
 
@@ -141,25 +151,13 @@ func _setup_from_owg_data(course_data: Dictionary) -> void:
 	else:
 		push_warning("CourseManager: OWG course has no heightmap_path in course_data")
 
-	# Get hole 1 championship tee and first pin to define the terrain bounds
-	var tee_pos = _owg_get_tee_vec3(course_data, 1, "Championship")
-	var pins = _owg_get_pins(course_data, 1)
-	var pin_pos = pins[0].position if pins.size() > 0 else Vector3.ZERO
+	# Load textures if they exist in the extracted path
+	var extract_path = course_data.get("extract_path", "")
+	if extract_path != "" and hole_terrain and hole_terrain.has_method("load_textures"):
+		hole_terrain.load_textures(extract_path + "textures")
 
-	# Build walkable terrain mesh + HeightMapShape3D collision from the loaded heightmap
-	if hole_terrain and hole_terrain.has_method("build_from_hole"):
-		var all_tees_raw: Array = []
-		var all_pins_raw: Array = []
-		for hole in course_data.get("holes", []):
-			if hole.get("hole_number") == 1:
-				for t in hole.get("tees", []):
-					all_tees_raw.append(t.get("position", {}))
-				for p in hole.get("pins", []):
-					all_pins_raw.append(p.get("position", {}))
-				break
-		hole_terrain.build_from_hole(tee_pos, pin_pos, all_tees_raw, all_pins_raw)
-
-	print("CourseManager: OWG terrain built — ", course_data.get("name", "Unknown"))
+	# Terrain building is now handled by main.gd._setup_hole_owg() to support multi-hole
+	print("CourseManager: OWG metadata loaded — ", course_data.get("name", "Unknown"))
 
 
 func _owg_get_tee_vec3(course_data: Dictionary, hole_num: int, tee_type: String) -> Vector3:

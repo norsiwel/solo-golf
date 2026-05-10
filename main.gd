@@ -2,7 +2,7 @@ extends Node3D
 
 func _ready():
 	_start_spline_loader()
-	call_deferred("_load_standrews")
+	call_deferred("_load_course")
 
 func _start_spline_loader():
 	var loader_script = load("res://courses/The_Old_Course_spline_loader.gd")
@@ -14,29 +14,31 @@ func _start_spline_loader():
 	loader.set_script(loader_script)
 	add_child(loader)
 
-func _load_standrews():
-	# OWG path: terrain already built by CourseManager._setup_from_owg_data().
-	# Just place the player on the course.
+func _load_course():
+	# Always expect GameState.current_course to be set by CourseSelectScreen.
+	# If somehow empty (dev shortcut), fall back to The Old Course.
 	if not GameState.current_course.is_empty():
 		_setup_hole_owg(GameState.current_course, 1)
-		return
-
-	var cm = get_node_or_null("CourseManager")
-	var player = get_node_or_null("Player")
-	var hole_geo = get_node_or_null("HoleGeometry")
-
-	if not cm or not player or not hole_geo:
-		push_error("Main: Missing required nodes")
-		return
-
-	if not cm.load_course("The_Old_Course"):
-		push_error("Main: Failed to load The Old Course")
-		return
-
-	_setup_hole(1)
+	else:
+		# Dev fallback — load built-in Old Course directly
+		var cm = get_node_or_null("CourseManager")
+		var player = get_node_or_null("Player")
+		var hole_geo = get_node_or_null("HoleGeometry")
+		if not cm or not player or not hole_geo:
+			push_error("Main: Missing required nodes")
+			return
+		if not cm.load_course("The_Old_Course"):
+			push_error("Main: Failed to load The Old Course")
+			return
+		_setup_hole(1)
 
 
 func _setup_hole_owg(course_data: Dictionary, hole_num: int) -> void:
+	# Hide fallback ground for OWG
+	var fallback = get_node_or_null("FallbackGround")
+	if fallback:
+		fallback.visible = false
+
 	var player = get_node_or_null("Player")
 	if not player:
 		push_error("Main: Missing Player node for OWG setup")
@@ -52,32 +54,134 @@ func _setup_hole_owg(course_data: Dictionary, hole_num: int) -> void:
 			continue
 		for tee in hole.get("tees", []):
 			if tee.get("type") == "Championship":
-				var p = tee.get("position", {})
-				tee_pos = Vector3(p.get("x", 0.0), p.get("y", 0.0), p.get("z", 0.0))
+				var tp = tee.get("position", {})
+				tee_pos = Vector3(tp.get("x", 0.0), tp.get("y", 0.0), tp.get("z", 0.0))
 				par = int(str(tee.get("par", "4")).replace("_", ""))
 				break
 		var pins = hole.get("pins", [])
 		if pins.size() > 0:
-			var p = pins[0].get("position", {})
-			pin_pos = Vector3(p.get("x", 0.0), p.get("y", 0.0), p.get("z", 0.0))
+			var pp = pins[0].get("position", {})
+			pin_pos = Vector3(pp.get("x", 0.0), pp.get("y", 0.0), pp.get("z", 0.0))
 		break
 
 	if tee_pos == Vector3.ZERO:
 		push_error("Main: OWG hole %d championship tee not found" % hole_num)
 		return
 
+	# Use runtime terrain generator — baked .tscn approach has coordinate alignment issues.
+	var hole_terrain = get_node_or_null("HoleTerrain")
+
+	if hole_terrain and hole_terrain.has_method("build_from_hole"):
+		var all_tees_raw: Array = []
+		var all_pins_raw: Array = []
+		for hole in course_data.get("holes", []):
+			if hole.get("hole_number") == hole_num:
+				for t in hole.get("tees", []):
+					all_tees_raw.append(t.get("position", {}))
+				for p2 in hole.get("pins", []):
+					all_pins_raw.append(p2.get("position", {}))
+				break
+		hole_terrain.build_from_hole(tee_pos, pin_pos, all_tees_raw, all_pins_raw)
+
+	# Ground tee/pin via raycast — use call_deferred so physics has settled
+	tee_pos.y = _raycast_ground_y(tee_pos.x, tee_pos.z)
+	pin_pos.y = _raycast_ground_y(pin_pos.x, pin_pos.z)
+
 	# Spawn +2 m above tee — gravity settles player onto terrain surface
 	player.global_position = Vector3(tee_pos.x, tee_pos.y + 2.0, tee_pos.z)
 
+	# --- Course Map (Overhead) ---
+	var hole_map = get_node_or_null("HoleMap")
+	if hole_map and hole_map.has_method("set_map_image"):
+		if extract_path != "":
+			var tex_dir = extract_path + "textures"
+			var dir = DirAccess.open(tex_dir)
+			if dir:
+				dir.list_dir_begin()
+				var fn = dir.get_next()
+				while fn != "":
+					# Look for OH (Overhead) or map-related files
+					var lfn = fn.to_lower()
+					if "oh2.png" in lfn or "overhead" in lfn or "course-map" in lfn:
+						hole_map.set_map_image(tex_dir + "/" + fn)
+						break
+					fn = dir.get_next()
+				dir.list_dir_end()
+
+	# --- Course Objects (Flagstick, Tee Markers, Green Area) ---
+	var hole_geo = get_node_or_null("HoleGeometry")
+	if hole_geo:
+		# Flagstick
+		var flagstick = hole_geo.get_node_or_null("Flagstick")
+		if flagstick:
+			flagstick.global_position = pin_pos
+			flagstick.visible = true
+
+		# Tee Box / Markers
+		var play_dir = Vector3(pin_pos.x - tee_pos.x, 0.0, pin_pos.z - tee_pos.z).normalized()
+		var tee_box = hole_geo.get_node_or_null("TeeBox")
+		if tee_box:
+			tee_box.global_position = Vector3(tee_pos.x, tee_pos.y + 0.005, tee_pos.z)
+			tee_box.rotation.y = atan2(-play_dir.x, -play_dir.z) + PI * 0.5
+			tee_box.visible = true
+
+		var tee_peg = hole_geo.get_node_or_null("TeePeg")
+		if tee_peg:
+			tee_peg.global_position = Vector3(tee_pos.x, tee_pos.y + 0.06, tee_pos.z - play_dir.z * 0.5)
+			tee_peg.visible = true
+
+		# Green Area (Collision + Cup)
+		var green_area = hole_geo.get_node_or_null("GreenArea")
+		if green_area:
+			green_area.global_position = pin_pos
+			green_area.hole_number = hole_num
+			green_area.par = par
+			green_area.stimp = randf_range(8.0, 13.0)
+			green_area.visible = true
+			
+			# Set circular collision as fallback for OWG (24m radius green)
+			var col_shape = CylinderShape3D.new()
+			col_shape.radius = 24.0
+			col_shape.height = 1.0
+			var cs = green_area.get_node_or_null("CollisionShape3D")
+			if not cs:
+				for child in green_area.get_children():
+					if child is CollisionShape3D:
+						cs = child
+						break
+			if cs:
+				cs.shape = col_shape
+			
+			var cup = green_area.get_node_or_null("Cup")
+			if cup:
+				cup.global_position = Vector3(pin_pos.x, pin_pos.y + 0.005, pin_pos.z)
+				cup.visible = true
+			
+			player.green_node = green_area
+			
+			# Disable the Old Course green mesh if it exists
+			var green_mesh = hole_geo.get_node_or_null("Green")
+			if green_mesh:
+				green_mesh.visible = false
+
+		# Tee Area
+		var tee_area = hole_geo.get_node_or_null("TeeArea")
+		if tee_area:
+			tee_area.global_position = Vector3(tee_pos.x, tee_pos.y + 0.3, tee_pos.z)
+			tee_area.hole_number = hole_num
+			tee_area.par = par
+			tee_area.visible = true
+
 	# Orient perpendicular to tee→pin (flag to left for right-handers)
 	if pin_pos != Vector3.ZERO:
-		var play_dir = Vector3(pin_pos.x - tee_pos.x, 0.0, pin_pos.z - tee_pos.z).normalized()
-		var hand_offset := -PI * 0.5 if player.right_handed else PI * 0.5
-		player.yaw = atan2(-play_dir.x, -play_dir.z) + hand_offset
+		var orient_dir = Vector3(pin_pos.x - tee_pos.x, 0.0, pin_pos.z - tee_pos.z).normalized()
+		var hand_offset := PI * 0.5 if player.right_handed else -PI * 0.5
+		player.yaw = atan2(-orient_dir.x, -orient_dir.z) + hand_offset
 		player.rotation.y = player.yaw
 		player.pitch = 0.0
 		player.get_node("Camera3D").rotation.x = 0.0
-		player.aim_point = pin_pos
+		var facing_dir = -player.global_transform.basis.z.normalized()
+		player.aim_point = player.global_position + facing_dir * 250.0
 
 	# Reset game state
 	player.stroke_count = 0
@@ -85,10 +189,13 @@ func _setup_hole_owg(course_data: Dictionary, hole_num: int) -> void:
 	player.aim_locked = false
 
 	# Place ball on tee
+	var firmness := randf_range(0.7, 1.3)
+	var condition_str := "Wet" if firmness < 0.85 else ("Firm" if firmness > 1.15 else "Normal")
+
 	if player.ball:
 		player.ball.reset()
-		player.ball.course_firmness = randf_range(0.7, 1.3)
-		player.ball.cup_pos = Vector3.ZERO
+		player.ball.course_firmness = firmness
+		player.ball.cup_pos = pin_pos
 		player.ball.global_position = Vector3(tee_pos.x, tee_pos.y + 0.08, tee_pos.z)
 		player.ball.visible = true
 
@@ -98,12 +205,32 @@ func _setup_hole_owg(course_data: Dictionary, hole_num: int) -> void:
 	# HUD
 	var aim_label = player.get_node_or_null("HUD/AimLabel")
 	if aim_label:
-		aim_label.text = "%s  |  Hole %d  Par %d  |  V to aim" % [
-			course_data.get("name", "OWG Course"), hole_num, par
+		aim_label.text = "%s  |  Hole %d  Par %d  |  Course: %s  |  V to aim" % [
+			course_data.get("name", "OWG Course"), hole_num, par, condition_str
 		]
+
+	# Spawn course objects (buildings, trees, etc.)
+	_spawn_owg_objects(course_data.get("objects", []))
 
 	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
 	print("Main: OWG hole %d — player spawned at %s" % [hole_num, str(player.global_position)])
+
+
+func _spawn_owg_objects(objects: Array) -> void:
+	# Remove previous OWG objects
+	var container = get_node_or_null("OWGObjects")
+	if container:
+		container.queue_free()
+
+	container = Node3D.new()
+	container.name = "OWGObjects"
+	add_child(container)
+
+	var hole_terrain = get_node_or_null("HoleTerrain")
+	if hole_terrain and hole_terrain.has_method("spawn_unity_objects"):
+		hole_terrain.spawn_unity_objects(objects, container)
+	else:
+		print("Main: Missing HoleTerrain or spawn_unity_objects method")
 
 func _setup_hole(hole_num: int):
 	var cm = get_node_or_null("CourseManager")
@@ -265,26 +392,33 @@ func _setup_landmarks() -> void:
 
 		var ground_y := maxf(_raycast_ground_y(lx, lz), 0.0)
 
-		var box := BoxMesh.new()
-		box.size = Vector3(lw, lh, ld)
+		# Use CSG for slightly better looking buildings (roofs)
+		var building := CSGCombiner3D.new()
+		building.name = lname
+		building.use_collision = true # Allows viewfinder raycast
+		
+		# Main block
+		var base := CSGBox3D.new()
+		base.size = Vector3(lw, lh, ld)
 		var mat := StandardMaterial3D.new()
 		mat.albedo_color = col
 		mat.roughness = 0.85
-		box.surface_set_material(0, mat)
-
-		# StaticBody so the viewfinder raycast registers a distance hit
-		var body := StaticBody3D.new()
-		body.name = lname
-		var mi := MeshInstance3D.new()
-		mi.mesh = box
-		body.add_child(mi)
-		var col_shape := CollisionShape3D.new()
-		var box_shape := BoxShape3D.new()
-		box_shape.size = Vector3(lw, lh, ld)
-		col_shape.shape = box_shape
-		body.add_child(col_shape)
-		body.global_position = Vector3(lx, ground_y + lh * 0.5, lz)
-		add_child(body)
+		base.material = mat
+		building.add_child(base)
+		
+		# Add a simple peaked roof
+		var roof_h := lh * 0.4
+		var roof := CSGBox3D.new()
+		roof.size = Vector3(lw + 0.5, roof_h, ld + 0.5)
+		roof.position.y = lh * 0.5 + roof_h * 0.2
+		roof.rotation.x = deg_to_rad(15.0) # Slight tilt
+		var roof_mat = mat.duplicate()
+		roof_mat.albedo_color = col.darkened(0.3)
+		roof.material = roof_mat
+		building.add_child(roof)
+		
+		building.global_position = Vector3(lx, ground_y + lh * 0.5, lz)
+		add_child(building)
 
 func _setup_swilcan_burn() -> void:
 	# Remove old creek mesh if re-setting up hole
@@ -345,7 +479,13 @@ func go_to_next_hole():
 	var cm = get_node_or_null("CourseManager")
 	if not cm:
 		return
+	
 	var next = cm.current_hole + 1
 	if next > cm.get_total_holes():
 		next = 1
-	_setup_hole(next)
+	
+	if not GameState.current_course.is_empty():
+		cm.current_hole = next
+		_setup_hole_owg(GameState.current_course, next)
+	else:
+		_setup_hole(next)
