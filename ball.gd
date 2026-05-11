@@ -220,8 +220,8 @@ func launch(from: Vector3, p_power: float, p_accuracy: float, p_draw_fade: float
 		# Surface resistance: firm ground = less energy loss on takeoff
 		var r_s := clamp(course_firmness, 0.7, 1.3)
 		# Vertical slope: sample terrain ahead of shot
-		var ahead := from + (aim_target - from).normalized() * 5.0
-		var slope_vert := (ahead.y - from.y) / 5.0
+		var ahead: Vector3 = from + (aim_target - from).normalized() * 5.0
+		var slope_vert: float = (ahead.y - from.y) / 5.0
 		var carry: float = D_MAX * power * club_factor * lie_factor * accuracy * loft_factor * humidity_factor * r_s / ball_weight
 		carry *= (1.0 - 0.05 * slope_vert)
 		carry_distance = carry
@@ -429,9 +429,9 @@ func _init_rollout() -> void:
 		"green":      f_surface = 0.80
 	if surface == "bunker": in_bunker_flag = true
 	landed_surface = surface
-	var stimp_factor := stimp / 10.0
-	var spin_mod := (1.0 - spin.backspin) * (1.0 + spin.topspin)
-	var loft_roll_mod := clamp(1.0 - loft * 0.5, 0.02, 1.5)
+	var stimp_factor: float = stimp / 10.0
+	var spin_mod: float = (1.0 - float(spin.backspin)) * (1.0 + float(spin.topspin))
+	var loft_roll_mod: float = clamp(1.0 - loft * 0.5, 0.02, 1.5)
 	_roll_total = carry_distance * f_surface * stimp_factor / ball_weight * spin_mod * loft_roll_mod * 0.08
 	_roll_done  = 0.0
 	# Initial speed gives a visible roll that decelerates to stop over _roll_total metres
