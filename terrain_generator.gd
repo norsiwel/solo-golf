@@ -170,16 +170,22 @@ func _sample_real_height(world_x: float, world_z: float) -> float:
 ## Load a heightmap from an absolute or user:// path (OWG extracted course).
 ## Replaces the built-in heightmap; subsequent build_from_hole() calls use it.
 func load_heightmap(path: String) -> void:
-	var img = Image.load_from_file(path)
+	# Globalize user:// paths for Image.load_from_file()
+	var global_path = ProjectSettings.globalize_path(path)
+	var img = Image.load_from_file(global_path)
+	if img == null:
+		# Try the path as-is as fallback
+		img = Image.load_from_file(path)
 	if img == null:
 		push_error("TerrainGenerator: Failed to load heightmap from " + path)
-		_owg_size_x = 0.0  # fall back to Old Course constants
+		_owg_size_x = 0.0
 		return
 	_hm_image = img
-	# Read terrain_meta.json for OWG scale values
 	var meta_path = path.get_base_dir() + "/terrain_meta.json"
-	if FileAccess.file_exists(meta_path):
-		var meta = _load_terrain_meta(meta_path)
+	var global_meta = ProjectSettings.globalize_path(meta_path)
+	var actual_meta = global_meta if FileAccess.file_exists(global_meta) else meta_path
+	if FileAccess.file_exists(actual_meta):
+		var meta = _load_terrain_meta(actual_meta)
 		_owg_size_x  = meta.get("terrain_size_x", 0.0)
 		_owg_size_z  = meta.get("terrain_size_z", 0.0)
 		_owg_scale_y = meta.get("scale_y",         0.0)
@@ -205,11 +211,13 @@ func _load_terrain_meta(path: String) -> Dictionary:
 
 ## Load textures from an absolute or user:// path (OWG extracted course).
 func load_textures(dir_path: String) -> void:
-	# Build map of lowercase_name -> actual_filename for case-insensitive matching
-	var file_map = {}  # lowercase -> original
-	var dir = DirAccess.open(dir_path)
+	# Globalize user:// path for DirAccess and Image loading
+	var global_dir = ProjectSettings.globalize_path(dir_path)
+	var actual_dir = global_dir if DirAccess.dir_exists_absolute(global_dir) else dir_path
+	var file_map = {}
+	var dir = DirAccess.open(actual_dir)
 	if not dir:
-		push_warning("TerrainGenerator: Cannot open texture dir: " + dir_path)
+		push_warning("TerrainGenerator: Cannot open texture dir: " + actual_dir)
 		return
 	dir.list_dir_begin()
 	var file_name = dir.get_next()
@@ -225,17 +233,15 @@ func load_textures(dir_path: String) -> void:
 	var _load_first = func(candidates: Array) -> ImageTexture:
 		for cname in candidates:
 			if cname in file_map:
-				var img = Image.load_from_file(dir_path + "/" + file_map[cname])
+				var img = Image.load_from_file(actual_dir + "/" + file_map[cname])
 				if img:
 					print("TerrainGenerator: loaded " + file_map[cname])
 					return ImageTexture.create_from_image(img)
-		# Also try partial match
 		for key in file_map:
 			for cname in candidates:
-				# strip .png and check if key contains it
 				var stem = cname.replace(".png", "")
 				if stem in key and key.ends_with(".png"):
-					var img = Image.load_from_file(dir_path + "/" + file_map[key])
+					var img = Image.load_from_file(actual_dir + "/" + file_map[key])
 					if img:
 						print("TerrainGenerator: loaded (partial) " + file_map[key])
 						return ImageTexture.create_from_image(img)
@@ -253,7 +259,7 @@ func load_textures(dir_path: String) -> void:
 	# Try textures folder
 	for cname in splat_candidates:
 		if cname in file_map:
-			var img = Image.load_from_file(dir_path + "/" + file_map[cname])
+			var img = Image.load_from_file(actual_dir + "/" + file_map[cname])
 			if img:
 				_owg_splatmap_image = img
 				_owg_splatmap_tex = ImageTexture.create_from_image(img)
@@ -262,7 +268,7 @@ func load_textures(dir_path: String) -> void:
 
 	# Try terrain/splat/ subfolder
 	if not _owg_splatmap_tex:
-		var splat_dir = dir_path.get_base_dir() + "/terrain/splat"
+		var splat_dir = actual_dir.get_base_dir() + "/terrain/splat"
 		var sd = DirAccess.open(splat_dir)
 		if sd:
 			sd.list_dir_begin()

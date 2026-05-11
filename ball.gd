@@ -222,7 +222,7 @@ func launch(from: Vector3, p_power: float, p_accuracy: float, p_draw_fade: float
 		# Vertical slope: sample terrain ahead of shot
 		var ahead := from + (aim_target - from).normalized() * 5.0
 		var slope_vert := (ahead.y - from.y) / 5.0
-		var carry := D_MAX * power * club_factor * lie_factor * accuracy * loft_factor * humidity_factor * r_s / ball_weight
+		var carry: float = D_MAX * power * club_factor * lie_factor * accuracy * loft_factor * humidity_factor * r_s / ball_weight
 		carry *= (1.0 - 0.05 * slope_vert)
 		carry_distance = carry
 		# Lateral: MasterShotEngine uses draw_fade * 15 + accuracy error
