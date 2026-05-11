@@ -83,13 +83,23 @@ func _setup_hole_owg(course_data: Dictionary, hole_num: int) -> void:
 	if hole_terrain and hole_terrain.has_method("build_from_hole"):
 		var all_tees_raw: Array = []
 		var all_pins_raw: Array = []
+		var all_shots_raw: Array = []
 		for hole in course_data.get("holes", []):
 			if hole.get("hole_number") == hole_num:
 				for t in hole.get("tees", []):
 					all_tees_raw.append(t.get("position", {}))
 				for p2 in hole.get("pins", []):
 					all_pins_raw.append(p2.get("position", {}))
+				for s in hole.get("shots", []):
+					all_shots_raw.append(s)
 				break
+
+		# Set surface zones before building so get_surface_type works immediately
+		if hole_terrain.has_method("set_surface_zones"):
+			hole_terrain.set_surface_zones(
+				all_tees_raw, all_pins_raw, all_shots_raw,
+				course_data.get("objects", [])
+			)
 		hole_terrain.build_from_hole(tee_pos, pin_pos, all_tees_raw, all_pins_raw)
 
 	# Wait two physics frames so HeightMapShape3D collision registers before raycasting

@@ -91,6 +91,39 @@ var _owg_size_x: float = 0.0
 var _owg_size_z: float = 0.0
 var _owg_scale_y: float = 0.0
 
+## Surface zone data from course geometry
+var _surface_tees:          Array[Vector3] = []
+var _surface_pins:          Array[Vector3] = []
+var _surface_shots:         Array[Vector3] = []  # fairway spine waypoints
+var _surface_red_stakes:    Array[Vector3] = []  # bunker / lateral hazard edges
+var _surface_yellow_stakes: Array[Vector3] = []  # water hazard edges
+
+## Called from main.gd after OWG hole data is loaded.
+func set_surface_zones(tees: Array, pins: Array, shots: Array, objects: Array) -> void:
+	_surface_tees.clear()
+	_surface_pins.clear()
+	_surface_shots.clear()
+	_surface_red_stakes.clear()
+	_surface_yellow_stakes.clear()
+	for t in tees:
+		_surface_tees.append(Vector3(t.get("x",0), 0, t.get("z",0)))
+	for p in pins:
+		_surface_pins.append(Vector3(p.get("x",0), 0, p.get("z",0)))
+	for s in shots:
+		var sp = s.get("position", s)
+		_surface_shots.append(Vector3(sp.get("x",0), 0, sp.get("z",0)))
+	for obj in objects:
+		var n = obj.get("prefab_name", "").to_lower()
+		var pos_d = obj.get("position", {})
+		var pos = Vector3(pos_d.get("x",0), 0, pos_d.get("z",0))
+		if "stakered" in n or "stake_red" in n:
+			_surface_red_stakes.append(pos)
+		elif "stakeyellow" in n or "stake_yellow" in n:
+			_surface_yellow_stakes.append(pos)
+	print("TerrainGenerator: surface zones — %d tees %d pins %d shots %d red %d yellow" % [
+		_surface_tees.size(), _surface_pins.size(), _surface_shots.size(),
+		_surface_red_stakes.size(), _surface_yellow_stakes.size()])
+
 var _heightmap: PackedFloat32Array
 var _width: int
 var _depth: int
@@ -407,30 +440,41 @@ func get_normal_at(world_x: float, world_z: float) -> Vector3:
 	return Vector3(hl - hr, 2.0 * s, hd - hu).normalized()
 
 func get_surface_type(world_x: float, world_z: float) -> String:
-	if _owg_splatmap_image:
-		var u: float = clampf(1.0 + world_x / _owg_size_x, 0.0, 1.0)
-		var v: float = clampf(1.0 - world_z / _owg_size_z, 0.0, 1.0)
-		var px: int = int(u * float(_owg_splatmap_image.get_width()  - 1))
-		var py: int = int(v * float(_owg_splatmap_image.get_height() - 1))
-		var col: Color = _owg_splatmap_image.get_pixel(px, py)
-		
-		# Prioritize by strongest channel: R=Fairway, G=Green, B=Rough
-		if col.g > col.r and col.g > col.b:
-			return "green"
-		if col.r > col.b:
-			return "fairway"
-		return "rough"
+	var world := Vector3(world_x, 0, world_z)
 
-	if _heightmap.is_empty():
-		return "rough"
-	var world = Vector3(world_x, 0, world_z)
-	var tee_d = world.distance_to(_tee)
-	var pin_d = world.distance_to(_pin)
-	if tee_d < 8.0:
-		return "tee"
-	if pin_d < 24.0:
+	# --- Pin / Green check first ---
+	for pin in _surface_pins:
+		if world.distance_to(pin) < 22.0:
+			return "green"
+	if world.distance_to(_pin) < 22.0:
 		return "green"
-	var d = _distance_to_path(world, _path)
+
+	# --- Tee check ---
+	for tee in _surface_tees:
+		if world.distance_to(tee) < 10.0:
+			return "tee"
+	if world.distance_to(_tee) < 10.0:
+		return "tee"
+
+	# --- Red stake = bunker proximity ---
+	for stake in _surface_red_stakes:
+		if world.distance_to(stake) < 12.0:
+			return "bunker"
+
+	# --- Yellow stake = water hazard ---
+	for stake in _surface_yellow_stakes:
+		if world.distance_to(stake) < 8.0:
+			return "water"
+
+	# --- Fairway spine: tee → shots → pin ---
+	var spine: Array[Vector3] = []
+	spine.append_array(_surface_tees if not _surface_tees.is_empty() else [_tee])
+	spine.append_array(_surface_shots)
+	spine.append_array(_surface_pins if not _surface_pins.is_empty() else [_pin])
+	if spine.size() < 2:
+		spine = [_tee, _pin]
+
+	var d := _distance_to_path(world, spine)
 	if d < 22.0:
 		return "fairway"
 	if d < 55.0:
