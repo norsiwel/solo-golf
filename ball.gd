@@ -48,13 +48,15 @@ const PUTT_SPEED := 1.5
 # MasterShotEngine constants
 const D_MAX := 250.0   # reference max carry distance (metres)
 const K_LAT := 0.1     # lateral slope sensitivity
-var carry_distance := 0.0  # stored so ROLLING can use it for roll calc
-# Rollout state — computed ONCE at landing, not every frame
+const K_ASYM := 5.0    # asymmetric ball weight sensitivity
+var carry_distance := 0.0
 var _roll_total: float = 0.0
 var _roll_done: float = 0.0
 var _roll_spd0: float = 0.0
-# Course condition: 0.7=wet/slow, 1.0=normal, 1.3=firm/fast
-var course_firmness: float = 1.0
+var course_firmness: float = 1.0   # 0.7=wet, 1.0=normal, 1.3=firm
+var humidity_factor: float = 1.0   # H_f: 0.9=humid, 1.0=normal, 1.05=dry
+var ball_weight: float = 1.0       # BW: 1.0=normal, modified by mud/nicks
+var spin := {"backspin": 0.0, "topspin": 0.0}
 
 func _ready():
 	_setup_tracer()
@@ -206,18 +208,22 @@ func launch(from: Vector3, p_power: float, p_accuracy: float, p_draw_fade: float
 		# No ball cam for putts
 	else:
 		# MasterShotEngine calculate_carry():
-		# carry = D_max * P * C * L * A * L_f
+		# carry = D_max * P * C * L * A * L_f * H_f * R_s / BW
 		var club_factor := (club_yards * YARDS_TO_METERS) / D_MAX
-		# Lie factor from surface under ball at shot time
 		var lie_surface := _get_surface_type(from.x, from.z)
 		var lie_factor := 1.0
 		match lie_surface:
 			"rough":      lie_factor = 0.85
 			"deep_rough": lie_factor = 0.70
 			"bunker":     lie_factor = 0.50
-		# Loft factor: high loft trades carry for height
 		var loft_factor := 1.0 + loft * 0.15
-		var carry := D_MAX * power * club_factor * lie_factor * accuracy * loft_factor
+		# Surface resistance: firm ground = less energy loss on takeoff
+		var r_s := clamp(course_firmness, 0.7, 1.3)
+		# Vertical slope: sample terrain ahead of shot
+		var ahead := from + (aim_target - from).normalized() * 5.0
+		var slope_vert := (ahead.y - from.y) / 5.0
+		var carry := D_MAX * power * club_factor * lie_factor * accuracy * loft_factor * humidity_factor * r_s / ball_weight
+		carry *= (1.0 - 0.05 * slope_vert)
 		carry_distance = carry
 		# Lateral: MasterShotEngine uses draw_fade * 15 + accuracy error
 		var accuracy_error := (1.0 - accuracy) * 15.0
@@ -410,7 +416,8 @@ func _tracer_quad(st: SurfaceTool, p1: Vector3, p2: Vector3, p3: Vector3, p4: Ve
 	st.add_vertex(p1); st.add_vertex(p3); st.add_vertex(p4)
 
 func _init_rollout() -> void:
-	# MasterShotEngine calculate_roll — called once at the moment of landing
+	# MasterShotEngine calculate_roll():
+	# roll = carry * F_surface * (stimp/10) / BW * (1-backspin) * (1+topspin)
 	var surface := _get_surface_type(global_position.x, global_position.z)
 	var f_surface := 1.0
 	match surface:
@@ -422,11 +429,10 @@ func _init_rollout() -> void:
 		"green":      f_surface = 0.80
 	if surface == "bunker": in_bunker_flag = true
 	landed_surface = surface
-	var loft_roll_mod: float = clamp(1.0 - loft * 0.5, 0.02, 1.5)
-	# course_firmness: 0.7=wet/slow, 1.0=normal, 1.3=firm/fast
-	# Tuned: 0.08 base factor, and firmness impact dampened (50% effectiveness)
-	var firmness_mod = 1.0 + (course_firmness - 1.0) * 0.5
-	_roll_total = carry_distance * f_surface * loft_roll_mod * 0.08 * firmness_mod
+	var stimp_factor := stimp / 10.0
+	var spin_mod := (1.0 - spin.backspin) * (1.0 + spin.topspin)
+	var loft_roll_mod := clamp(1.0 - loft * 0.5, 0.02, 1.5)
+	_roll_total = carry_distance * f_surface * stimp_factor / ball_weight * spin_mod * loft_roll_mod * 0.08
 	_roll_done  = 0.0
 	# Initial speed gives a visible roll that decelerates to stop over _roll_total metres
 	_roll_spd0  = clamp(_roll_total * 1.5, 0.3, 10.0)
