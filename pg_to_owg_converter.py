@@ -525,130 +525,158 @@ def extract_meshes(env, output_dir):
 
 
 # ─────────────────────────────────────────────
+#  Transform hierarchy helpers
+# ─────────────────────────────────────────────
+
+def _quat_rotate(qx, qy, qz, qw, vx, vy, vz):
+    """Rotate vector (vx,vy,vz) by unit quaternion (qx,qy,qz,qw)."""
+    cx = qy*vz - qz*vy;  cy = qz*vx - qx*vz;  cz = qx*vy - qy*vx
+    dx = qy*cz - qz*cy;  dy = qz*cx - qx*cz;  dz = qx*cy - qy*cx
+    return (vx + 2.0*qw*cx + 2.0*dx,
+            vy + 2.0*qw*cy + 2.0*dy,
+            vz + 2.0*qw*cz + 2.0*dz)
+
+
+def _quat_mul(ax, ay, az, aw, bx, by, bz, bw):
+    """Hamilton product of two quaternions (x,y,z,w)."""
+    return (aw*bx + ax*bw + ay*bz - az*by,
+            aw*by - ax*bz + ay*bw + az*bx,
+            aw*bz + ax*by - ay*bx + az*bw,
+            aw*bw - ax*bx - ay*by - az*bz)
+
+
+# ─────────────────────────────────────────────
 #  Object placement extraction
 # ─────────────────────────────────────────────
 
 def extract_objects(env, mesh_map, output_dir):
-    """Extract GameObject placements and link to meshes."""
+    """Extract GameObject placements using world-space Transform hierarchy walk."""
     info("Extracting object placements...")
-    if DEBUG: dbg(f"Mesh map has {len(mesh_map)} entries")
+
+    # Pass 1: index all Transform objects by path_id so we can walk m_Father chains
+    transform_map = {}
+    for obj in env.objects:
+        if obj.type.name == "Transform":
+            try:
+                transform_map[obj.path_id] = obj.read()
+            except Exception:
+                pass
+    if DEBUG: dbg(f"Transform map: {len(transform_map)} entries")
+
+    def _world_trs(transform):
+        """Walk m_Father chain leaf→root, accumulate TRS into world space."""
+        chain = []
+        current = transform
+        visited = set()
+        while current is not None:
+            tid = id(current)
+            if tid in visited:
+                break
+            visited.add(tid)
+            chain.append(current)
+            father = getattr(current, "m_Father", None)
+            if father is None:
+                break
+            try:
+                pid = getattr(father, "path_id", 0)
+                if pid == 0 or pid not in transform_map:
+                    break
+                current = transform_map[pid]
+            except Exception:
+                break
+
+        # Accumulate root→leaf: rotate+translate each level into parent's frame
+        wx, wy, wz = 0.0, 0.0, 0.0
+        wrx, wry, wrz, wrw = 0.0, 0.0, 0.0, 1.0  # identity quaternion
+        wsx, wsy, wsz = 1.0, 1.0, 1.0
+
+        for t in reversed(chain):
+            lp = t.m_LocalPosition
+            lr = t.m_LocalRotation
+            ls = t.m_LocalScale
+            # Apply parent scale, then rotate by accumulated world rotation, then add
+            slx, sly, slz = lp.x * wsx, lp.y * wsy, lp.z * wsz
+            rx, ry, rz = _quat_rotate(wrx, wry, wrz, wrw, slx, sly, slz)
+            wx += rx;  wy += ry;  wz += rz
+            wrx, wry, wrz, wrw = _quat_mul(wrx, wry, wrz, wrw, lr.x, lr.y, lr.z, lr.w)
+            wsx *= ls.x;  wsy *= ls.y;  wsz *= ls.z
+
+        return wx, wy, wz, (wrx, wry, wrz, wrw), (wsx, wsy, wsz)
+
+    def _resolve_components(data):
+        """Return (transform, mesh_filter) from a GameObject's component list."""
+        components = getattr(data, "m_Component", []) or getattr(data, "m_Components", [])
+        mesh_filter = transform = None
+        for c in components:
+            c_ptr = None
+            if isinstance(c, tuple):
+                for item in c:
+                    if hasattr(item, "read") or hasattr(item, "path_id"):
+                        c_ptr = item; break
+            elif isinstance(c, dict):
+                c_ptr = c.get("component")
+            elif hasattr(c, "component"):
+                c_ptr = c.component
+            else:
+                c_ptr = c
+            if not c_ptr:
+                continue
+            try:
+                c_obj = c_ptr.read()
+                ctype = type(c_obj).__name__
+                if ctype == "MeshFilter":
+                    mesh_filter = c_obj
+                elif ctype == "Transform":
+                    transform = c_obj
+            except Exception:
+                continue
+        return transform, mesh_filter
+
     objects = []
     water_level = None
 
-    types_found = set()
-    go_encountered = 0
     for obj in env.objects:
-        types_found.add(obj.type.name)
         if obj.type.name != "GameObject":
             continue
-        
-        go_encountered += 1
-        if DEBUG and go_encountered < 10:
-             dbg(f"Encountered GO #{go_encountered}: {obj.path_id}")
-        
         try:
             data = obj.read()
             name = getattr(data, "m_Name", f"GO_{obj.path_id}")
-            
-            if DEBUG and go_encountered < 2:
-                dbg(f"  GO '{name}' attributes: {[a for a in dir(data) if not a.startswith('__')]}")
-            
-            components = getattr(data, "m_Component", [])
-            if not components:
-                components = getattr(data, "m_Components", [])
-            
-            if DEBUG and go_encountered < 2:
-                dbg(f"  GO '{name}' m_Component has {len(components)} items")
-                if len(components) > 0:
-                    dbg(f"  First item type: {type(components[0])}")
-            
-            # Find MeshFilter and Transform components
-            mesh_filter = None
-            transform = None
-            
-            # Try direct access first (some UnityPy versions support this)
-            if hasattr(data, "m_MeshFilter"):
-                 mf_ptr = data.m_MeshFilter
-                 if mf_ptr: mesh_filter = mf_ptr.read()
-            if hasattr(data, "m_Transform"):
-                 t_ptr = data.m_Transform
-                 if t_ptr: transform = t_ptr.read()
-            
-            if not mesh_filter or not transform:
-                for c in components:
-                    # In some versions it's a dict with "component" key
-                    c_ptr = None
-                    if isinstance(c, tuple) and len(c) > 0:
-                        for item in c:
-                             if hasattr(item, "read") or hasattr(item, "path_id"):
-                                 c_ptr = item
-                                 break
-                    elif isinstance(c, dict):
-                        c_ptr = c.get("component")
-                    elif hasattr(c, "component"):
-                        c_ptr = c.component
-                    else:
-                        c_ptr = c
-                    
-                    if DEBUG and go_encountered < 2:
-                        dbg(f"    - c_ptr type: {type(c_ptr)} (has read: {hasattr(c_ptr, 'read') if c_ptr else False})")
-                    
-                    if not c_ptr: continue
-                    try:
-                        c_obj = c_ptr.read()
-                        ctype = type(c_obj).__name__
-                        if DEBUG and go_encountered < 2:
-                             dbg(f"    - Component: {ctype}")
-                        if ctype == "MeshFilter":
-                            mesh_filter = c_obj
-                        elif ctype == "Transform":
-                            transform = c_obj
-                    except Exception as e:
-                        if DEBUG and go_encountered < 2:
-                             dbg(f"    - Component read failed: {e}")
-                        continue
-            
+            transform, mesh_filter = _resolve_components(data)
+
+            # Waterplane: record world Y, no mesh needed
             if "pp_waterplane" in name.lower() and water_level is None and transform:
-                water_level = float(transform.m_LocalPosition.y)
+                _, wy, _, _, _ = _world_trs(transform)
+                water_level = float(wy)
                 continue
 
-            if not mesh_filter:
+            if not mesh_filter or not transform:
                 continue
 
-            if not transform:
-                continue
-            
-            # Debug first few failures
             mesh_ptr = getattr(mesh_filter, "m_Mesh", None)
             if not mesh_ptr:
-                if DEBUG and len(objects) == 0: dbg(f"  GameObject '{name}' MeshFilter has no m_Mesh")
                 continue
-            
-            pid = mesh_ptr.path_id
-            mesh_path = mesh_map.get(pid)
+            mesh_path = mesh_map.get(mesh_ptr.path_id)
             if not mesh_path:
-                if DEBUG and len(objects) == 0: dbg(f"  GameObject '{name}' Mesh path_id {pid} NOT in mesh_map (map size {len(mesh_map)})")
                 continue
-            
-            # Get local transform
-            pos = transform.m_LocalPosition
-            rot = transform.m_LocalRotation # quaternion
-            scale = transform.m_LocalScale
-            
-            gx, gy, gz = unity_to_godot_pos(pos.x, pos.y, pos.z)
-            
+
+            wx, wy, wz, (qx, qy, qz, qw), (sx, sy, sz) = _world_trs(transform)
+
+            # Skip prefab template assets — they sit at exact origin
+            if wx == 0.0 and wy == 0.0 and wz == 0.0:
+                continue
+
+            gx, gy, gz = unity_to_godot_pos(wx, wy, wz)
             objects.append({
-                "name": name,
-                "mesh": mesh_path,
+                "name":     name,
+                "mesh":     mesh_path,
                 "position": {"x": gx, "y": gy, "z": gz},
-                "rotation": {"x": rot.x, "y": rot.y, "z": rot.z, "w": rot.w},
-                "scale": {"x": scale.x, "y": scale.y, "z": scale.z}
+                "rotation": {"x": qx, "y": qy, "z": qz, "w": qw},
+                "scale":    {"x": sx, "y": sy, "z": sz},
             })
-            
+
         except Exception as ex:
             dbg(f"Skipped object {obj.path_id}: {ex}")
-            
-    if DEBUG: dbg(f"Types encountered in loop: {types_found}")
+
     info(f"Objects: {len(objects)} placements found")
     if water_level is not None:
         info(f"Water level (Unity Y): {water_level:.3f}")

@@ -375,7 +375,7 @@ func build_from_hole(tee: Vector3, pin: Vector3, all_tees: Array = [], all_pins:
 	# Visual mesh
 	_mesh_instance = MeshInstance3D.new()
 	_mesh_instance.mesh = _generate_mesh()
-	_mesh_instance.position = _origin + Vector3(0, 0.02, 0)
+	_mesh_instance.position = _origin
 	
 	if _owg_splatmap_tex:
 		var mat := ShaderMaterial.new()
@@ -417,6 +417,7 @@ func build_from_hole(tee: Vector3, pin: Vector3, all_tees: Array = [], all_pins:
 		_mesh_instance.material_override = mat
 	
 	add_child(_mesh_instance)
+	print("Terrain debug: origin=", _origin, " bounds=", _bounds.size, " collision_pos=", _collision_shape.position, " collision_scale=", _collision_shape.scale)
 	print("TerrainGenerator: splatmap tex = ", _owg_splatmap_tex, " fairway = ", _owg_fairway_tex)
 
 	print("TerrainGenerator: Built %dx%d terrain for hole" % [_width, _depth])
