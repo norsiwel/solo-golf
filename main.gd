@@ -83,7 +83,11 @@ func _setup_hole_owg(course_data: Dictionary, hole_num: int) -> void:
 				break
 		hole_terrain.build_from_hole(tee_pos, pin_pos, all_tees_raw, all_pins_raw)
 
-	# Ground tee/pin via raycast — use call_deferred so physics has settled
+	# Wait two physics frames so HeightMapShape3D collision registers before raycasting
+	await get_tree().physics_frame
+	await get_tree().physics_frame
+
+	# Ground tee/pin via raycast
 	tee_pos.y = _raycast_ground_y(tee_pos.x, tee_pos.z)
 	pin_pos.y = _raycast_ground_y(pin_pos.x, pin_pos.z)
 
@@ -93,6 +97,7 @@ func _setup_hole_owg(course_data: Dictionary, hole_num: int) -> void:
 	# --- Course Map (Overhead) ---
 	var hole_map = get_node_or_null("HoleMap")
 	if hole_map and hole_map.has_method("set_map_image"):
+		var extract_path = course_data.get("extract_path", "")
 		if extract_path != "":
 			var tex_dir = extract_path + "textures"
 			var dir = DirAccess.open(tex_dir)
