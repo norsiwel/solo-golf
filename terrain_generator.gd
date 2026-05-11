@@ -56,10 +56,12 @@ void vertex() {
 }
 
 void fragment() {
-	// Guard against zero terrain size (divide-by-zero produces NaN/garbage UVs)
+	// Splatmap UV must match heightmap sampling formula (verified 0.001m error):
+	// u = 1 + world_x / size_x,  v = 1 - world_z / size_z
 	float safe_size_x = max(owg_size_x, 1.0);
 	float safe_size_z = max(owg_size_z, 1.0);
-	vec2 s_uv = vec2(-world_pos.x / safe_size_x, world_pos.z / safe_size_z);
+	vec2 s_uv = vec2(1.0 + world_pos.x / safe_size_x, 1.0 - world_pos.z / safe_size_z);
+	s_uv = clamp(s_uv, 0.0, 1.0);
 	vec3 splat = texture(splatmap, s_uv).rgb;
 	
 	vec2 detail_uv = world_pos.xz / max(uv_scale, 0.1);
@@ -406,9 +408,8 @@ func get_normal_at(world_x: float, world_z: float) -> Vector3:
 
 func get_surface_type(world_x: float, world_z: float) -> String:
 	if _owg_splatmap_image:
-		# Map world coords to splatmap pixel
-		var u: float = clampf(-world_x / _owg_size_x, 0.0, 1.0)
-		var v: float = clampf( world_z / _owg_size_z, 0.0, 1.0)
+		var u: float = clampf(1.0 + world_x / _owg_size_x, 0.0, 1.0)
+		var v: float = clampf(1.0 - world_z / _owg_size_z, 0.0, 1.0)
 		var px: int = int(u * float(_owg_splatmap_image.get_width()  - 1))
 		var py: int = int(v * float(_owg_splatmap_image.get_height() - 1))
 		var col: Color = _owg_splatmap_image.get_pixel(px, py)

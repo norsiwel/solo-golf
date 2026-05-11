@@ -68,8 +68,17 @@ func _setup_hole_owg(course_data: Dictionary, hole_num: int) -> void:
 		push_error("Main: OWG hole %d championship tee not found" % hole_num)
 		return
 
-	# Use runtime terrain generator — baked .tscn approach has coordinate alignment issues.
+	# Use runtime terrain generator
 	var hole_terrain = get_node_or_null("HoleTerrain")
+	var extract_path = course_data.get("extract_path", "")
+
+	# Load heightmap and textures BEFORE build_from_hole so shader has them ready
+	if hole_terrain:
+		var hm_path = course_data.get("heightmap_path", "")
+		if hm_path != "" and hole_terrain.has_method("load_heightmap"):
+			hole_terrain.load_heightmap(hm_path)
+		if extract_path != "" and hole_terrain.has_method("load_textures"):
+			hole_terrain.load_textures(extract_path + "textures")
 
 	if hole_terrain and hole_terrain.has_method("build_from_hole"):
 		var all_tees_raw: Array = []
@@ -97,7 +106,6 @@ func _setup_hole_owg(course_data: Dictionary, hole_num: int) -> void:
 	# --- Course Map (Overhead) ---
 	var hole_map = get_node_or_null("HoleMap")
 	if hole_map and hole_map.has_method("set_map_image"):
-		var extract_path = course_data.get("extract_path", "")
 		if extract_path != "":
 			var tex_dir = extract_path + "textures"
 			var dir = DirAccess.open(tex_dir)
