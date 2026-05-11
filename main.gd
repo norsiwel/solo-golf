@@ -137,7 +137,7 @@ func _setup_hole_owg(course_data: Dictionary, hole_num: int) -> void:
 		# Flagstick
 		var flagstick = hole_geo.get_node_or_null("Flagstick")
 		if flagstick:
-			flagstick.global_position = pin_pos
+			flagstick.global_position = Vector3(pin_pos.x, _raycast_ground_y(pin_pos.x, pin_pos.z), pin_pos.z)
 			flagstick.visible = true
 
 		# Tee Box / Markers

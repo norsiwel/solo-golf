@@ -146,6 +146,11 @@ def extract_heightmap(terrain_data, output_dir):
             "terrain_size_z": terrain_size_z,
         }
 
+        # Use heightmap minimum as water plane reference (replaces Unity PP_waterplane)
+        height_min = float((arr.astype(np.float32) / 65535.0 * effective_scale_y).min())
+        meta["water_level"] = round(height_min, 4)
+        print(f"  Water level (heightmap min): {height_min:.3f}m")
+
         meta_path = os.path.join(terrain_dir, "terrain_meta.json")
         with open(meta_path, "w") as f:
             json.dump(meta, f, indent=2)
@@ -528,7 +533,8 @@ def extract_objects(env, mesh_map, output_dir):
     info("Extracting object placements...")
     if DEBUG: dbg(f"Mesh map has {len(mesh_map)} entries")
     objects = []
-    
+    water_level = None
+
     types_found = set()
     go_encountered = 0
     for obj in env.objects:
@@ -602,9 +608,13 @@ def extract_objects(env, mesh_map, output_dir):
                              dbg(f"    - Component read failed: {e}")
                         continue
             
+            if "pp_waterplane" in name.lower() and water_level is None and transform:
+                water_level = float(transform.m_LocalPosition.y)
+                continue
+
             if not mesh_filter:
                 continue
-            
+
             if not transform:
                 continue
             
@@ -640,20 +650,25 @@ def extract_objects(env, mesh_map, output_dir):
             
     if DEBUG: dbg(f"Types encountered in loop: {types_found}")
     info(f"Objects: {len(objects)} placements found")
-    return objects
+    if water_level is not None:
+        info(f"Water level (Unity Y): {water_level:.3f}")
+    return objects, water_level
 
 
 # ─────────────────────────────────────────────
 #  Course JSON conversion
 # ─────────────────────────────────────────────
 
-def convert_course_json(description_data, terrain_meta, objects, output_dir):
+def convert_course_json(description_data, terrain_meta, objects, water_level, output_dir):
     """Convert PG course description JSON to OWG format."""
 
     def convert_pos(pos_dict):
         x, y, z = pos_dict["x"], pos_dict["y"], pos_dict["z"]
         gx, gy, gz = unity_to_godot_pos(x, y, z)
-        return {"x": gx, "y": gy, "z": gz}
+        height_min = terrain_meta.get("water_level", 0.0) if terrain_meta else 0.0
+        pos = {"x": gx, "y": gy, "z": gz}
+        pos["y"] = pos["y"] - height_min
+        return pos
 
     holes = {}
 
@@ -724,7 +739,8 @@ def convert_course_json(description_data, terrain_meta, objects, output_dir):
         "splash_image": description_data.get("splashName", ""),
         "flag_image":   description_data.get("flagName",   ""),
         "offset":       description_data.get("offset", 0),
-        "objects":      objects
+        "objects":      objects,
+        "water_level":  water_level
     }
 
     course_json_path = os.path.join(output_dir, "course.json")
@@ -903,11 +919,11 @@ def convert_course(zip_path, output_base_dir, build_tscn_file=True):
             # ── Step 6: Extract meshes and objects ─────────────────
             print("\n[6/7] Extracting meshes and objects...")
             mesh_count, mesh_map = extract_meshes(env, out_dir)
-            objects = extract_objects(env, mesh_map, out_dir)
+            objects, water_level = extract_objects(env, mesh_map, out_dir)
 
             # ── Step 7: Convert course JSON + images ───────────────
             print("\n[7/7] Converting course data...")
-            convert_course_json(description_data, terrain_meta, objects, out_dir)
+            convert_course_json(description_data, terrain_meta, objects, water_level, out_dir)
             copy_images(zf, description_data, out_dir)
 
         # ── Package into output zip ────────────────────────────────

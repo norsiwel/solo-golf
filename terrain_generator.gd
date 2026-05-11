@@ -417,6 +417,7 @@ func build_from_hole(tee: Vector3, pin: Vector3, all_tees: Array = [], all_pins:
 		_mesh_instance.material_override = mat
 	
 	add_child(_mesh_instance)
+	print("TerrainGenerator: splatmap tex = ", _owg_splatmap_tex, " fairway = ", _owg_fairway_tex)
 
 	print("TerrainGenerator: Built %dx%d terrain for hole" % [_width, _depth])
 
