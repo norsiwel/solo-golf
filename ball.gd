@@ -218,7 +218,7 @@ func launch(from: Vector3, p_power: float, p_accuracy: float, p_draw_fade: float
 			"bunker":     lie_factor = 0.50
 		var loft_factor := 1.0 + loft * 0.15
 		# Surface resistance: firm ground = less energy loss on takeoff
-		var r_s := clamp(course_firmness, 0.7, 1.3)
+		var r_s: float = clamp(course_firmness, 0.7, 1.3)
 		# Vertical slope: sample terrain ahead of shot
 		var ahead: Vector3 = from + (aim_target - from).normalized() * 5.0
 		var slope_vert: float = (ahead.y - from.y) / 5.0
