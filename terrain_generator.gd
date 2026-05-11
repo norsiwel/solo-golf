@@ -375,7 +375,7 @@ func build_from_hole(tee: Vector3, pin: Vector3, all_tees: Array = [], all_pins:
 	# Visual mesh
 	_mesh_instance = MeshInstance3D.new()
 	_mesh_instance.mesh = _generate_mesh()
-	_mesh_instance.position = _origin
+	_mesh_instance.position = _origin + Vector3(0, 0.02, 0)
 	
 	if _owg_splatmap_tex:
 		var mat := ShaderMaterial.new()
