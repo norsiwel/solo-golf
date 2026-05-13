@@ -365,11 +365,8 @@ func build_from_hole(tee: Vector3, pin: Vector3, all_tees: Array = [], all_pins:
 	_collision_shape = CollisionShape3D.new()
 	_collision_shape.shape = shape
 	_collision_shape.scale = Vector3(_step_x, 1.0, _step_z)
-	_collision_shape.position = Vector3(
-		_origin.x + _bounds.size.x * 0.5,
-		0.0,
-		_origin.z + _bounds.size.z * 0.5
-	)
+	# Position is in LOCAL space BEFORE scale is applied, so divide by step to get cell-space center
+	_collision_shape.position = _origin + Vector3(_bounds.size.x * 0.5, 0.0, _bounds.size.z * 0.5)
 	add_child(_collision_shape)
 
 	# Visual mesh
@@ -641,19 +638,27 @@ func spawn_unity_objects(object_list: Array, container: Node3D) -> void:
 				asset_path = ASSET_MAP["Bush"]
 		
 		var node: Node3D
-		if asset_path != "" and (asset_path.ends_with(".tscn") or asset_path.ends_with(".glb")):
+		# PNG billboard check FIRST — trees and bushes use billboard sprites
+		if asset_path != "" and asset_path.ends_with(".png"):
+			var sprite = Sprite3D.new()
+			var tex = load(asset_path)
+			if tex:
+				sprite.texture = tex
+			sprite.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+			sprite.double_sided = true
+			sprite.alpha_cut = SpriteBase3D.ALPHA_CUT_DISCARD
+			# Scale based on type — trees ~10m, bushes ~2m
+			if "tree" in lname or "conifer" in lname:
+				sprite.pixel_size = 0.022  # ~10m tall for 512px texture
+			elif "bush" in lname:
+				sprite.pixel_size = 0.006  # ~3m tall
+			else:
+				sprite.pixel_size = 0.01
+			node = sprite
+		elif asset_path != "" and (asset_path.ends_with(".tscn") or asset_path.ends_with(".glb")):
 			var scene = load(asset_path)
 			if scene:
 				node = scene.instantiate()
-		
-		# If no scene found, use a placeholder (Sprite3D for billboards or CSGBox for buildings)
-		if not node:
-			if asset_path != "" and asset_path.ends_with(".png"):
-				var sprite = Sprite3D.new()
-				sprite.texture = load(asset_path)
-				sprite.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-				sprite.pixel_size = 0.05
-				node = sprite
 			else:
 				# Default fallback for everything else
 				var mi = MeshInstance3D.new()
