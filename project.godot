@@ -35,3 +35,7 @@ window/stretch/aspect="expand"
 [rendering]
 
 rendering_device/driver.linux="vulkan"
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/terrain_3d/plugin.cfg")

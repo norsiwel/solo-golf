@@ -102,14 +102,8 @@ func _setup_hole_owg(course_data: Dictionary, hole_num: int) -> void:
 			)
 		hole_terrain.build_from_hole(tee_pos, pin_pos, all_tees_raw, all_pins_raw)
 
-	# Wait more physics frames — Jolt needs extra time for HeightMapShape3D
-	await get_tree().physics_frame
-	await get_tree().physics_frame
-	await get_tree().physics_frame
-	await get_tree().physics_frame
-	await get_tree().physics_frame
-
-	# Ground tee/pin — raycast first, fall back to heightmap query
+	# Terrain3D.data.get_height() is instant — no physics frame wait needed
+	# Ground tee/pin — Terrain3D direct query, raycast fallback, then heightmap
 	var tee_y := _raycast_ground_y(tee_pos.x, tee_pos.z)
 	var pin_y := _raycast_ground_y(pin_pos.x, pin_pos.z)
 	if tee_y == 0.0 and hole_terrain and hole_terrain.has_method("get_height_at"):
@@ -482,6 +476,14 @@ func _setup_swilcan_burn() -> void:
 	add_child(water)
 
 func _raycast_ground_y(world_x: float, world_z: float) -> float:
+	# Try Terrain3D direct height query first — no physics needed, instant
+	var terrain3d = get_node_or_null("Terrain3D")
+	if terrain3d and terrain3d.data:
+		var h = terrain3d.data.get_height(Vector3(world_x, 0, world_z))
+		if not is_nan(h) and h != 0.0:
+			return h
+
+	# Fall back to physics raycast
 	var space = get_world_3d().direct_space_state
 	if not space:
 		return 0.0
@@ -492,6 +494,11 @@ func _raycast_ground_y(world_x: float, world_z: float) -> float:
 	var result = space.intersect_ray(query)
 	if result:
 		return result.position.y
+
+	# Last resort — HoleTerrain heightmap query
+	var hole_terrain = get_node_or_null("HoleTerrain")
+	if hole_terrain and hole_terrain.has_method("get_height_at"):
+		return hole_terrain.get_height_at(world_x, world_z)
 	return 0.0
 
 func _reorient_player():
