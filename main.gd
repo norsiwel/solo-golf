@@ -44,68 +44,7 @@ func _setup_hole_owg(course_data: Dictionary, hole_num: int) -> void:
 		push_error("Main: Missing Player node for OWG setup")
 		return
 
-	var extract_path = course_data.get("extract_path", "")
-
-	# ── Step 1: Load baked terrain.tscn ───────────────────────────────────
-	# Remove any previous baked terrain
-	var old_terrain = get_node_or_null("BakedTerrain")
-	if old_terrain:
-		old_terrain.queue_free()
-		await get_tree().process_frame
-
-	var terrain_tscn_path = extract_path + "terrain/terrain.tscn"
-	var terrain_node: Node3D = null
-	var hole_terrain = get_node_or_null("HoleTerrain")
-
-	if FileAccess.file_exists(terrain_tscn_path):
-		# Godot 4 can't load user:// .tscn at runtime via load()
-		# So we instantiate via GDScript parsing instead
-		var global_path = ProjectSettings.globalize_path(terrain_tscn_path)
-		var packed = ResourceLoader.load(global_path, "", ResourceLoader.CACHE_MODE_IGNORE)
-		if packed:
-			terrain_node = packed.instantiate()
-			terrain_node.name = "BakedTerrain"
-			add_child(terrain_node)
-			print("Main: Loaded baked terrain.tscn ✓")
-
-			# Load splatmap textures onto the baked terrain's MeshInstance3D
-			if extract_path != "" and hole_terrain and hole_terrain.has_method("load_textures"):
-				hole_terrain.load_textures(extract_path + "textures")
-				# Apply shader material from hole_terrain to baked mesh
-				var baked_mesh = terrain_node.get_node_or_null("MeshInstance3D")
-				if baked_mesh and hole_terrain._owg_splatmap_tex:
-					var mat := ShaderMaterial.new()
-					var shader := Shader.new()
-					shader.code = hole_terrain.SPLAT_SHADER
-					mat.shader = shader
-					mat.set_shader_parameter("splatmap", hole_terrain._owg_splatmap_tex)
-					var f_tex = hole_terrain._owg_fairway_tex if hole_terrain._owg_fairway_tex else load("res://assets/terrain/surface_fairway.png")
-					var g_tex = hole_terrain._owg_green_tex if hole_terrain._owg_green_tex else load("res://assets/terrain/surface_green.png")
-					var r_tex = hole_terrain._owg_rough_tex if hole_terrain._owg_rough_tex else load("res://assets/terrain/surface_rough.png")
-					mat.set_shader_parameter("fairway_tex", f_tex)
-					mat.set_shader_parameter("green_tex", g_tex)
-					mat.set_shader_parameter("rough_tex", r_tex)
-					mat.set_shader_parameter("uv_scale", 12.0)
-					var terrain_meta = course_data.get("terrain", {})
-					mat.set_shader_parameter("owg_size_x", terrain_meta.get("terrain_size_x", 2271.0))
-					mat.set_shader_parameter("owg_size_z", terrain_meta.get("terrain_size_z", 2271.0))
-					baked_mesh.material_override = mat
-					print("Main: Splatmap material applied to baked terrain ✓")
-
-			# Also load heightmap into hole_terrain for height queries
-			var hm_path = extract_path + "terrain/heightmap.png"
-			if hole_terrain and hole_terrain.has_method("load_heightmap"):
-				hole_terrain.load_heightmap(hm_path)
-	else:
-		push_warning("Main: terrain.tscn not found at " + terrain_tscn_path + " — falling back to dynamic terrain")
-		if hole_terrain and hole_terrain.has_method("load_heightmap"):
-			var hm_path = course_data.get("heightmap_path", "")
-			if hm_path != "":
-				hole_terrain.load_heightmap(hm_path)
-		if extract_path != "" and hole_terrain and hole_terrain.has_method("load_textures"):
-			hole_terrain.load_textures(extract_path + "textures")
-
-	# ── Step 2: Get tee and pin positions ─────────────────────────────────
+	# Pull championship tee + first pin from OWG course.json
 	var tee_pos := Vector3.ZERO
 	var pin_pos := Vector3.ZERO
 	var par := 4
@@ -129,33 +68,90 @@ func _setup_hole_owg(course_data: Dictionary, hole_num: int) -> void:
 		push_error("Main: OWG hole %d championship tee not found" % hole_num)
 		return
 
-	# ── Step 3: Wait for physics so raycasts work ──────────────────────────
-	# Baked terrain.tscn has collision — wait 3 frames before raycasting
+	# Use runtime terrain generator
+	var hole_terrain = get_node_or_null("HoleTerrain")
+	var extract_path = course_data.get("extract_path", "")
+
+	# Load heightmap and textures BEFORE build_from_hole so shader has them ready
+	if hole_terrain:
+		var hm_path = course_data.get("heightmap_path", "")
+		if hm_path != "" and hole_terrain.has_method("load_heightmap"):
+			hole_terrain.load_heightmap(hm_path)
+		if extract_path != "" and hole_terrain.has_method("load_textures"):
+			hole_terrain.load_textures(extract_path + "textures")
+
+	if hole_terrain and hole_terrain.has_method("build_from_hole"):
+		var all_tees_raw: Array = []
+		var all_pins_raw: Array = []
+		var all_shots_raw: Array = []
+		for hole in course_data.get("holes", []):
+			if hole.get("hole_number") == hole_num:
+				for t in hole.get("tees", []):
+					all_tees_raw.append(t.get("position", {}))
+				for p2 in hole.get("pins", []):
+					all_pins_raw.append(p2.get("position", {}))
+				for s in hole.get("shots", []):
+					all_shots_raw.append(s)
+				break
+
+		# Set surface zones before building so get_surface_type works immediately
+		if hole_terrain.has_method("set_surface_zones"):
+			hole_terrain.set_surface_zones(
+				all_tees_raw, all_pins_raw, all_shots_raw,
+				course_data.get("objects", [])
+			)
+		hole_terrain.build_from_hole(tee_pos, pin_pos, all_tees_raw, all_pins_raw)
+
+	# Wait more physics frames — Jolt needs extra time for HeightMapShape3D
+	await get_tree().physics_frame
+	await get_tree().physics_frame
 	await get_tree().physics_frame
 	await get_tree().physics_frame
 	await get_tree().physics_frame
 
-	# Ground tee/pin via raycast into the baked collision
-	tee_pos.y = _raycast_ground_y(tee_pos.x, tee_pos.z)
-	pin_pos.y = _raycast_ground_y(pin_pos.x, pin_pos.z)
-	# Fallback to terrain query if raycast misses
-	if tee_pos.y == 0.0 and hole_terrain and hole_terrain.has_method("get_height_at"):
-		tee_pos.y = hole_terrain.get_height_at(tee_pos.x, tee_pos.z)
-	if pin_pos.y == 0.0 and hole_terrain and hole_terrain.has_method("get_height_at"):
-		pin_pos.y = hole_terrain.get_height_at(pin_pos.x, pin_pos.z)
-
+	# Ground tee/pin — raycast first, fall back to heightmap query
+	var tee_y := _raycast_ground_y(tee_pos.x, tee_pos.z)
+	var pin_y := _raycast_ground_y(pin_pos.x, pin_pos.z)
+	if tee_y == 0.0 and hole_terrain and hole_terrain.has_method("get_height_at"):
+		tee_y = hole_terrain.get_height_at(tee_pos.x, tee_pos.z)
+	if pin_y == 0.0 and hole_terrain and hole_terrain.has_method("get_height_at"):
+		pin_y = hole_terrain.get_height_at(pin_pos.x, pin_pos.z)
+	tee_pos.y = tee_y
+	pin_pos.y = pin_y
 	print("Main: tee_pos=", tee_pos, " pin_pos=", pin_pos)
 
-	# ── Step 4: Place HoleGeometry ─────────────────────────────────────────
+	# Spawn +2 m above tee — gravity settles player onto terrain surface
+	player.global_position = Vector3(tee_pos.x, tee_pos.y + 2.0, tee_pos.z)
+
+	# --- Course Map (Overhead) ---
+	var hole_map = get_node_or_null("HoleMap")
+	if hole_map and hole_map.has_method("set_map_image"):
+		if extract_path != "":
+			var tex_dir = extract_path + "textures"
+			var dir = DirAccess.open(tex_dir)
+			if dir:
+				dir.list_dir_begin()
+				var fn = dir.get_next()
+				while fn != "":
+					# Look for OH (Overhead) or map-related files
+					var lfn = fn.to_lower()
+					if "oh2.png" in lfn or "overhead" in lfn or "course-map" in lfn:
+						hole_map.set_map_image(tex_dir + "/" + fn)
+						break
+					fn = dir.get_next()
+				dir.list_dir_end()
+
+	# --- Course Objects (Flagstick, Tee Markers, Green Area) ---
 	var hole_geo = get_node_or_null("HoleGeometry")
 	if hole_geo:
-		var play_dir = Vector3(pin_pos.x - tee_pos.x, 0.0, pin_pos.z - tee_pos.z).normalized()
-
+		# Flagstick — use already-computed pin_pos.y
 		var flagstick = hole_geo.get_node_or_null("Flagstick")
 		if flagstick:
 			flagstick.global_position = Vector3(pin_pos.x, pin_pos.y, pin_pos.z)
 			flagstick.visible = true
 
+		# Tee Box / Markers
+		var play_dir = Vector3(pin_pos.x - tee_pos.x, 0.0, pin_pos.z - tee_pos.z).normalized()
 		var tee_box = hole_geo.get_node_or_null("TeeBox")
 		if tee_box:
 			tee_box.global_position = Vector3(tee_pos.x, tee_pos.y + 0.005, tee_pos.z)
@@ -164,28 +160,44 @@ func _setup_hole_owg(course_data: Dictionary, hole_num: int) -> void:
 
 		var tee_peg = hole_geo.get_node_or_null("TeePeg")
 		if tee_peg:
-			tee_peg.global_position = Vector3(tee_pos.x, tee_pos.y + 0.06, tee_pos.z)
+			tee_peg.global_position = Vector3(tee_pos.x, tee_pos.y + 0.06, tee_pos.z - play_dir.z * 0.5)
 			tee_peg.visible = true
 
+		# Green Area (Collision + Cup)
 		var green_area = hole_geo.get_node_or_null("GreenArea")
 		if green_area:
-			green_area.global_position = pin_pos
+			green_area.global_position = Vector3(pin_pos.x, pin_pos.y, pin_pos.z)
 			green_area.hole_number = hole_num
 			green_area.par = par
 			green_area.stimp = randf_range(8.0, 13.0)
 			green_area.visible = true
+			
+			# Set circular collision as fallback for OWG (24m radius green)
 			var col_shape = CylinderShape3D.new()
 			col_shape.radius = 24.0
 			col_shape.height = 1.0
-			for child in green_area.get_children():
-				if child is CollisionShape3D:
-					child.shape = col_shape
-					break
+			var cs = green_area.get_node_or_null("CollisionShape3D")
+			if not cs:
+				for child in green_area.get_children():
+					if child is CollisionShape3D:
+						cs = child
+						break
+			if cs:
+				cs.shape = col_shape
+			
 			var cup = green_area.get_node_or_null("Cup")
 			if cup:
 				cup.global_position = Vector3(pin_pos.x, pin_pos.y + 0.005, pin_pos.z)
+				cup.visible = true
+			
 			player.green_node = green_area
+			
+			# Disable the Old Course green mesh if it exists
+			var green_mesh = hole_geo.get_node_or_null("Green")
+			if green_mesh:
+				green_mesh.visible = false
 
+		# Tee Area
 		var tee_area = hole_geo.get_node_or_null("TeeArea")
 		if tee_area:
 			tee_area.global_position = Vector3(tee_pos.x, tee_pos.y + 0.3, tee_pos.z)
@@ -193,9 +205,7 @@ func _setup_hole_owg(course_data: Dictionary, hole_num: int) -> void:
 			tee_area.par = par
 			tee_area.visible = true
 
-	# ── Step 5: Spawn player ───────────────────────────────────────────────
-	player.global_position = Vector3(tee_pos.x, tee_pos.y + 2.0, tee_pos.z)
-
+	# Orient perpendicular to tee→pin (flag to left for right-handers)
 	if pin_pos != Vector3.ZERO:
 		var orient_dir = Vector3(pin_pos.x - tee_pos.x, 0.0, pin_pos.z - tee_pos.z).normalized()
 		var hand_offset := PI * 0.5 if player.right_handed else -PI * 0.5
@@ -203,12 +213,15 @@ func _setup_hole_owg(course_data: Dictionary, hole_num: int) -> void:
 		player.rotation.y = player.yaw
 		player.pitch = 0.0
 		player.get_node("Camera3D").rotation.x = 0.0
-		player.aim_point = player.global_position + (-player.global_transform.basis.z.normalized()) * 250.0
+		var facing_dir = -player.global_transform.basis.z.normalized()
+		player.aim_point = player.global_position + facing_dir * 250.0
 
-	# ── Step 6: Reset game state ───────────────────────────────────────────
+	# Reset game state
 	player.stroke_count = 0
 	player.on_green = false
 	player.aim_locked = false
+
+	# Place ball on tee
 	var firmness := randf_range(0.7, 1.3)
 	var condition_str := "Wet" if firmness < 0.85 else ("Firm" if firmness > 1.15 else "Normal")
 
@@ -222,26 +235,14 @@ func _setup_hole_owg(course_data: Dictionary, hole_num: int) -> void:
 	if player.address_screen:
 		player.address_screen.set_putting_mode(false)
 
-	# ── Step 7: HUD and objects ────────────────────────────────────────────
+	# HUD
 	var aim_label = player.get_node_or_null("HUD/AimLabel")
 	if aim_label:
-		aim_label.text = "%s  |  Hole %d  Par %d  |  %s  |  V to aim" % [
+		aim_label.text = "%s  |  Hole %d  Par %d  |  Course: %s  |  V to aim" % [
 			course_data.get("name", "OWG Course"), hole_num, par, condition_str
 		]
 
-	var hole_map = get_node_or_null("HoleMap")
-	if hole_map and hole_map.has_method("set_map_image"):
-		if extract_path != "":
-			var dir = DirAccess.open(extract_path + "textures")
-			if dir:
-				dir.list_dir_begin()
-				var fn = dir.get_next()
-				while fn != "":
-					if "oh2.png" in fn.to_lower() or "overhead" in fn.to_lower():
-						hole_map.set_map_image(extract_path + "textures/" + fn)
-						break
-					fn = dir.get_next()
-
+	# Spawn course objects (buildings, trees, etc.)
 	_spawn_owg_objects(course_data.get("objects", []))
 
 	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
