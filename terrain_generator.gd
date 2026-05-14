@@ -647,11 +647,10 @@ func spawn_unity_objects(object_list: Array, container: Node3D) -> void:
 			sprite.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 			sprite.double_sided = true
 			sprite.alpha_cut = SpriteBase3D.ALPHA_CUT_DISCARD
-			# Scale based on type — trees ~10m, bushes ~2m
 			if "tree" in lname or "conifer" in lname:
-				sprite.pixel_size = 0.022  # ~10m tall for 512px texture
+				sprite.pixel_size = 0.022
 			elif "bush" in lname:
-				sprite.pixel_size = 0.006  # ~3m tall
+				sprite.pixel_size = 0.006
 			else:
 				sprite.pixel_size = 0.01
 			node = sprite
@@ -659,20 +658,22 @@ func spawn_unity_objects(object_list: Array, container: Node3D) -> void:
 			var scene = load(asset_path)
 			if scene:
 				node = scene.instantiate()
+
+		# Fallback — always create something so node is never null
+		if not node:
+			var mi = MeshInstance3D.new()
+			var box = BoxMesh.new()
+			box.size = Vector3(1, 2, 1)
+			mi.mesh = box
+			var mat = StandardMaterial3D.new()
+			if "tree" in lname or "conifer" in lname or "bush" in lname:
+				mat.albedo_color = Color(0.2, 0.5, 0.2)
+			elif "build" in lname or "house" in lname or "hotel" in lname:
+				mat.albedo_color = Color(0.7, 0.65, 0.55)
 			else:
-				# Default fallback for everything else
-				var mi = MeshInstance3D.new()
-				var box = BoxMesh.new()
-				mi.mesh = box
-				node = mi
-				
-				# Tint fallback
-				var mat = StandardMaterial3D.new()
-				if "tree" in prefab_name.to_lower() or "bush" in prefab_name.to_lower():
-					mat.albedo_color = Color(0.2, 0.5, 0.2)
-				else:
-					mat.albedo_color = Color(0.6, 0.5, 0.4)
-				mi.material_override = mat
+				mat.albedo_color = Color(0.6, 0.55, 0.5)
+			mi.material_override = mat
+			node = mi
 
 		container.add_child(node)
 		node.global_position = godot_pos
