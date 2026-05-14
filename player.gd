@@ -3,7 +3,12 @@ extends CharacterBody3D
 @export var mouse_sensitivity := 0.002
 @export var walk_speed := 16.0
 @export var gravity := 9.8
-@export var right_handed := true   # false = left-handed (mirror stance)
+@export var jump_velocity := 6.0
+@export var right_handed := true
+
+var _crouching := false
+var _normal_height := 1.8
+var _crouch_height := 0.9
 
 var yaw := 0.0
 var pitch := 0.0
@@ -579,6 +584,20 @@ func _physics_process(delta):
 		velocity.y -= gravity * delta
 	else:
 		velocity.y = 0
+		# Jump with Space when not in golf mode
+		if Input.is_action_just_pressed("ui_accept") and not aim_locked and not on_green and not viewfinder_active:
+			velocity.y = jump_velocity
+
+	# Crouch with C — lowers camera height for reading greens and escaping terrain
+	if Input.is_key_pressed(KEY_C):
+		if not _crouching:
+			_crouching = true
+			$Camera3D.position.y = _crouch_height
+	else:
+		if _crouching:
+			_crouching = false
+			$Camera3D.position.y = _normal_height
+
 	move_and_slide()
 
 func _check_ball_stance() -> void:
