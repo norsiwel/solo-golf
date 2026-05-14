@@ -28,6 +28,10 @@ GameState="*res://game_state.gd"
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
 
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/terrain_3d/plugin.cfg")
+
 [physics]
 
 3d/physics_engine="Jolt Physics"
@@ -35,7 +39,3 @@ window/stretch/aspect="expand"
 [rendering]
 
 rendering_device/driver.linux="vulkan"
-
-[editor_plugins]
-
-enabled=PackedStringArray("res://addons/terrain_3d/plugin.cfg")

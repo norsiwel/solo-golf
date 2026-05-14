@@ -356,17 +356,24 @@ func build_from_hole(tee: Vector3, pin: Vector3, all_tees: Array = [], all_pins:
 		child.queue_free()
 
 	# Collision shape
-	# HeightMapShape3D in Godot 4 centers itself at origin.
-	# Scale x/z so each cell = one step. Position at bounds center.
+	# Godot 4 HeightMapShape3D: cells are unit-spaced by default, centered at shape origin.
+	# We use a Transform3D to scale and position correctly — avoids the scale+position bug.
 	var shape = HeightMapShape3D.new()
 	shape.map_width = _width
 	shape.map_depth = _depth
 	shape.map_data = _heightmap
 	_collision_shape = CollisionShape3D.new()
 	_collision_shape.shape = shape
-	_collision_shape.scale = Vector3(_step_x, 1.0, _step_z)
-	# Position is in LOCAL space BEFORE scale is applied, so divide by step to get cell-space center
-	_collision_shape.position = _origin + Vector3(_bounds.size.x * 0.5, 0.0, _bounds.size.z * 0.5)
+	# Build transform: scale cell spacing, then translate so shape covers _origin → _origin+bounds
+	# HeightMapShape3D is centered at (0,0,0) spanning -(w-1)/2 to +(w-1)/2 in X and Z
+	# After scaling by step: spans -bounds/2 to +bounds/2
+	# Translate by bounds center to align with mesh origin
+	var cx = _origin.x + _bounds.size.x * 0.5
+	var cz = _origin.z + _bounds.size.z * 0.5
+	_collision_shape.transform = Transform3D(
+		Basis(Vector3(_step_x, 0, 0), Vector3(0, 1, 0), Vector3(0, 0, _step_z)),
+		Vector3(cx, 0.0, cz)
+	)
 	add_child(_collision_shape)
 
 	# Visual mesh
