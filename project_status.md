@@ -1,117 +1,84 @@
 # Open World Golf — Project Status
 
-## Current State (May 2026)
+## Current State (May 19 2026)
 
-### Working
+### Working ✅
 - Full gameplay loop: walk → aim → shoot → roll → putt → hole-out → scorecard
-- Title screen (Open-world-title.png) → course selector → game → ESC back to selector
-- Course selector: card UI with splash images, course name/author/holes, ▶ Play button
-- Both courses load and are playable: The Old Course (OWG) and Sunset Valley GC (OWG)
-- Runtime heightmap terrain with correct coordinate math (verified 0.001m vs Unity)
-- Shot tracer (yellow line), wind system, viewfinder rangefinder
+- Title screen → course selector (card UI with splash images) → game → ESC back
+- Both OWG zips load: The Old Course (332MB) and Sunset Valley GC (680MB)
+- Runtime heightmap terrain visible with rolling hills — St Andrews shape confirmed
+- Splatmap shader wired up (PBR burley/schlick, 5 surface channels)
+- ACES tonemapping + glow + SSAO environment node
+- Wind system, animated flag, viewfinder rangefinder
+- Shot tracer, ball flight arc with ball camera
 - Putting system with stimp, cup detection, hole-out animation
 - Scorecard with play-again / next-hole
-- Water level datum: heightmap minimum used to zero-floor all Y positions in course.json
-- Object extraction: real world positions via Transform hierarchy walk (7237/881 objects)
-- Flagstick Y snapped to terrain surface via raycast in main.gd
+- Jump (Space) and crouch (C) controls for terrain navigation
+- Water level datum: tee/pin Y positions correctly offset from water plane
+  - St Andrews: tee Y=3.1m, pin Y=0.7m (verified from new zip)
+  - Sunset Valley: tee Y=9.3m, pin Y=6.6m
+- apply_terrain_material() in course_loader.gd with texture_map.json lookup
+- Dev fallback (F6) now loads OWG zip via CourseLoader properly
 
-### Session Progress (2026-05-11)
+### Needs Testing / Known Issues 🔲
+- Player spawn: lands on terrain at correct Y? (screenshot showed wrong location — F6 key)
+- Splatmap textures: were null in last test (used F6/dev fallback before fix)
+- Collision shape: Transform3D fix applied, needs verification player walks on hills
+- Ball appears as blue diamond shape — likely material load failure, should fix with F5
+- Course objects: 7237 objects spawn as grey/green boxes (no billboard mapping yet)
+- Water planes: water_plane_y in course.json but not rendered in Godot yet
+- Multi-hole: only hole 1 terrain built
 
-**Water level datum**
-- `height_min` computed from corrected heightmap array (min of uint16 values × scale_y)
-- Stored in `terrain_meta.json` as `water_level`
-- All tee/pin/shot Y positions shifted by `-water_level` in course.json
-- Terrain floor now sits at Y=0; ponds at or below zero
-- Old Course: water_level=12.248m. Sunset Valley: water_level=0.000m
-- PP_waterplane extraction via Transform hierarchy walk (Old Course: 23.43m Unity Y)
+### What To Test Next Session
+1. **F5 to run** (not F6) → course selector appears → pick The Old Course
+2. Player should spawn at tee, standing on terrain ~3m above water plane
+3. Check console for splatmap tex load — should NOT be null anymore
+4. Walk around — do hills have collision?
+5. V to aim at flag (375 yds) → shoot → walk → putt
 
-**Object extraction fix**
-- Previous: all 7284/963 objects had position (0,0,0) — were prefab templates
-- Fix: build `transform_map` (path_id → Transform) for all Transform objects, then walk
-  `m_Father` chain root→leaf accumulating TRS with quaternion composition
-- Helpers: `_quat_rotate`, `_quat_mul`, `_world_trs` (module-level + inner closures)
-- Origin filter drops exact-(0,0,0) results (prefab definitions, not scene instances)
-- Result: 7237 real placed objects (Old Course), 881 (Sunset Valley)
-- Waterplane world Y now also computed via hierarchy walk
+## Session History (May 19 2026)
 
-**Other fixes**
-- `r_s: float =` explicit type hint in ball.gd (GDScript type inference fix)
-- Flagstick positioned at `_raycast_ground_y()` Y rather than raw pin_pos.y
-- Debug prints in terrain_generator.gd: splatmap tex state, origin/bounds/collision info
-- Visual mesh offset reverted to `_origin` (no +0.02 offset needed)
+**Converter rewrite (pg_to_owg_converter.py)**
+- Water plane as Y reference: all tee/pin/shot positions now offset by -water_plane_y
+- Both courses reconverted with correct datum
+- texture_map.json classification: fairway/rough/green/bunker/sand/path/tee/water
 
-### In Progress
-- Terrain walkability — HeightMapShape3D collision alignment needs in-engine verification
-- Splatmap textures — shader blending; debug prints will confirm tex load state
-- Course objects — 7237 objects have real positions but render as placeholder boxes
+**Shader upgrade**
+- terrain_splatmap.gdshader: PBR render_mode, diffuse_burley, specular_schlick_ggx
+- World-space UV for splatmap: u=-world_x/size_x, v=world_z/size_z
+- 5 channels: fairway(R) rough(G) green(B) bunker(A) sand(remainder)
+- shaders/ directory alias for compatibility
 
-### Next Session Priorities
+**Environment node (owg_environment.gd)**
+- ACES tonemapping, glow (intensity 0.6), SSAO (radius 1.2)
+- +15% saturation adjustment, contrast 1.05
+- Procedural sky with golf course colours
 
-1. **Verify terrain walkability** — confirm player walks on hills, not through them
-2. **Splatmap shader** — read debug output; confirm fairway/rough/green blend is applying
-3. **Course objects** — billboard sprites for trees; filter LOD variants (keep _LOD0 only)
-4. **Water planes** — render semi-transparent plane at water_level Y in Godot
-   - `course.json` already contains `water_level` (PP_waterplane Unity Y or null)
-   - ball.gd water detection: Y < water_plane_y within bounds → water hazard
-5. **Multi-hole terrain** — subsequent holes need terrain rebuild; currently only hole 1
+**course_loader.gd**
+- apply_terrain_material() reads texture_map.json for actual filenames
+- Passes owg_size_x/z to shader for correct UV mapping
+
+**main.gd dev fallback**
+- Now loads OWG zip via CourseLoader instead of legacy CourseManager
+- Textures will extract properly even on F6 direct run
+
+**Player controls**
+- Jump: Space when walking freely (6 m/s, escapes terrain gaps)
+- Crouch: hold C (camera 0.9m, good for reading putts)
 
 ## File Inventory
 
-### Core Game Scripts
-- main.gd — hole setup, OWG path, landmarks, flagstick Y raycast
-- player.gd — ESC → course selector, all gameplay controls
-- ball.gd — MasterShotEngine, flight/roll/putt, tracer, surface detection
-- terrain_generator.gd — resolution=256, margin=120, corrected UV sampling, debug prints
-- course_loader.gd — extracts all files from OWG zip on load
-- course_select.gd — HSplitContainer card UI
-- title_screen.gd — scans courses in background thread
+### Converter Pipeline
+- `pg_to_owg_converter.py` — full pipeline: heightmap+splatmap+textures+meshes+objects+tscn
+- `build_tscn.py` — standalone terrain.tscn builder (called by converter)
+- `extract_textures.py` — standalone texture extractor (called by converter)
+- `tools/` — fetch_osm, obj_to_glb, spline_mesh_placer, unity_mesh_to_obj
 
-### Converter
-- pg_to_owg_converter.py — heightmap: T+flipud+fliplr+scale_y×2, water_level datum,
-  Transform hierarchy walk for real world object positions
-  Run: `python3 pg_to_owg_converter.py <course.zip> -o courses/`
-  Old Course: zip from Steam install dir first (no native zip in PG Steam folder)
-  Then delete `user://courses/<name>/` cache before testing in Godot
+### Course Packages
+- `courses/OWG-The-Old-Course.zip` — St Andrews, 18 holes, Par 72, water_level=21.5m
+- `courses/OWG-Sunset-Valley-GC.zip` — Sunset Valley, 18 holes, Par 70, water_level=10.9m
+- Original PG zips: `/home/ron/Downloads/PG-golf courses/`
 
-### Course Packages (res://courses/)
-- OWG-The-Old-Course.zip — reconverted ✓ (water_level=12.248m, 7237 objects)
-- OWG-Sunset-Valley-GC.zip — reconverted ✓ (water_level=0.000m, 881 objects)
-
-### Reference Data (not in game)
-- /home/ron/Downloads/PG-golf courses/ — original PG zip files
-- /home/ron/.local/share/Steam/steamapps/common/Perfect Golf/ — PG game install
-  St Andrews: standrewsv1/standrewsv1.unity3d + standrewsv1.description (zip manually)
-
-## Architecture Notes
-
-### Why Runtime Terrain (not baked .tscn)
-The baked terrain.tscn approach was tried and abandoned. The 137MB text .tscn
-with ArrayMesh vertices had coordinate alignment issues between visual mesh and
-collision shape. Runtime `build_from_hole()` samples the heightmap PNG directly
-using world coordinates — simpler, correct, and proven to work.
-
-### Coordinate System
-- Unity: left-handed, X right, Y up, Z forward
-- Godot: right-handed, X right, Y up, Z forward
-- Conversion: Godot_X = -Unity_X (X axis flipped)
-- Terrain UV: u = 1 + world_x/size_x, v = 1 - world_z/size_z
-
-### Water Level Datum
-- `terrain_meta["water_level"]` = heightmap minimum in metres (floor of terrain)
-- Applied as Y offset to all tee/pin/shot positions during conversion
-- `course.json["water_level"]` = PP_waterplane Unity Y (actual water surface height)
-- For Old Course: terrain floor=12.248m, water surface=23.43m → ponds ~11m deep
-
-### OWG Package Format
-```
-course.json          — holes, tees, pins, terrain meta, water_level, objects, splash
-terrain/
-  heightmap.png      — 16-bit grayscale, orientation corrected (T+flipud+fliplr)
-  terrain_meta.json  — width, height, scale_x/y/z, terrain_size_x/z, water_level
-  splat/
-    alphamap_0..N.png — surface blend maps (R=fairway, G=green, B=rough)
-    splat_layers.json
-textures/            — all Unity Texture2D assets as PNG
-images/              — splash.jpg, flag.jpg
-meshes/              — placed scene objects as .obj files
-```
+### Reference
+- `/home/ron/solo-golf-backup/` — old project backup, do not edit
+- `/home/ron/open-world-golf-backup/` — pre-session backup
