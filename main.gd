@@ -15,22 +15,22 @@ func _start_spline_loader():
 	add_child(loader)
 
 func _load_course():
-	# Always expect GameState.current_course to be set by CourseSelectScreen.
-	# If somehow empty (dev shortcut), fall back to The Old Course.
 	if not GameState.current_course.is_empty():
 		_setup_hole_owg(GameState.current_course, 1)
 	else:
-		# Dev fallback — load built-in Old Course directly
-		var cm = get_node_or_null("CourseManager")
-		var player = get_node_or_null("Player")
-		var hole_geo = get_node_or_null("HoleGeometry")
-		if not cm or not player or not hole_geo:
-			push_error("Main: Missing required nodes")
-			return
-		if not cm.load_course("The_Old_Course"):
-			push_error("Main: Failed to load The Old Course")
-			return
-		_setup_hole(1)
+		# Dev fallback — load OWG zip directly (F6 shortcut)
+		var loader = CourseLoader.new()
+		add_child(loader)
+		loader.course_ready.connect(func(course_data):
+			GameState.current_course = course_data
+			_setup_hole_owg(course_data, 1)
+			loader.queue_free()
+		)
+		loader.load_failed.connect(func(reason):
+			push_error("Main: dev fallback failed: " + reason)
+			loader.queue_free()
+		)
+		loader.load_course("res://courses/OWG-The-Old-Course.zip")
 
 
 func _setup_hole_owg(course_data: Dictionary, hole_num: int) -> void:
