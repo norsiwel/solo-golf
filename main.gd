@@ -102,8 +102,12 @@ func _setup_hole_owg(course_data: Dictionary, hole_num: int) -> void:
 			)
 		hole_terrain.build_from_hole(tee_pos, pin_pos, all_tees_raw, all_pins_raw)
 
-	# Terrain3D.data.get_height() is instant — no physics frame wait needed
-	# Ground tee/pin — Terrain3D direct query, raycast fallback, then heightmap
+	# Wait for Jolt to register the HeightMapShape3D collision
+	await get_tree().physics_frame
+	await get_tree().physics_frame
+	await get_tree().physics_frame
+
+	# Ground tee/pin via raycast (collision now active) then heightmap fallback
 	var tee_y := _raycast_ground_y(tee_pos.x, tee_pos.z)
 	var pin_y := _raycast_ground_y(pin_pos.x, pin_pos.z)
 	if tee_y == 0.0 and hole_terrain and hole_terrain.has_method("get_height_at"):
@@ -115,7 +119,7 @@ func _setup_hole_owg(course_data: Dictionary, hole_num: int) -> void:
 	print("Main: tee_pos=", tee_pos, " pin_pos=", pin_pos)
 
 	# Spawn +2 m above tee — gravity settles player onto terrain surface
-	player.global_position = Vector3(tee_pos.x, tee_pos.y + 2.0, tee_pos.z)
+	player.global_position = Vector3(tee_pos.x, tee_pos.y + 5.0, tee_pos.z)
 
 	# --- Course Map (Overhead) ---
 	var hole_map = get_node_or_null("HoleMap")
