@@ -193,10 +193,3 @@ current = true
 [node name="HoleTerrain" type="StaticBody3D" parent="."]
 script = ExtResource("13_terrain")
 
-[node name="Terrain3D" type="Terrain3D" parent="."]
-data_directory = "res://courses/Terrain_Data"
-collision_mode = 2
-render_layers = 1
-visible = true
-top_level = true
-metadata/_edit_lock_ = true
