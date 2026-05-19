@@ -105,7 +105,7 @@ func load_course(zip_path: String) -> void:
 	var files = reader.get_files()
 	for i in range(files.size()):
 		var fpath = files[i]
-		if fpath.ends_with("/"): # skip directories, _write_file handles creation
+		if fpath.ends_with("/"): # skip directories
 			continue
 		
 		var bytes = reader.read_file(fpath)
@@ -140,20 +140,38 @@ func _write_file(path: String, data: PackedByteArray) -> void:
 		f.close()
 
 
-## Get the championship tee position for a hole (Godot Vector3).
-func get_tee_position(hole_number: int, tee_type: String = "Championship") -> Vector3:
+## Get all tee positions for a hole (sorted by difficulty/order)
+func get_tee_positions(hole_number: int) -> Array:
 	if current_course.is_empty():
-		return Vector3.ZERO
+		return []
 	for hole in current_course.get("holes", []):
 		if hole.get("hole_number") == hole_number:
+			var tees = []
 			for tee in hole.get("tees", []):
-				if tee.get("type") == tee_type:
-					var p = tee["position"]
-					return Vector3(p.x, p.y, p.z)
+				var p = tee["position"]
+				tees.append({
+					"type": tee.get("type", "Unknown"),
+					"position": Vector3(p.x, p.y, p.z),
+					"par": tee.get("par", 4),
+					"stroke_index": tee.get("stroke_index", 0),
+				})
+			return tees
+	return []
+
+
+## Get the championship tee position (most common use case)
+func get_championship_tee(hole_number: int) -> Vector3:
+	var tees = get_tee_positions(hole_number)
+	for tee in tees:
+		if tee.type == "Championship":
+			return tee.position
+	# Fallback to first tee if Championship not found
+	if tees.size() > 0:
+		return tees[0].position
 	return Vector3.ZERO
 
 
-## Get all pin positions for a hole with difficulty ratings.
+## Get all pin positions for a hole with difficulty ratings
 func get_pin_positions(hole_number: int) -> Array:
 	if current_course.is_empty():
 		return []
@@ -164,7 +182,49 @@ func get_pin_positions(hole_number: int) -> Array:
 				var p = pin["position"]
 				pins.append({
 					"position": Vector3(p.x, p.y, p.z),
-					"difficulty": pin.get("difficulty", "Medium")
+					"difficulty": pin.get("difficulty", "Medium"),
+					"order": pin.get("order", 0),
 				})
+			# Sort by difficulty order
+			pins.sort_custom(func(a, b): return a.order < b.order)
 			return pins
 	return []
+
+
+## Get the par for a hole
+func get_par(hole_number: int) -> int:
+	var tees = get_tee_positions(hole_number)
+	if tees.size() > 0:
+		return tees[0].get("par", 4)
+	return 4
+
+
+## Get terrain heightmap path (for Terrain3D or custom terrain node)
+func get_heightmap_path() -> String:
+	return current_course.get("heightmap_path", "")
+
+
+## Get terrain metadata
+func get_terrain_meta() -> Dictionary:
+	return current_course.get("terrain", {})
+
+
+## Get all objects (trees, buildings, etc.) placed on the course
+func get_course_objects() -> Array:
+	return current_course.get("objects", [])
+
+
+## Get water plane Y level (used for shaders and collision)
+func get_water_level() -> float:
+	var terrain_meta = get_terrain_meta()
+	return terrain_meta.get("water_level", 0.0)
+
+
+## Check if a course is currently loaded
+func is_course_loaded() -> bool:
+	return not current_course.is_empty()
+
+
+## Unload the current course (free memory)
+func unload_course() -> void:
+	current_course = {}

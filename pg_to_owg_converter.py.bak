@@ -76,14 +76,13 @@ def sanitize_name(name):
 
 
 # ─────────────────────────────────────────────
-#  Heightmap extraction (FIXED: water level baked)
+#  Heightmap extraction
 # ─────────────────────────────────────────────
 
-def extract_heightmap(terrain_data, output_dir, water_plane_y=None):
+def extract_heightmap(terrain_data, output_dir):
     """
     Extract Unity terrain heightmap and save as 16-bit PNG for Godot.
     Unity stores heights as unsigned shorts (0-65535).
-    FIXED: Water level is baked into the heightmap (subtract minimum)
     Returns meta dict or None on failure.
     """
     try:
@@ -99,70 +98,43 @@ def extract_heightmap(terrain_data, output_dir, water_plane_y=None):
         if len(heights) != width * height:
             warn(f"Height array length mismatch: got {len(heights)}, expected {width * height}")
 
-        # Convert to numpy float32 for processing
-        arr = np.array(heights, dtype=np.float32).reshape(height, width)
-        effective_scale_y = scale.y * 2.0
+        # Convert to numpy uint16
+        arr = np.array(heights, dtype=np.uint16).reshape(height, width)
 
-        # Normalize to 0-1 range
-        norm_array = arr / 65535.0
-        
-        # Calculate actual heights in meters
-        actual_heights = norm_array * effective_scale_y
-        
-        # Determine water level: use water plane if provided, otherwise heightmap minimum
-        if water_plane_y is not None:
-            water_level = float(water_plane_y)
-            info(f"Using water plane as reference: Y={water_level:.3f}m")
-            # Shift heightmap so water plane becomes 0
-            shift_meters = water_level
-            shift_normalized = shift_meters / effective_scale_y
-            norm_array = norm_array - shift_normalized
-            norm_array = np.clip(norm_array, 0.0, 1.0)
-            actual_heights = norm_array * effective_scale_y
-        else:
-            water_level = float(actual_heights.min())
-            info(f"Using heightmap minimum as water level: {water_level:.3f}m")
-            # Subtract minimum to set water level to 0
-            shift_normalized = norm_array.min()
-            norm_array = norm_array - shift_normalized
-            actual_heights = norm_array * effective_scale_y
+        dbg(f"Height array stats: min={arr.min()} max={arr.max()} mean={arr.mean():.1f}")
 
-        dbg(f"Height array stats (normalized): min={norm_array.min():.4f} max={norm_array.max():.4f} mean={norm_array.mean():.4f}")
-        dbg(f"Height array stats (meters): min={actual_heights.min():.2f} max={actual_heights.max():.2f}")
-
-        if actual_heights.max() == 0:
+        if arr.max() == 0:
             warn("Heightmap is completely flat (all zeros) — terrain data may not have extracted correctly")
+        elif arr.max() < 1000:
+            warn(f"Heightmap values very low (max={arr.max()}) — course may appear very flat")
         else:
-            info(f"Height range: {actual_heights.min():.2f} – {actual_heights.max():.2f} meters")
+            info(f"Height range: {arr.min()} – {arr.max()} (raw uint16)")
+
+        # Unity heightmap: heights stored as uint16 fraction of scale.y*2
+        effective_scale_y = scale.y * 2.0
 
         # Correct orientation (verified to 0m error against all 18 tee positions):
         # transpose rows/cols then flip both axes
-        norm_array = norm_array.T           # transpose: swap row/col (X/Z axes)
-        norm_array = np.flipud(norm_array)  # flip rows
-        norm_array = np.fliplr(norm_array)  # flip cols
-
-        # Convert back to uint16 for PNG (0-65535 range)
-        uint16_arr = (norm_array * 65535).clip(0, 65535).astype(np.uint16)
+        arr = arr.T           # transpose: swap row/col (X/Z axes)
+        arr = np.flipud(arr)  # flip rows
+        arr = np.fliplr(arr)  # flip cols
 
         # Save as 16-bit PNG
         terrain_dir = os.path.join(output_dir, "terrain")
         os.makedirs(terrain_dir, exist_ok=True)
         heightmap_path = os.path.join(terrain_dir, "heightmap.png")
 
-        img = Image.fromarray(uint16_arr, mode='I;16')
+        img = Image.fromarray(arr, mode='I;16')
         img.save(heightmap_path)
 
         info(f"Heightmap saved: {width}x{height} 16-bit PNG ✓")
 
         terrain_size_x = width  * scale.x
         terrain_size_z = height * scale.z
-        real_height_range = float(actual_heights.max() - actual_heights.min())
+        real_height_range = (arr.max() / 65535.0) * effective_scale_y
 
         info(f"Terrain world size: {terrain_size_x:.1f} x {terrain_size_z:.1f} units")
-        info(f"Height range (adjusted): 0 – {real_height_range:.2f} m")
-
-        # Store the adjusted heights array for .tscn generation
-        adjusted_heights = (norm_array * effective_scale_y).flatten()
+        info(f"Estimated height range: 0 – {real_height_range:.2f} m")
 
         meta = {
             "width":          width,
@@ -172,41 +144,41 @@ def extract_heightmap(terrain_data, output_dir, water_plane_y=None):
             "scale_z":        scale.z,
             "terrain_size_x": terrain_size_x,
             "terrain_size_z": terrain_size_z,
-            "water_level":    round(water_level, 4),
-            "height_min_m":   round(float(actual_heights.min()), 4),
-            "height_max_m":   round(float(actual_heights.max()), 4),
-            "height_range_m": round(real_height_range, 4),
         }
+
+        # Use heightmap minimum as water plane reference (replaces Unity PP_waterplane)
+        height_min = float((arr.astype(np.float32) / 65535.0 * effective_scale_y).min())
+        meta["water_level"] = round(height_min, 4)
+        print(f"  Water level (heightmap min): {height_min:.3f}m")
 
         meta_path = os.path.join(terrain_dir, "terrain_meta.json")
         with open(meta_path, "w") as f:
             json.dump(meta, f, indent=2)
         dbg(f"terrain_meta.json written")
 
-        return meta, uint16_arr, adjusted_heights
+        return meta, arr  # return array too for .tscn generation
 
     except AttributeError as e:
         err(f"TerrainData missing expected attribute: {e}")
         dbg(f"Available attributes: {[a for a in dir(terrain_data) if not a.startswith('__')]}")
-        return None, None, None
+        return None, None
     except Exception as e:
         err(f"Heightmap extraction failed: {e}")
         if DEBUG:
             import traceback; traceback.print_exc()
-        return None, None, None
+        return None, None
 
 
 # ─────────────────────────────────────────────
-#  Godot .tscn generation with baked heightmap (FIXED)
+#  Godot .tscn generation with baked heightmap
 # ─────────────────────────────────────────────
 
-def build_tscn(height_uint16, adjusted_heights, meta, output_dir, splat_layers=None, texture_map=None):
+def build_tscn(height_arr, meta, output_dir):
     """
     Build a Godot 4 .tscn with:
       - StaticBody3D (root)
         - CollisionShape3D  (HeightMapShape3D — full resolution)
         - MeshInstance3D    (ArrayMesh — downsampled visual with real vertex heights)
-    FIXED: Added material support with splatmaps
     """
     info("Building terrain .tscn with baked heightmap...")
 
@@ -218,8 +190,8 @@ def build_tscn(height_uint16, adjusted_heights, meta, output_dir, splat_layers=N
     size_x   = meta["terrain_size_x"]
     size_z   = meta["terrain_size_z"]
 
-    # Use adjusted heights for collision (water level already baked)
-    shape_heights = adjusted_heights
+    norm = height_arr.astype(np.float32) / 65535.0
+    shape_heights = (norm * scale_y).flatten()
 
     # ── Collision shape (full resolution) ──────────────────────────
     CHUNK = 16
@@ -231,44 +203,48 @@ def build_tscn(height_uint16, adjusted_heights, meta, output_dir, splat_layers=N
     info(f"Packed {len(shape_heights)} height values for HeightMapShape3D")
 
     # ── Visual mesh (downsampled to MESH_RES x MESH_RES) ───────────
+    # Full 4097x4097 as text ArrayMesh would be ~600MB — downsample to 256x256
     MESH_RES = 256
     step_r = max(1, (height_n - 1) // (MESH_RES - 1))
     step_c = max(1, (width   - 1) // (MESH_RES - 1))
     rows = list(range(0, height_n, step_r))
     cols = list(range(0, width,    step_c))
+    # Always include last row/col so mesh reaches full terrain edge
     if rows[-1] != height_n - 1: rows.append(height_n - 1)
     if cols[-1] != width    - 1: cols.append(width    - 1)
     mr = len(rows)
     mc = len(cols)
 
-    # Reconstruct 2D height array from adjusted_heights
-    h2d = np.array(adjusted_heights).reshape(height_n, width)
-
     # Build vertex list
-    verts  = []
-    normals = []
-    uvs    = []
+    verts  = []   # (x, y, z)
+    normals = []  # (nx, ny, nz)
+    uvs    = []   # (u, v)
+
+    h2d = norm * scale_y  # 2D array [height_n, width]
 
     for ri, r in enumerate(rows):
         for ci, c in enumerate(cols):
-            wx = -(c * scale_x)
+            # Apply same coordinate flip as unity_to_godot_pos: godot_x = -unity_x
+            # Unity terrain goes from x=0 to x=size_x (positive)
+            # Godot coords: flip so terrain goes from x=0 to x=-size_x (negative)
+            wx = -(c * scale_x)   # negative X to match Godot coordinate system
             wy = float(h2d[r, c])
-            wz = r * scale_z
+            wz = r * scale_z      # Z stays positive
             verts.append((wx, wy, wz))
-            uvs.append((-wx / size_x, wz / size_z))
+            uvs.append((-wx / size_x, wz / size_z))  # UV u = -wx/size so 0→1
 
-            # Finite-difference normal
+            # Finite-difference normal (adjusted for flipped X)
             def hs(rr, cc):
                 rr = max(0, min(height_n-1, rr))
                 cc = max(0, min(width-1, cc))
                 return float(h2d[rr, cc])
-            dx = hs(r, c+1) - hs(r, c-1)
+            dx = hs(r, c+1) - hs(r, c-1)   # positive = going more negative in X
             dz = hs(r+1, c) - hs(r-1, c)
-            nx, ny, nz = dx, 2.0 * scale_x, -dz
+            nx, ny, nz = dx, 2.0 * scale_x, -dz  # flip sign for normal X
             length = (nx*nx + ny*ny + nz*nz) ** 0.5 or 1.0
             normals.append((nx/length, ny/length, nz/length))
 
-    # Build index list
+    # Build index list (two triangles per quad)
     indices = []
     for ri in range(mr - 1):
         for ci in range(mc - 1):
@@ -280,7 +256,7 @@ def build_tscn(height_uint16, adjusted_heights, meta, output_dir, splat_layers=N
 
     info(f"Visual mesh: {mr}x{mc} = {len(verts)} verts, {len(indices)//3} tris")
 
-    # Pack arrays
+    # Godot PackedVector3Array / PackedVector2Array / PackedInt32Array in text format
     def pack_v3(arr):
         parts = [f"{x:.4f}, {y:.4f}, {z:.4f}" for x,y,z in arr]
         return "PackedVector3Array(" + ", ".join(parts) + ")"
@@ -290,6 +266,7 @@ def build_tscn(height_uint16, adjusted_heights, meta, output_dir, splat_layers=N
         return "PackedVector2Array(" + ", ".join(parts) + ")"
 
     def pack_i32(arr):
+        # chunk for readability
         CHUNK = 24
         rows_out = []
         for i in range(0, len(arr), CHUNK):
@@ -301,31 +278,9 @@ def build_tscn(height_uint16, adjusted_heights, meta, output_dir, splat_layers=N
     uvs_str     = pack_v2(uvs)
     idx_str     = pack_i32(indices)
 
-    # Build material if splatmaps are available
-    material_lines = []
-    if splat_layers and len(splat_layers) > 0:
-        material_lines.append('')
-        material_lines.append('[sub_resource type="ShaderMaterial" id="ShaderMaterial_terrain"]')
-        material_lines.append('shader = SubResource("Shader_terrain")')
-        
-        # Add texture parameters
-        for i, layer in enumerate(splat_layers):
-            tex_name = layer.get("texture_name", f"layer_{i}")
-            material_lines.append(f'shader_parameter/albedo_{i} = load("res://textures/{tex_name}.png")')
-        
-        if texture_map:
-            for surface, tex_file in texture_map.items():
-                material_lines.append(f'shader_parameter/{surface}_texture = load("res://textures/{tex_file}")')
-        
-        material_lines.append('')
-        
-        # Also add a simple SpatialMaterial fallback
-        material_lines.append('[sub_resource type="StandardMaterial3D" id="StandardMaterial_terrain"]')
-        material_lines.append('albedo_color = Color(0.2, 0.4, 0.1, 1.0)')
-        material_lines.append('roughness = 0.8')
-        material_lines.append('metallic = 0.0')
-    
-    material_str = "\n".join(material_lines)
+    # Centre offset
+    offset_x = size_x / 2.0
+    offset_z = size_z / 2.0
 
     tscn = f"""[gd_scene load_steps=3 format=3 uid="uid://owg_terrain"]
 
@@ -350,7 +305,6 @@ null, null,
 "material": null,
 "name": "terrain_surface"
 }}]
-{material_str}
 
 [node name="OWGTerrain" type="StaticBody3D"]
 metadata/owg_terrain = true
@@ -359,7 +313,6 @@ metadata/terrain_size_z = {size_z:.3f}
 metadata/scale_y = {scale_y:.3f}
 metadata/scale_x = {scale_x:.4f}
 metadata/scale_z = {scale_z:.4f}
-metadata/water_level = {meta["water_level"]:.4f}
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
 shape = SubResource("HeightMapShape3D_1")
@@ -367,7 +320,6 @@ transform = Transform3D({-scale_x:.4f}, 0, 0, 0, 1, 0, 0, 0, {scale_z:.4f}, 0, 0
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="."]
 mesh = SubResource("ArrayMesh_1")
-material_override = SubResource("StandardMaterial_terrain")
 """
 
     terrain_dir = os.path.join(output_dir, "terrain")
@@ -386,6 +338,7 @@ material_override = SubResource("StandardMaterial_terrain")
 #  Splat / surface texture extraction
 # ─────────────────────────────────────────────
 
+# Known surface texture name patterns → Godot surface type
 SURFACE_PATTERNS = {
     "fairway":    ["fairway", "fair"],
     "rough":      ["rough"],
@@ -399,6 +352,7 @@ SURFACE_PATTERNS = {
 }
 
 def classify_texture(name):
+    """Map a Unity texture name to a Godot surface type."""
     lower = name.lower()
     for surface, patterns in SURFACE_PATTERNS.items():
         for p in patterns:
@@ -408,6 +362,7 @@ def classify_texture(name):
 
 
 def extract_splat_maps(terrain_data, output_dir):
+    """Extract terrain surface blend maps (alphamaps)."""
     try:
         splat_db = terrain_data.m_SplatDatabase
     except AttributeError:
@@ -432,6 +387,7 @@ def extract_splat_maps(terrain_data, output_dir):
 
     info(f"Extracted {alpha_count} alphamap(s)")
 
+    # Save splat layer info with surface classification
     layers = []
     for i, splat in enumerate(splat_db.m_Splats):
         layer = {
@@ -442,11 +398,11 @@ def extract_splat_maps(terrain_data, output_dir):
         try:
             tex = splat.texture.read()
             layer["texture_name"] = tex.m_Name
-            layer["surface_type"] = classify_texture(tex.m_Name)
+            layer["surface_type"]  = classify_texture(tex.m_Name)
             dbg(f"Splat layer {i}: '{tex.m_Name}' → {layer['surface_type']}")
         except Exception:
             layer["texture_name"] = f"layer_{i}"
-            layer["surface_type"] = "unknown"
+            layer["surface_type"]  = "unknown"
         layers.append(layer)
 
     info(f"Splat layers: {len(layers)} ({sum(1 for l in layers if l['surface_type'] != 'unknown')} classified)")
@@ -463,12 +419,17 @@ def extract_splat_maps(terrain_data, output_dir):
 # ─────────────────────────────────────────────
 
 def extract_textures(env, output_dir):
+    """
+    Extract Texture2D assets from the Unity bundle.
+    Classifies each by surface type and writes a texture_map.json
+    so Godot knows which PNG is fairway, rough, bunker, etc.
+    """
     tex_dir = os.path.join(output_dir, "textures")
     os.makedirs(tex_dir, exist_ok=True)
 
     extracted = 0
     skipped   = 0
-    texture_map = {}
+    texture_map = {}  # surface_type → filename
 
     for obj in env.objects:
         if obj.type.name != "Texture2D":
@@ -492,8 +453,11 @@ def extract_textures(env, output_dir):
             dbg(f"Texture: '{data.m_Name}' ({img.size}) → {surface}")
 
             if surface != "unknown":
+                # Keep highest-res version if duplicate surface type
                 if surface not in texture_map:
                     texture_map[surface] = f"{safe_name}.png"
+                else:
+                    dbg(f"  Duplicate surface '{surface}', keeping first match")
 
         except Exception as ex:
             skipped += 1
@@ -502,9 +466,11 @@ def extract_textures(env, output_dir):
     info(f"Textures: {extracted} extracted, {skipped} skipped")
     info(f"Classified: {list(texture_map.keys())}")
 
+    # Write texture map for Godot loader
     map_path = os.path.join(tex_dir, "texture_map.json")
     with open(map_path, "w") as f:
         json.dump(texture_map, f, indent=2)
+    dbg(f"texture_map.json: {texture_map}")
 
     return extracted, texture_map
 
@@ -514,17 +480,19 @@ def extract_textures(env, output_dir):
 # ─────────────────────────────────────────────
 
 def extract_meshes(env, output_dir):
+    """Extract Mesh assets from the Unity bundle as .obj files."""
     mesh_dir = os.path.join(output_dir, "meshes")
     os.makedirs(mesh_dir, exist_ok=True)
 
     extracted = 0
-    mesh_map = {}
+    mesh_map = {} # pathid → filename
 
     for obj in env.objects:
         if obj.type.name != "Mesh":
             continue
         try:
             data = obj.read()
+            # UnityPy can export meshes as .obj
             obj_data = data.export()
             if not obj_data:
                 continue
@@ -536,6 +504,7 @@ def extract_meshes(env, output_dir):
             fname = f"{safe_name}.obj"
             fpath = os.path.join(mesh_dir, fname)
             
+            # If name collision, append path_id
             if os.path.exists(fpath):
                 fname = f"{safe_name}_{obj.path_id}.obj"
                 fpath = os.path.join(mesh_dir, fname)
@@ -560,18 +529,16 @@ def extract_meshes(env, output_dir):
 # ─────────────────────────────────────────────
 
 def _quat_rotate(qx, qy, qz, qw, vx, vy, vz):
-    cx = qy*vz - qz*vy
-    cy = qz*vx - qx*vz
-    cz = qx*vy - qy*vx
-    dx = qy*cz - qz*cy
-    dy = qz*cx - qx*cz
-    dz = qx*cy - qy*cx
+    """Rotate vector (vx,vy,vz) by unit quaternion (qx,qy,qz,qw)."""
+    cx = qy*vz - qz*vy;  cy = qz*vx - qx*vz;  cz = qx*vy - qy*vx
+    dx = qy*cz - qz*cy;  dy = qz*cx - qx*cz;  dz = qx*cy - qy*cx
     return (vx + 2.0*qw*cx + 2.0*dx,
             vy + 2.0*qw*cy + 2.0*dy,
             vz + 2.0*qw*cz + 2.0*dz)
 
 
 def _quat_mul(ax, ay, az, aw, bx, by, bz, bw):
+    """Hamilton product of two quaternions (x,y,z,w)."""
     return (aw*bx + ax*bw + ay*bz - az*by,
             aw*by - ax*bz + ay*bw + az*bx,
             aw*bz + ax*by - ay*bx + az*bw,
@@ -579,12 +546,14 @@ def _quat_mul(ax, ay, az, aw, bx, by, bz, bw):
 
 
 # ─────────────────────────────────────────────
-#  Object placement extraction (FIXED: water level handling)
+#  Object placement extraction
 # ─────────────────────────────────────────────
 
 def extract_objects(env, mesh_map, output_dir):
+    """Extract GameObject placements using world-space Transform hierarchy walk."""
     info("Extracting object placements...")
 
+    # Pass 1: index all Transform objects by path_id so we can walk m_Father chains
     transform_map = {}
     for obj in env.objects:
         if obj.type.name == "Transform":
@@ -595,6 +564,7 @@ def extract_objects(env, mesh_map, output_dir):
     if DEBUG: dbg(f"Transform map: {len(transform_map)} entries")
 
     def _world_trs(transform):
+        """Walk m_Father chain leaf→root, accumulate TRS into world space."""
         chain = []
         current = transform
         visited = set()
@@ -615,27 +585,26 @@ def extract_objects(env, mesh_map, output_dir):
             except Exception:
                 break
 
+        # Accumulate root→leaf: rotate+translate each level into parent's frame
         wx, wy, wz = 0.0, 0.0, 0.0
-        wrx, wry, wrz, wrw = 0.0, 0.0, 0.0, 1.0
+        wrx, wry, wrz, wrw = 0.0, 0.0, 0.0, 1.0  # identity quaternion
         wsx, wsy, wsz = 1.0, 1.0, 1.0
 
         for t in reversed(chain):
             lp = t.m_LocalPosition
             lr = t.m_LocalRotation
             ls = t.m_LocalScale
+            # Apply parent scale, then rotate by accumulated world rotation, then add
             slx, sly, slz = lp.x * wsx, lp.y * wsy, lp.z * wsz
             rx, ry, rz = _quat_rotate(wrx, wry, wrz, wrw, slx, sly, slz)
-            wx += rx
-            wy += ry
-            wz += rz
+            wx += rx;  wy += ry;  wz += rz
             wrx, wry, wrz, wrw = _quat_mul(wrx, wry, wrz, wrw, lr.x, lr.y, lr.z, lr.w)
-            wsx *= ls.x
-            wsy *= ls.y
-            wsz *= ls.z
+            wsx *= ls.x;  wsy *= ls.y;  wsz *= ls.z
 
         return wx, wy, wz, (wrx, wry, wrz, wrw), (wsx, wsy, wsz)
 
     def _resolve_components(data):
+        """Return (transform, mesh_filter) from a GameObject's component list."""
         components = getattr(data, "m_Component", []) or getattr(data, "m_Components", [])
         mesh_filter = transform = None
         for c in components:
@@ -643,8 +612,7 @@ def extract_objects(env, mesh_map, output_dir):
             if isinstance(c, tuple):
                 for item in c:
                     if hasattr(item, "read") or hasattr(item, "path_id"):
-                        c_ptr = item
-                        break
+                        c_ptr = item; break
             elif isinstance(c, dict):
                 c_ptr = c.get("component")
             elif hasattr(c, "component"):
@@ -675,12 +643,11 @@ def extract_objects(env, mesh_map, output_dir):
             name = getattr(data, "m_Name", f"GO_{obj.path_id}")
             transform, mesh_filter = _resolve_components(data)
 
-            # Record water plane but don't skip it (we need its Y)
-            if "pp_waterplane" in name.lower() and transform:
+            # Waterplane: record world Y, no mesh needed
+            if "pp_waterplane" in name.lower() and water_level is None and transform:
                 _, wy, _, _, _ = _world_trs(transform)
                 water_level = float(wy)
-                info(f"Found water plane at Y={water_level:.3f}m")
-                # Don't continue - water plane isn't a mesh anyway
+                continue
 
             if not mesh_filter or not transform:
                 continue
@@ -694,7 +661,7 @@ def extract_objects(env, mesh_map, output_dir):
 
             wx, wy, wz, (qx, qy, qz, qw), (sx, sy, sz) = _world_trs(transform)
 
-            # Skip prefab templates at origin
+            # Skip prefab template assets — they sit at exact origin
             if wx == 0.0 and wy == 0.0 and wz == 0.0:
                 continue
 
@@ -711,24 +678,25 @@ def extract_objects(env, mesh_map, output_dir):
             dbg(f"Skipped object {obj.path_id}: {ex}")
 
     info(f"Objects: {len(objects)} placements found")
+    if water_level is not None:
+        info(f"Water level (Unity Y): {water_level:.3f}")
     return objects, water_level
 
 
 # ─────────────────────────────────────────────
-#  Course JSON conversion (FIXED: no double water subtraction)
+#  Course JSON conversion
 # ─────────────────────────────────────────────
 
 def convert_course_json(description_data, terrain_meta, objects, water_level, output_dir):
     """Convert PG course description JSON to OWG format."""
-    info("Converting course metadata...")
 
-    def convert_pos(pos_dict, water_level_offset=0.0):
+    def convert_pos(pos_dict):
         x, y, z = pos_dict["x"], pos_dict["y"], pos_dict["z"]
         gx, gy, gz = unity_to_godot_pos(x, y, z)
-        # Subtract water level so Y=0 in game = water plane in Unity
-        # Terrain heightmap is already shifted by this same amount
-        gy -= water_level_offset
-        return {"x": gx, "y": gy, "z": gz}
+        height_min = terrain_meta.get("water_level", 0.0) if terrain_meta else 0.0
+        pos = {"x": gx, "y": gy, "z": gz}
+        pos["y"] = pos["y"] - height_min
+        return pos
 
     holes = {}
 
@@ -740,7 +708,7 @@ def convert_course_json(description_data, terrain_meta, objects, water_level, ou
             "type":         tee["type"],
             "par":          tee["par"].replace("_", ""),
             "stroke_index": tee["strokeIndex"],
-            "position":     convert_pos(tee["position"], water_level or 0.0),
+            "position":     convert_pos(tee["position"]),
             "order":        tee["orderIndex"],
         })
 
@@ -750,7 +718,7 @@ def convert_course_json(description_data, terrain_meta, objects, water_level, ou
             holes[idx] = {"tees": [], "pins": [], "shots": []}
         holes[idx]["pins"].append({
             "difficulty": pin["difficulty"],
-            "position":   convert_pos(pin["position"], water_level or 0.0),
+            "position":   convert_pos(pin["position"]),
             "order":      pin["orderIndex"],
         })
 
@@ -759,7 +727,7 @@ def convert_course_json(description_data, terrain_meta, objects, water_level, ou
         if idx not in holes:
             holes[idx] = {"tees": [], "pins": [], "shots": []}
         holes[idx]["shots"].append({
-            "position": convert_pos(shot["position"], water_level or 0.0),
+            "position": convert_pos(shot["position"]),
             "order":    shot["orderIndex"],
         })
 
@@ -773,6 +741,11 @@ def convert_course_json(description_data, terrain_meta, objects, water_level, ou
         holes_list.append(h)
 
     dbg(f"Converted {len(holes_list)} holes")
+    if DEBUG:
+        for h in holes_list[:2]:  # show first 2 holes in debug
+            tee = h["tees"][0]["position"] if h["tees"] else "?"
+            pin = h["pins"][0]["position"] if h["pins"] else "?"
+            dbg(f"  Hole {h['hole_number']}: tee={tee} pin={pin}")
 
     owg_course = {
         "format":           "OWG-1.0",
@@ -780,7 +753,7 @@ def convert_course_json(description_data, terrain_meta, objects, water_level, ou
         "author":           description_data.get("author", "Unknown"),
         "author_version":   description_data.get("authorVersion", "1.0"),
         "platform_original": "Unity/PerfectGolf",
-        "converted_by":     "pg_to_owg_converter v2",
+        "converted_by":     "pg_to_owg_converter",
         "coordinate_system": "Godot (right-handed Y-up, X flipped from Unity)",
         "geo": {
             "x":        description_data.get("geoX", 0),
@@ -795,7 +768,7 @@ def convert_course_json(description_data, terrain_meta, objects, water_level, ou
         "flag_image":   description_data.get("flagName",   ""),
         "offset":       description_data.get("offset", 0),
         "objects":      objects,
-        "water_plane_y": water_level
+        "water_level":  water_level
     }
 
     course_json_path = os.path.join(output_dir, "course.json")
@@ -832,15 +805,23 @@ def copy_images(zip_ref, description_data, output_dir):
 
 
 # ─────────────────────────────────────────────
-#  Diagnostics
+#  Diagnostics — dump Unity bundle contents
 # ─────────────────────────────────────────────
 
 def dump_bundle_contents(env):
+    """Print a full inventory of what's in the Unity bundle."""
     print("\n  [DEBUG] Bundle contents:")
     type_map = {}
     for obj in env.objects:
         t = obj.type.name
-        type_map.setdefault(t, []).append(getattr(obj.read(), 'm_Name', '?'))
+        type_map[t] = type_map.get(t, [])
+        try:
+            data = obj.read()
+            name = getattr(data, 'm_Name', '?')
+            type_map[t].append(name)
+        except Exception:
+            type_map[t].append('<unreadable>')
+
     for t, names in sorted(type_map.items(), key=lambda x: -len(x[1])):
         if len(names) <= 5:
             print(f"    {t} ({len(names)}): {', '.join(names)}")
@@ -849,10 +830,11 @@ def dump_bundle_contents(env):
 
 
 # ─────────────────────────────────────────────
-#  Main conversion
+#  Main conversion for one zip file
 # ─────────────────────────────────────────────
 
 def convert_course(zip_path, output_base_dir, build_tscn_file=True):
+    """Convert a single PG course zip to OWG format."""
     zip_name = Path(zip_path).stem
     print(f"\n{'='*60}")
     print(f"Converting: {zip_name}")
@@ -862,14 +844,23 @@ def convert_course(zip_path, output_base_dir, build_tscn_file=True):
         work_dir = os.path.join(tmpdir, "extracted")
         os.makedirs(work_dir)
 
+        # ── Step 1: Open zip, find key files ──────────────────────
         print("\n[1/7] Reading zip contents...")
         with zipfile.ZipFile(zip_path, "r") as zf:
             names = zf.namelist()
-            desc_file   = next((n for n in names if n.endswith(".description")), None)
-            unity_file  = next((n for n in names if n.endswith(".unity3d")), None)
+            dbg(f"Zip contains {len(names)} files")
+            if DEBUG:
+                for n in names:
+                    dbg(f"  {n}")
 
-            if not desc_file or not unity_file:
-                err("Missing .description or .unity3d file")
+            desc_file   = next((n for n in names if n.endswith(".description")), None)
+            unity_file  = next((n for n in names if n.endswith(".unity3d")),     None)
+
+            if not desc_file:
+                err("No .description file found in zip")
+                return False
+            if not unity_file:
+                err("No .unity3d file found in zip")
                 return False
 
             info(f"Description: {desc_file}")
@@ -879,14 +870,25 @@ def convert_course(zip_path, output_base_dir, build_tscn_file=True):
             description_data = json.loads(desc_raw)
             course_name = description_data.get("name", zip_name)
             safe_name   = sanitize_name(course_name)
+            info(f"Course name: {course_name}")
 
+            dbg(f"Description keys: {list(description_data.keys())}")
+            dbg(f"Tees: {len(description_data.get('tees', []))}, "
+                f"Pins: {len(description_data.get('pins', []))}, "
+                f"Shots: {len(description_data.get('shots', []))}")
+
+            # Extract unity3d bundle to temp
+            print("\n[2/7] Extracting Unity bundle...")
             zf.extract(unity_file, tmpdir)
             unity_path = os.path.join(tmpdir, unity_file)
+            bundle_mb  = os.path.getsize(unity_path) / 1024 / 1024
+            info(f"Bundle size: {bundle_mb:.1f} MB")
 
             out_dir = os.path.join(tmpdir, f"OWG-{safe_name}")
             os.makedirs(out_dir, exist_ok=True)
 
-            print("\n[2/7] Loading Unity assets...")
+            # ── Step 2: Load Unity bundle ──────────────────────────
+            print("\n[3/7] Loading Unity assets...")
             env = UnityPy.load(unity_path)
 
             type_counts = {}
@@ -902,51 +904,79 @@ def convert_course(zip_path, output_base_dir, build_tscn_file=True):
             if DEBUG:
                 dump_bundle_contents(env)
 
-            print("\n[3/7] Extracting objects and water plane...")
-            tex_count, texture_map = extract_textures(env, out_dir)
-            mesh_count, mesh_map = extract_meshes(env, out_dir)
-            objects, water_plane_y = extract_objects(env, mesh_map, out_dir)
+            if type_counts.get('TerrainData', 0) == 0:
+                warn("No TerrainData found in bundle — course will have no terrain height")
 
-            print("\n[4/7] Extracting terrain...")
+            # ── Step 3: Extract heightmap ──────────────────────────
+            print("\n[4/7] Extracting terrain heightmap...")
             terrain_meta = None
-            height_uint16 = None
-            adjusted_heights = None
-            splat_layers = []
+            height_arr   = None
 
             for obj in env.objects:
                 if obj.type.name == "TerrainData":
                     terrain_data = obj.read()
-                    terrain_meta, height_uint16, adjusted_heights = extract_heightmap(
-                        terrain_data, out_dir, water_plane_y
-                    )
-                    splat_layers = extract_splat_maps(terrain_data, out_dir)
+                    dbg(f"TerrainData name: {getattr(terrain_data, 'm_Name', '?')}")
+                    terrain_meta, height_arr = extract_heightmap(terrain_data, out_dir)
+                    extract_splat_maps(terrain_data, out_dir)
                     break
 
             if not terrain_meta:
-                warn("No terrain found - course will be flat")
+                warn("Terrain metadata missing — using empty meta, course will be flat")
                 terrain_meta = {}
+                height_arr   = None
 
-            if build_tscn_file and adjusted_heights is not None:
-                print("\n[5/7] Building terrain.tscn...")
-                build_tscn(height_uint16, adjusted_heights, terrain_meta, out_dir, splat_layers, texture_map)
+            # ── Step 4: Build .tscn ────────────────────────────────
+            if build_tscn_file and height_arr is not None:
+                print("\n[5/7] Building terrain.tscn (baked heightmap)...")
+                tscn_path = build_tscn(height_arr, terrain_meta, out_dir)
+                if tscn_path:
+                    info("terrain.tscn ready for direct Godot instantiation ✓")
+            else:
+                print("\n[5/7] Skipping .tscn generation (--no-tscn or no height data)")
+                info("Godot will load heightmap PNG at runtime instead")
 
-            print("\n[6/7] Converting course data...")
-            convert_course_json(description_data, terrain_meta, objects, water_plane_y, out_dir)
+            # ── Step 5: Extract textures ───────────────────────────
+            print("\n[5/7] Extracting textures...")
+            tex_count, texture_map = extract_textures(env, out_dir)
+
+            if not texture_map:
+                warn("No classifiable surface textures found — Godot will use built-in fallbacks")
+            else:
+                info(f"Surface textures mapped: {list(texture_map.keys())}")
+
+            # ── Step 6: Extract meshes and objects ─────────────────
+            print("\n[6/7] Extracting meshes and objects...")
+            mesh_count, mesh_map = extract_meshes(env, out_dir)
+            objects, water_level = extract_objects(env, mesh_map, out_dir)
+
+            # ── Step 7: Convert course JSON + images ───────────────
+            print("\n[7/7] Converting course data...")
+            convert_course_json(description_data, terrain_meta, objects, water_level, out_dir)
             copy_images(zf, description_data, out_dir)
 
+        # ── Package into output zip ────────────────────────────────
         output_zip_name = f"OWG-{safe_name}.zip"
         output_zip_path = os.path.join(output_base_dir, output_zip_name)
 
-        print(f"\n[7/7] Packaging → {output_zip_name}...")
+        print(f"\nPackaging → {output_zip_name}...")
         with zipfile.ZipFile(output_zip_path, "w", zipfile.ZIP_DEFLATED) as out_zip:
             for root, dirs, files in os.walk(out_dir):
                 for file in files:
                     full_path = os.path.join(root, file)
-                    arcname = os.path.relpath(full_path, out_dir)
+                    arcname   = os.path.relpath(full_path, out_dir)
                     out_zip.write(full_path, arcname)
+                    dbg(f"  Added: {arcname} ({os.path.getsize(full_path)//1024} KB)")
 
         size_mb = os.path.getsize(output_zip_path) / 1024 / 1024
         info(f"Done! {output_zip_path} ({size_mb:.1f} MB)")
+
+        # ── Final summary ──────────────────────────────────────────
+        print(f"\n  Contents summary:")
+        with zipfile.ZipFile(output_zip_path, "r") as zf:
+            for name in sorted(zf.namelist()):
+                size_kb = zf.getinfo(name).file_size // 1024
+                print(f"    {name:50s} {size_kb:>6} KB")
+
         return True
 
 
@@ -957,31 +987,69 @@ def convert_course(zip_path, output_base_dir, build_tscn_file=True):
 def main():
     global DEBUG
 
-    parser = argparse.ArgumentParser(description="Convert Perfect Golf course zips to OWG Godot format")
-    parser.add_argument("zips", nargs="*", help="Specific zip files to convert")
-    parser.add_argument("--output", "-o", default=".", help="Output directory for OWG zips")
-    parser.add_argument("--debug", action="store_true", help="Enable verbose diagnostic output")
-    parser.add_argument("--no-tscn", action="store_true", help="Skip .tscn generation")
+    parser = argparse.ArgumentParser(
+        description="Convert Perfect Golf course zips to OWG Godot format",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  python3 pg_to_owg_converter.py                    # convert all *.zip in current dir
+  python3 pg_to_owg_converter.py MyCourse.zip       # convert specific file
+  python3 pg_to_owg_converter.py --debug            # verbose diagnostic output
+  python3 pg_to_owg_converter.py --no-tscn          # skip .tscn, use runtime PNG loading
+  python3 pg_to_owg_converter.py -o ./output        # write OWG zips to ./output
+        """
+    )
+    parser.add_argument(
+        "zips", nargs="*",
+        help="Specific zip files to convert (default: all *.zip in current directory)"
+    )
+    parser.add_argument(
+        "--output", "-o", default=".",
+        help="Output directory for OWG zips (default: current directory)"
+    )
+    parser.add_argument(
+        "--debug", action="store_true",
+        help="Enable verbose diagnostic output"
+    )
+    parser.add_argument(
+        "--no-tscn", action="store_true",
+        help="Skip .tscn generation — Godot loads heightmap PNG at runtime instead"
+    )
     args = parser.parse_args()
 
     DEBUG = args.debug
     build_tscn_file = not args.no_tscn
 
+    if DEBUG:
+        print("[DEBUG MODE ENABLED]")
+
+    # Find zip files
     if args.zips:
         zip_files = [Path(z) for z in args.zips if Path(z).exists()]
+        missing   = [z for z in args.zips if not Path(z).exists()]
+        if missing:
+            for m in missing:
+                print(f"WARNING: File not found: {m}")
     else:
-        zip_files = [p for p in Path(".").glob("*.zip") if not p.stem.startswith("OWG-")]
+        zip_files = [
+            p for p in Path(".").glob("*.zip")
+            if not p.stem.startswith("OWG-")
+        ]
 
     if not zip_files:
         print("No PG course zip files found.")
-        return
+        print("Usage: python3 pg_to_owg_converter.py [file1.zip ...]")
+        print("Or drop PG zips in this directory and run with no arguments.")
+        sys.exit(0)
 
     output_dir = Path(args.output)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    print(f"PG → OWG Course Converter v2 (FIXED)")
-    print(f"Found {len(zip_files)} course(s)")
+    print(f"PG → OWG Course Converter")
+    print(f"Found {len(zip_files)} course(s) to convert")
     print(f"Output: {output_dir.resolve()}")
+    print(f"Mode: {'DEBUG' if DEBUG else 'normal'} | "
+          f"TSCN: {'baked' if build_tscn_file else 'skip (runtime PNG)'}")
 
     results = []
     for zip_file in zip_files:
@@ -989,16 +1057,20 @@ def main():
             success = convert_course(str(zip_file), str(output_dir), build_tscn_file)
             results.append((zip_file.name, success))
         except Exception as e:
-            print(f"\nERROR: {e}")
+            print(f"\nERROR converting {zip_file.name}: {e}")
             if DEBUG:
                 import traceback; traceback.print_exc()
             results.append((zip_file.name, False))
 
     print(f"\n{'='*60}")
-    print("SUMMARY")
+    print("CONVERSION SUMMARY")
+    print(f"{'='*60}")
     for name, ok in results:
-        print(f"  {'✓' if ok else '✗'} {name}")
-    print(f"\n{sum(1 for _, ok in results if ok)}/{len(results)} successful")
+        status = "✓ OK" if ok else "✗ FAILED"
+        print(f"  {status}  {name}")
+
+    ok_count = sum(1 for _, ok in results if ok)
+    print(f"\n{ok_count}/{len(results)} courses converted successfully")
 
 
 if __name__ == "__main__":

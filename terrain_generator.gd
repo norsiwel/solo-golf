@@ -25,6 +25,8 @@ var _hm_image: Image = null
 var _owg_fairway_tex: Texture2D = null
 var _owg_rough_tex: Texture2D = null
 var _owg_green_tex: Texture2D = null
+var _owg_bunker_tex: Texture2D = null
+var _owg_sand_tex: Texture2D = null
 var _owg_splatmap_tex: Texture2D = null
 var _owg_splatmap_image: Image = null
 
@@ -38,51 +40,39 @@ const ASSET_MAP = {
 
 const SPLAT_SHADER = """
 shader_type spatial;
+render_mode blend_mix, depth_draw_opaque, cull_back, diffuse_burley, specular_schlick_ggx;
 
-uniform sampler2D splatmap : source_color, filter_linear;
-uniform sampler2D fairway_tex : source_color, filter_linear_mipmap;
-uniform sampler2D green_tex : source_color, filter_linear_mipmap;
-uniform sampler2D rough_tex : source_color, filter_linear_mipmap;
-
-uniform vec4 green_tint : source_color = vec4(0.15, 0.58, 0.14, 1.0);
-uniform float uv_scale = 12.0;
+uniform sampler2D splatmap : source_color;
+uniform sampler2D fairway_texture : source_color;
+uniform sampler2D rough_texture : source_color;
+uniform sampler2D green_texture : source_color;
+uniform sampler2D bunker_texture : source_color;
+uniform sampler2D sand_texture : source_color;
+uniform float texture_scale = 8.0;
 uniform float owg_size_x = 2271.0;
 uniform float owg_size_z = 2271.0;
 
 varying vec3 world_pos;
-
-void vertex() {
-	world_pos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
-}
+void vertex() { world_pos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz; }
 
 void fragment() {
-	// Splatmap UV must match heightmap sampling formula (verified 0.001m error):
-	// u = 1 + world_x / size_x,  v = 1 - world_z / size_z
-	float safe_size_x = max(owg_size_x, 1.0);
-	float safe_size_z = max(owg_size_z, 1.0);
-	vec2 s_uv = vec2(1.0 + world_pos.x / safe_size_x, 1.0 - world_pos.z / safe_size_z);
-	s_uv = clamp(s_uv, 0.0, 1.0);
-	vec3 splat = texture(splatmap, s_uv).rgb;
-	
-	vec2 detail_uv = world_pos.xz / max(uv_scale, 0.1);
-	
-	vec3 fairway = texture(fairway_tex, detail_uv).rgb;
-	vec3 green = texture(green_tex, detail_uv).rgb * green_tint.rgb;
-	vec3 rough = texture(rough_tex, detail_uv).rgb;
-	
-	// Blend based on RGB: R=Fairway, G=Green, B=Rough
-	vec3 final_color = fairway * splat.r + green * splat.g + rough * splat.b;
-	
-	// Fallback to fairway if splat is empty
-	float total = splat.r + splat.g + splat.b;
-	if (total < 0.1) {
-		final_color = fairway;
-	} else {
-		final_color /= total; // normalize if overlap
-	}
-	
-	ALBEDO = final_color * COLOR.rgb;
-	ROUGHNESS = 0.85;
+	vec2 splat_uv = vec2(
+		clamp(-world_pos.x / max(owg_size_x, 1.0), 0.0, 1.0),
+		clamp( world_pos.z / max(owg_size_z, 1.0), 0.0, 1.0)
+	);
+	vec4 splat = texture(splatmap, splat_uv);
+	vec2 tiled_uv = world_pos.xz / max(texture_scale, 0.1);
+	vec4 fairway = texture(fairway_texture, tiled_uv);
+	vec4 rough    = texture(rough_texture,   tiled_uv);
+	vec4 green    = texture(green_texture,   tiled_uv);
+	vec4 bunker   = texture(bunker_texture,  tiled_uv);
+	vec4 sand     = texture(sand_texture,    tiled_uv);
+	float used = splat.r + splat.g + splat.b + splat.a;
+	vec4 final_color = fairway * splat.r + rough * splat.g + green * splat.b +
+		bunker * splat.a + sand * max(0.0, 1.0 - used);
+	ALBEDO = final_color.rgb;
+	ROUGHNESS = 0.7;
+	METALLIC = 0.0;
 }
 """
 
@@ -250,6 +240,8 @@ func load_textures(dir_path: String) -> void:
 	_owg_fairway_tex = _load_first.call(["fairway.png", "fairway2.png", "o_fairwayplain.png", "base_fairway.png", "surface_fairway.png", "skygrass_fair.png"])
 	_owg_green_tex   = _load_first.call(["green.png", "skygrass_green.png", "o_greenfringe.png", "pickupgreen.png", "surface_green.png"])
 	_owg_rough_tex   = _load_first.call(["terrainrough.png", "o_rough2desat.png", "meshlightrough.png", "base_rough1.png", "surface_rough.png"])
+	_owg_bunker_tex  = _load_first.call(["bunkersandoverhead2.png", "bunkersandrake.png", "bunker.png", "surface_bunker.png"])
+	_owg_sand_tex    = _load_first.call(["bunkersod.png", "sand.png", "gravelpath.png", "path.png"])
 
 	# Splatmap — try alphamaps from terrain/splat/ first, then textures folder
 	var splat_candidates = ["splatalpha_0.png", "splatalpha 0.png", "splatmap.png", "alphamap_0.png", "alphamap.png"]
@@ -383,24 +375,30 @@ func build_from_hole(tee: Vector3, pin: Vector3, all_tees: Array = [], all_pins:
 	
 	if _owg_splatmap_tex:
 		var mat := ShaderMaterial.new()
-		var shader := Shader.new()
-		shader.code = SPLAT_SHADER
+		# Load .gdshader file — cleaner than inline string
+		var shader = load("res://terrain_splatmap.gdshader")
+		if not shader:
+			# Fallback to inline shader if file not found
+			shader = Shader.new()
+			shader.code = SPLAT_SHADER
 		mat.shader = shader
 		mat.set_shader_parameter("splatmap", _owg_splatmap_tex)
-		
-		# Fallbacks for all textures
+
+		# Surface textures — fallback to res://assets if not extracted
 		var f_tex = _owg_fairway_tex if _owg_fairway_tex else load("res://assets/terrain/surface_fairway.png")
-		var g_tex = _owg_green_tex if _owg_green_tex else load("res://assets/terrain/surface_green.png")
-		var r_tex = _owg_rough_tex if _owg_rough_tex else load("res://assets/terrain/surface_rough.png")
-		
-		mat.set_shader_parameter("fairway_tex", f_tex)
-		mat.set_shader_parameter("green_tex", g_tex)
-		mat.set_shader_parameter("rough_tex", r_tex)
-		
-		mat.set_shader_parameter("uv_scale", GRASS_UV_SCALE)
-		mat.set_shader_parameter("owg_size_x", _owg_size_x)
-		mat.set_shader_parameter("owg_size_z", _owg_size_z)
-		mat.set_shader_parameter("green_tint", Color(0.15, 0.58, 0.14))
+		var g_tex = _owg_green_tex   if _owg_green_tex   else load("res://assets/terrain/surface_green.png")
+		var r_tex = _owg_rough_tex   if _owg_rough_tex   else load("res://assets/terrain/surface_rough.png")
+		var b_tex = _owg_bunker_tex  if _owg_bunker_tex  else load("res://assets/terrain/surface_bunker.png")
+		var s_tex = _owg_sand_tex    if _owg_sand_tex    else (b_tex if b_tex else r_tex)
+
+		mat.set_shader_parameter("fairway_texture", f_tex)
+		mat.set_shader_parameter("green_texture",   g_tex)
+		mat.set_shader_parameter("rough_texture",   r_tex)
+		mat.set_shader_parameter("bunker_texture",  b_tex)
+		mat.set_shader_parameter("sand_texture",    s_tex)
+		mat.set_shader_parameter("texture_scale",   GRASS_UV_SCALE)
+		mat.set_shader_parameter("owg_size_x",      _owg_size_x)
+		mat.set_shader_parameter("owg_size_z",      _owg_size_z)
 		_mesh_instance.material_override = mat
 	else:
 		# No splatmap — use vertex color zones + tiled grass texture
