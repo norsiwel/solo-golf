@@ -104,6 +104,13 @@ func _make_button(label: String, pos: Vector2, sz: Vector2) -> Button:
 	b.size       = sz
 	b.focus_mode = Control.FOCUS_NONE
 	b.add_theme_font_size_override("font_size", 18)
+	# Fully transparent — artwork shows through, modulate handles selected state
+	var empty := StyleBoxEmpty.new()
+	b.add_theme_stylebox_override("normal",   empty)
+	b.add_theme_stylebox_override("hover",    empty)
+	b.add_theme_stylebox_override("pressed",  empty)
+	b.add_theme_stylebox_override("focus",    empty)
+	b.add_theme_color_override("font_color", Color(0, 0, 0, 0))
 	add_child(b)
 	return b
 
