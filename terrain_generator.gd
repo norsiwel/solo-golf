@@ -390,11 +390,13 @@ func build_from_hole(tee: Vector3, pin: Vector3, all_tees: Array = [], all_pins:
 	shape.map_data = _heightmap
 	_collision_shape = CollisionShape3D.new()
 	_collision_shape.shape = shape
+	# CollisionShape3D is child of HoleTerrain (at world origin)
+	# HeightMapShape3D is centered, so position at mesh center in world space
 	var cx = _origin.x + _bounds.size.x * 0.5
 	var cz = _origin.z + _bounds.size.z * 0.5
-	add_child(_collision_shape)
-	_collision_shape.global_position = Vector3(cx, 0.0, cz)
+	_collision_shape.position = Vector3(cx, 0.0, cz)
 	_collision_shape.scale = Vector3(_step_x, 1.0, _step_z)
+	add_child(_collision_shape)
 
 	# Visual mesh
 	_mesh_instance = MeshInstance3D.new()
@@ -424,14 +426,41 @@ func build_from_hole(tee: Vector3, pin: Vector3, all_tees: Array = [], all_pins:
 		var r_tex = _owg_rough_tex   if _owg_rough_tex   else _make_placeholder(Color(0.30,0.42,0.18))
 		var b_tex = _owg_bunker_tex  if _owg_bunker_tex  else _make_placeholder(Color(0.78,0.68,0.42))
 		var s_tex = _owg_sand_tex    if _owg_sand_tex    else _make_placeholder(Color(0.82,0.74,0.50))
-		# Base texture — satellite/overhead photo used as fallback where tiling textures are absent
+		# Base texture — satellite/overhead photo
 		var base_img_path = "user://runtime/textures/St_Andrews_Overhead_2016.png"
 		var base_tex: ImageTexture = null
-		var base_img = Image.load_from_file(ProjectSettings.globalize_path(base_img_path))
+		# Try both user:// path and globalized path
+		var base_img = Image.load_from_file(base_img_path)
+		if base_img == null:
+			base_img = Image.load_from_file(ProjectSettings.globalize_path(base_img_path))
 		if base_img:
 			base_img.generate_mipmaps()
 			base_tex = ImageTexture.create_from_image(base_img)
+			print("TerrainGenerator: base_texture loaded OK")
+		else:
+			# Try looking it up via texture_map
+			var rt_map = "user://runtime/texture_map.json"
+			var f_tm = FileAccess.open(rt_map, FileAccess.READ)
+			if f_tm:
+				var js = JSON.new()
+				if js.parse(f_tm.get_as_text()) == OK:
+					var tm = js.get_data()
+					var overhead = tm.get("overhead", tm.get("base", ""))
+					if overhead == "":
+						# find any file with "overhead" or "satellite" in name
+						for key in tm:
+							if "overhead" in tm[key].to_lower() or "satellite" in tm[key].to_lower():
+								overhead = tm[key]
+								break
+					if overhead != "":
+						base_img = Image.load_from_file(ProjectSettings.globalize_path("user://runtime/textures/" + overhead))
+						if base_img:
+							base_img.generate_mipmaps()
+							base_tex = ImageTexture.create_from_image(base_img)
+							print("TerrainGenerator: base_texture loaded from texture_map: ", overhead)
+				f_tm.close()
 		if not base_tex:
+			print("TerrainGenerator: base_texture FAILED — using placeholder")
 			base_tex = _make_placeholder(Color(0.45, 0.55, 0.35))
 		mat.set_shader_parameter("fairway_texture", f_tex)
 		mat.set_shader_parameter("green_texture",   g_tex)

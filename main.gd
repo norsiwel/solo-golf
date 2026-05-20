@@ -126,8 +126,8 @@ func _setup_hole_owg(course_data: Dictionary, hole_num: int) -> void:
 	pin_pos.y = pin_y
 	print("Main: tee_pos=", tee_pos, " pin_pos=", pin_pos)
 
-	# Spawn +2 m above tee — gravity settles player onto terrain surface
-	player.global_position = Vector3(tee_pos.x, tee_pos.y + 5.0, tee_pos.z)
+	# Spawn well above tee — gravity settles player onto terrain surface
+	player.global_position = Vector3(tee_pos.x, tee_pos.y + 20.0, tee_pos.z)
 
 	# --- Course Map (Overhead) ---
 	var hole_map = get_node_or_null("HoleMap")
@@ -285,8 +285,8 @@ func _setup_water_plane(course_data: Dictionary) -> void:
 	mat.shading_mode       = BaseMaterial3D.SHADING_MODE_PER_PIXEL
 	water.set_surface_override_material(0, mat)
 
-	# Y=-2 keeps water below terrain (links sit ~3m above datum) — only visible at sea/burn edges
-	water.global_position = Vector3(0.0, -2.0, 0.0)
+	# Y=-50 — well below terrain, only visible at actual sea level areas
+	water.global_position = Vector3(0.0, -50.0, 0.0)
 	add_child(water)
 	print("Main: water plane at Y=0, size %.0fx%.0fm" % [size_x, size_z])
 
