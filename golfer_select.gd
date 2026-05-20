@@ -65,6 +65,12 @@ func create_ui() -> void:
 	name_input.position = Vector2(82, 300)
 	name_input.size     = Vector2(420, 58)
 	name_input.add_theme_font_size_override("font_size", 22)
+	# Transparent — sits over the image's painted name field
+	var ni := StyleBoxEmpty.new()
+	name_input.add_theme_stylebox_override("normal", ni)
+	name_input.add_theme_stylebox_override("focus",  ni)
+	name_input.add_theme_color_override("font_color",             Color(0.92, 0.97, 0.82, 1))
+	name_input.add_theme_color_override("font_placeholder_color", Color(0.55, 0.65, 0.50, 0.8))
 	add_child(name_input)
 
 	# Gender buttons
@@ -76,7 +82,7 @@ func create_ui() -> void:
 	left_button   = _make_button("LEFT HANDED",  Vector2(305, 570), Vector2(195, 72))
 
 	# Continue button
-	continue_button = _make_button("⛳  CONTINUE", Vector2(82, 725), Vector2(420, 72))
+	continue_button = _make_button("⛳  CONTINUE", Vector2(220, 725), Vector2(280, 72))
 	_style_continue(continue_button)
 
 	# Validation hint
