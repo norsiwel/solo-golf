@@ -8,7 +8,6 @@ var list_panel:      VBoxContainer
 var golfer_list:     VBoxContainer
 var btn_new_golfer:  Button
 var btn_play:        Button
-var create_form:     VBoxContainer
 var name_input:      LineEdit
 var btn_male:        Button
 var btn_female:      Button
@@ -38,61 +37,184 @@ func _build_ui() -> void:
 	anchor_right  = 1.0
 	anchor_bottom = 1.0
 
-	# Background
-	var bg := ColorRect.new()
-	bg.anchor_right  = 1.0
-	bg.anchor_bottom = 1.0
-	bg.color = Color(0.04, 0.07, 0.04, 1)
+	# ── Full screen background image ─────────────────────────────────────
+	var bg := TextureRect.new()
+	bg.anchor_right          = 1.0
+	bg.anchor_bottom         = 1.0
+	bg.expand_mode           = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+	bg.stretch_mode          = TextureRect.STRETCH_SCALE
+	bg.texture               = load("res://assets/Player-select.png")
 	add_child(bg)
 
-	# Header
-	var header := Label.new()
-	header.anchor_right  = 1.0
-	header.anchor_bottom = 0.09
-	header.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	header.text = "⛳  Open World Golf — Golfer Select"
-	header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	header.vertical_alignment   = VERTICAL_ALIGNMENT_CENTER
-	header.add_theme_font_size_override("font_size", 26)
-	header.add_theme_color_override("font_color", Color(0.95, 0.88, 0.4, 1))
-	add_child(header)
+	# ── Dark tint over left sidebar only to ensure text readability ───────
+	var sidebar_tint := ColorRect.new()
+	sidebar_tint.anchor_top    = 0.0
+	sidebar_tint.anchor_bottom = 1.0
+	sidebar_tint.anchor_left   = 0.0
+	sidebar_tint.anchor_right  = 0.26
+	sidebar_tint.color         = Color(0.0, 0.0, 0.0, 0.45)
+	add_child(sidebar_tint)
 
-	# Back button
+	# ── Back button — top left ─────────────────────────────────────────
 	var back := Button.new()
-	back.anchor_top    = 0.01
-	back.anchor_bottom = 0.08
-	back.anchor_right  = 0.10
-	back.offset_left   = 8
-	back.text = "◀  Title"
-	back.add_theme_font_size_override("font_size", 14)
+	back.position             = Vector2(12, 12)
+	back.size                 = Vector2(100, 36)
+	back.text                 = "◀  Title"
+	back.add_theme_font_size_override("font_size", 13)
 	back.pressed.connect(func():
 		get_tree().change_scene_to_file("res://scenes/title_screen.tscn")
 	)
 	add_child(back)
 
-	# Hint bar
-	var hint := Label.new()
-	hint.anchor_top    = 0.94
-	hint.anchor_right  = 1.0
-	hint.anchor_bottom = 1.0
-	hint.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	hint.text = "↑ ↓ to select  |  Enter to play  |  ESC = title"
+	# ── Instructions label ────────────────────────────────────────────
+	var instructions := Label.new()
+	instructions.position     = Vector2(20, 340)
+	instructions.size         = Vector2(390, 80)
+	instructions.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	instructions.text         = "Enter your name and select\nyour gender and handedness,\nthen step onto the course."
+	instructions.add_theme_font_size_override("font_size", 13)
+	instructions.add_theme_color_override("font_color", Color(0.75, 0.85, 0.70, 0.90))
+	add_child(instructions)
+
+	# ── Name label ───────────────────────────────────────────────────
+	var name_label := Label.new()
+	name_label.position       = Vector2(20, 430)
+	name_label.size           = Vector2(390, 30)
+	name_label.text           = "GOLFER NAME"
+	name_label.add_theme_font_size_override("font_size", 13)
+	name_label.add_theme_color_override("font_color", Color(0.65, 0.85, 0.55, 1))
+	add_child(name_label)
+
+	# ── Name input ────────────────────────────────────────────────────
+	name_input                = LineEdit.new()
+	name_input.position       = Vector2(20, 460)
+	name_input.size           = Vector2(390, 48)
+	name_input.placeholder_text = "Enter your name…"
+	name_input.max_length     = 24
+	name_input.add_theme_font_size_override("font_size", 20)
+	var ni_style              = StyleBoxFlat.new()
+	ni_style.bg_color         = Color(0.04, 0.10, 0.04, 0.85)
+	ni_style.border_color     = Color(0.35, 0.70, 0.25, 0.9)
+	ni_style.set_border_width_all(2)
+	ni_style.set_corner_radius_all(6)
+	ni_style.content_margin_left = 10
+	name_input.add_theme_stylebox_override("normal", ni_style)
+	name_input.add_theme_stylebox_override("focus",  ni_style)
+	name_input.add_theme_color_override("font_color",             Color(0.92, 0.97, 0.82, 1))
+	name_input.add_theme_color_override("font_placeholder_color", Color(0.45, 0.58, 0.40, 0.7))
+	add_child(name_input)
+
+	# ── Gender label ──────────────────────────────────────────────────
+	var gender_label          = Label.new()
+	gender_label.position     = Vector2(20, 526)
+	gender_label.size         = Vector2(390, 26)
+	gender_label.text         = "GENDER"
+	gender_label.add_theme_font_size_override("font_size", 13)
+	gender_label.add_theme_color_override("font_color", Color(0.65, 0.85, 0.55, 1))
+	add_child(gender_label)
+
+	# ── Gender buttons ────────────────────────────────────────────────
+	btn_male                  = Button.new()
+	btn_male.position         = Vector2(20, 556)
+	btn_male.size             = Vector2(188, 52)
+	btn_male.text             = "♂  Male"
+	btn_male.toggle_mode      = true
+	btn_male.button_pressed   = true
+	btn_male.add_theme_font_size_override("font_size", 18)
+	btn_male.pressed.connect(_on_btn_male_pressed)
+	add_child(btn_male)
+
+	btn_female                = Button.new()
+	btn_female.position       = Vector2(222, 556)
+	btn_female.size           = Vector2(188, 52)
+	btn_female.text           = "♀  Female"
+	btn_female.toggle_mode    = true
+	btn_female.add_theme_font_size_override("font_size", 18)
+	btn_female.pressed.connect(_on_btn_female_pressed)
+	add_child(btn_female)
+
+	# ── Handedness label ──────────────────────────────────────────────
+	var hand_label            = Label.new()
+	hand_label.position       = Vector2(20, 622)
+	hand_label.size           = Vector2(390, 26)
+	hand_label.text           = "HANDEDNESS"
+	hand_label.add_theme_font_size_override("font_size", 13)
+	hand_label.add_theme_color_override("font_color", Color(0.65, 0.85, 0.55, 1))
+	add_child(hand_label)
+
+	# ── Handedness buttons ────────────────────────────────────────────
+	btn_right                 = Button.new()
+	btn_right.position        = Vector2(20, 652)
+	btn_right.size            = Vector2(188, 52)
+	btn_right.text            = "Right Handed"
+	btn_right.toggle_mode     = true
+	btn_right.button_pressed  = true
+	btn_right.add_theme_font_size_override("font_size", 16)
+	btn_right.pressed.connect(_on_btn_right_pressed)
+	add_child(btn_right)
+
+	btn_left                  = Button.new()
+	btn_left.position         = Vector2(222, 652)
+	btn_left.size             = Vector2(188, 52)
+	btn_left.text             = "Left Handed"
+	btn_left.toggle_mode      = true
+	btn_left.add_theme_font_size_override("font_size", 16)
+	btn_left.pressed.connect(_on_btn_left_pressed)
+	add_child(btn_left)
+
+	# ── Validation hint ───────────────────────────────────────────────
+	validation_hint           = Label.new()
+	validation_hint.position  = Vector2(20, 716)
+	validation_hint.size      = Vector2(390, 30)
+	validation_hint.text      = ""
+	validation_hint.add_theme_font_size_override("font_size", 13)
+	validation_hint.add_theme_color_override("font_color", Color(0.95, 0.35, 0.25, 1))
+	add_child(validation_hint)
+
+	# ── Create & Play button ──────────────────────────────────────────
+	btn_create                = Button.new()
+	btn_create.position       = Vector2(20, 754)
+	btn_create.size           = Vector2(390, 56)
+	btn_create.text           = "✔  Step Onto The Course"
+	btn_create.add_theme_font_size_override("font_size", 18)
+	btn_create.add_theme_color_override("font_color", Color(0.95, 1.0, 0.55, 1))
+	btn_create.pressed.connect(_on_btn_create_pressed)
+	add_child(btn_create)
+
+	# ── Cancel button (hidden until needed) ──────────────────────────
+	btn_cancel                = Button.new()
+	btn_cancel.position       = Vector2(20, 820)
+	btn_cancel.size           = Vector2(390, 40)
+	btn_cancel.text           = "◀  Back to Golfer List"
+	btn_cancel.visible        = false
+	btn_cancel.add_theme_font_size_override("font_size", 14)
+	btn_cancel.pressed.connect(_on_btn_cancel_pressed)
+	add_child(btn_cancel)
+
+	# ── Hint bar — bottom of screen ───────────────────────────────────
+	var hint                  = Label.new()
+	hint.anchor_top           = 0.96
+	hint.anchor_right         = 1.0
+	hint.anchor_bottom        = 1.0
+	hint.grow_horizontal      = Control.GROW_DIRECTION_BOTH
+	hint.text                 = "Enter to confirm  |  ESC = title"
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	hint.vertical_alignment   = VERTICAL_ALIGNMENT_CENTER
 	hint.add_theme_font_size_override("font_size", 12)
-	hint.add_theme_color_override("font_color", Color(0.4, 0.55, 0.4, 0.75))
+	hint.add_theme_color_override("font_color", Color(0.5, 0.6, 0.45, 0.7))
 	add_child(hint)
 
 	_build_list_panel()
-	_build_create_form()
+	# create_form not needed — form IS the main layout now
 
 
 func _build_list_panel() -> void:
+	# Returning golfer list — sits on right side over locker room art
 	list_panel = VBoxContainer.new()
-	list_panel.anchor_left   = 0.20
+	list_panel.anchor_left   = 0.28
 	list_panel.anchor_top    = 0.10
-	list_panel.anchor_right  = 0.80
-	list_panel.anchor_bottom = 0.92
+	list_panel.anchor_right  = 0.78
+	list_panel.anchor_bottom = 0.88
 	list_panel.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	list_panel.grow_vertical   = Control.GROW_DIRECTION_BOTH
 	list_panel.add_theme_constant_override("separation", 10)
@@ -137,128 +259,9 @@ func _build_list_panel() -> void:
 	list_btns.add_child(btn_play)
 
 
-func _build_create_form() -> void:
-	create_form = VBoxContainer.new()
-	create_form.visible = false
-	create_form.anchor_left   = 0.25
-	create_form.anchor_top    = 0.12
-	create_form.anchor_right  = 0.75
-	create_form.anchor_bottom = 0.90
-	create_form.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	create_form.grow_vertical   = Control.GROW_DIRECTION_BOTH
-	create_form.add_theme_constant_override("separation", 22)
-	add_child(create_form)
-
-	var form_title := Label.new()
-	form_title.text = "Create New Golfer"
-	form_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	form_title.add_theme_font_size_override("font_size", 20)
-	form_title.add_theme_color_override("font_color", Color(0.75, 0.90, 0.65, 1))
-	create_form.add_child(form_title)
-
-	# Name
-	var name_label := Label.new()
-	name_label.text = "Name"
-	name_label.add_theme_font_size_override("font_size", 15)
-	name_label.add_theme_color_override("font_color", Color(0.70, 0.82, 0.65, 1))
-	create_form.add_child(name_label)
-
-	name_input = LineEdit.new()
-	name_input.placeholder_text = "Enter your name…"
-	name_input.max_length = 24
-	name_input.custom_minimum_size = Vector2(0, 44)
-	name_input.add_theme_font_size_override("font_size", 18)
-	create_form.add_child(name_input)
-
-	# Gender
-	var gender_label := Label.new()
-	gender_label.text = "Gender"
-	gender_label.add_theme_font_size_override("font_size", 15)
-	gender_label.add_theme_color_override("font_color", Color(0.70, 0.82, 0.65, 1))
-	create_form.add_child(gender_label)
-
-	var gender_row := HBoxContainer.new()
-	gender_row.add_theme_constant_override("separation", 12)
-	create_form.add_child(gender_row)
-
-	btn_male = Button.new()
-	btn_male.text = "♂  Male"
-	btn_male.toggle_mode = true
-	btn_male.button_pressed = true
-	btn_male.custom_minimum_size = Vector2(110, 44)
-	btn_male.add_theme_font_size_override("font_size", 16)
-	btn_male.pressed.connect(_on_btn_male_pressed)
-	gender_row.add_child(btn_male)
-
-	btn_female = Button.new()
-	btn_female.text = "♀  Female"
-	btn_female.toggle_mode = true
-	btn_female.custom_minimum_size = Vector2(110, 44)
-	btn_female.add_theme_font_size_override("font_size", 16)
-	btn_female.pressed.connect(_on_btn_female_pressed)
-	gender_row.add_child(btn_female)
-
-	# Handedness
-	var hand_label := Label.new()
-	hand_label.text = "Handedness"
-	hand_label.add_theme_font_size_override("font_size", 15)
-	hand_label.add_theme_color_override("font_color", Color(0.70, 0.82, 0.65, 1))
-	create_form.add_child(hand_label)
-
-	var hand_row := HBoxContainer.new()
-	hand_row.add_theme_constant_override("separation", 12)
-	create_form.add_child(hand_row)
-
-	btn_right = Button.new()
-	btn_right.text = "Right"
-	btn_right.toggle_mode = true
-	btn_right.button_pressed = true
-	btn_right.custom_minimum_size = Vector2(110, 44)
-	btn_right.add_theme_font_size_override("font_size", 16)
-	btn_right.pressed.connect(_on_btn_right_pressed)
-	hand_row.add_child(btn_right)
-
-	btn_left = Button.new()
-	btn_left.text = "Left"
-	btn_left.toggle_mode = true
-	btn_left.custom_minimum_size = Vector2(110, 44)
-	btn_left.add_theme_font_size_override("font_size", 16)
-	btn_left.pressed.connect(_on_btn_left_pressed)
-	hand_row.add_child(btn_left)
-
-	# Validation hint
-	validation_hint = Label.new()
-	validation_hint.text = ""
-	validation_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	validation_hint.add_theme_font_size_override("font_size", 13)
-	validation_hint.add_theme_color_override("font_color", Color(0.9, 0.4, 0.3, 1))
-	create_form.add_child(validation_hint)
-
-	# Action buttons
-	var actions := HBoxContainer.new()
-	actions.alignment = BoxContainer.ALIGNMENT_CENTER
-	actions.add_theme_constant_override("separation", 16)
-	create_form.add_child(actions)
-
-	btn_cancel = Button.new()
-	btn_cancel.text = "Cancel"
-	btn_cancel.visible = false
-	btn_cancel.custom_minimum_size = Vector2(120, 44)
-	btn_cancel.add_theme_font_size_override("font_size", 15)
-	btn_cancel.pressed.connect(_on_btn_cancel_pressed)
-	actions.add_child(btn_cancel)
-
-	btn_create = Button.new()
-	btn_create.text = "✔  Create & Play"
-	btn_create.custom_minimum_size = Vector2(200, 44)
-	btn_create.add_theme_font_size_override("font_size", 18)
-	btn_create.add_theme_color_override("font_color", Color(0.95, 1.0, 0.6, 1))
-	btn_create.pressed.connect(_on_btn_create_pressed)
-	actions.add_child(btn_create)
-
 
 # ══════════════════════════════════════════════════════════════════════════
-#  LOGIC  (unchanged from original)
+#  LOGIC
 # ══════════════════════════════════════════════════════════════════════════
 
 func _refresh() -> void:
@@ -280,14 +283,16 @@ func _refresh() -> void:
 
 func _show_list() -> void:
 	list_panel.visible  = true
-	create_form.visible = false
-
+	# Left sidebar form always visible — returning golfer can still edit
+	name_input.editable  = false
+	btn_create.text      = "▶  Play as Selected"
 
 func _show_form(can_cancel: bool) -> void:
-	list_panel.visible  = false
-	create_form.visible = true
-	btn_cancel.visible  = can_cancel
-	name_input.text     = ""
+	list_panel.visible   = false
+	name_input.editable  = true
+	btn_create.text      = "✔  Step Onto The Course"
+	btn_cancel.visible   = can_cancel
+	name_input.text      = ""
 	btn_male.button_pressed   = true
 	btn_female.button_pressed = false
 	btn_right.button_pressed  = true
