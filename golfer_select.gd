@@ -46,13 +46,11 @@ func _build_ui() -> void:
 	bg.texture               = load("res://assets/Player-select.png")
 	add_child(bg)
 
-	# ── Dark tint over left sidebar only to ensure text readability ───────
+	# ── Dark tint over left sidebar — starts below logo area ─────────────
 	var sidebar_tint := ColorRect.new()
-	sidebar_tint.anchor_top    = 0.0
-	sidebar_tint.anchor_bottom = 1.0
-	sidebar_tint.anchor_left   = 0.0
-	sidebar_tint.anchor_right  = 0.26
-	sidebar_tint.color         = Color(0.0, 0.0, 0.0, 0.45)
+	sidebar_tint.position      = Vector2(0, 310)
+	sidebar_tint.size          = Vector2(430, 631)
+	sidebar_tint.color         = Color(0.0, 0.0, 0.0, 0.50)
 	add_child(sidebar_tint)
 
 	# ── Back button — top left ─────────────────────────────────────────
