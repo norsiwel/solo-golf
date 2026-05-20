@@ -341,7 +341,7 @@ func _on_load_progress(step: String, percent: float) -> void:
 
 func _on_course_ready(course_data: Dictionary) -> void:
 	GameState.current_course = course_data
-	get_tree().change_scene_to_file("res://main.tscn")
+	get_tree().change_scene_to_file("res://intro.tscn")
 
 
 func _on_load_failed(reason: String) -> void:

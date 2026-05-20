@@ -1,5 +1,5 @@
 extends Node3D
-## main.gd — Lobby shell. Holds persistent systems only.
+## intro.gd — Game session shell. Holds persistent systems only.
 ## Does NOT touch terrain, geometry, or hole data directly.
 ## All course/hole logic lives in the hole scene loaded into CurrentHole.
 
