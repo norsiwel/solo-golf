@@ -25,6 +25,7 @@ GameState="*res://game_state.gd"
 AssetStager="*res://asset_stager.gd"
 CoursePreloader="*res://course_preloader.gd"
 ProfileManager="*res://profile_manager.gd"
+Tokens="*res://ui/tokens.gd"
 
 [display]
 

@@ -1,0 +1,178 @@
+[gd_resource type="Theme" load_steps=10 format=3]
+
+; Open World Golf — Base Theme
+; Drop into your Godot 4.6 project at res://ui/theme.tres
+; Assign as the default theme on each Control scene root.
+;
+; This theme defines:
+;   • Panel — dark forest green card surface
+;   • Button — cream pill button (primary CTA)
+;   • Label — cream text default
+;   • LineEdit — name input style with lime focus border
+;
+; Custom Theme Type "OptionCard" is used by the locker-room-style
+; gender/handedness cards (cream bg, lime ring on selected state).
+
+[sub_resource type="StyleBoxFlat" id="SBF_panel"]
+bg_color = Color(0.110, 0.220, 0.157, 0.92)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.910, 0.875, 0.780, 0.18)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+shadow_color = Color(0, 0, 0, 0.25)
+shadow_size = 16
+shadow_offset = Vector2(0, 8)
+
+[sub_resource type="StyleBoxFlat" id="SBF_button_normal"]
+bg_color = Color(0.831, 0.804, 0.714, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.910, 0.875, 0.780, 0.45)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+content_margin_left = 28.0
+content_margin_top = 14.0
+content_margin_right = 28.0
+content_margin_bottom = 14.0
+
+[sub_resource type="StyleBoxFlat" id="SBF_button_hover"]
+bg_color = Color(0.873, 0.844, 0.749, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.784, 0.878, 0.439, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+content_margin_left = 27.0
+content_margin_top = 13.0
+content_margin_right = 27.0
+content_margin_bottom = 13.0
+shadow_color = Color(0.784, 0.878, 0.439, 0.4)
+shadow_size = 16
+
+[sub_resource type="StyleBoxFlat" id="SBF_button_pressed"]
+bg_color = Color(0.733, 0.702, 0.620, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.784, 0.878, 0.439, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+content_margin_left = 28.0
+content_margin_top = 14.0
+content_margin_right = 28.0
+content_margin_bottom = 14.0
+
+[sub_resource type="StyleBoxFlat" id="SBF_lineedit_normal"]
+bg_color = Color(0, 0, 0, 0.18)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.910, 0.875, 0.780, 0.55)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+content_margin_left = 18.0
+content_margin_top = 14.0
+content_margin_right = 18.0
+content_margin_bottom = 14.0
+
+[sub_resource type="StyleBoxFlat" id="SBF_lineedit_focus"]
+bg_color = Color(0, 0, 0, 0.22)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.784, 0.878, 0.439, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+content_margin_left = 18.0
+content_margin_top = 14.0
+content_margin_right = 18.0
+content_margin_bottom = 14.0
+shadow_color = Color(0.784, 0.878, 0.439, 0.4)
+shadow_size = 12
+
+[sub_resource type="StyleBoxFlat" id="SBF_card_unselected"]
+bg_color = Color(0.733, 0.702, 0.620, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0, 0, 0, 0)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+content_margin_left = 16.0
+content_margin_top = 20.0
+content_margin_right = 16.0
+content_margin_bottom = 14.0
+
+[sub_resource type="StyleBoxFlat" id="SBF_card_selected"]
+bg_color = Color(0.831, 0.804, 0.714, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.784, 0.878, 0.439, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+content_margin_left = 16.0
+content_margin_top = 20.0
+content_margin_right = 16.0
+content_margin_bottom = 14.0
+shadow_color = Color(0.784, 0.878, 0.439, 0.45)
+shadow_size = 24
+
+[resource]
+default_font_size = 14
+
+Button/colors/font_color = Color(0.173, 0.227, 0.165, 1)
+Button/colors/font_hover_color = Color(0.173, 0.227, 0.165, 1)
+Button/colors/font_pressed_color = Color(0.173, 0.227, 0.165, 1)
+Button/colors/font_disabled_color = Color(0.173, 0.227, 0.165, 0.4)
+Button/font_sizes/font_size = 16
+Button/styles/normal = SubResource("SBF_button_normal")
+Button/styles/hover = SubResource("SBF_button_hover")
+Button/styles/pressed = SubResource("SBF_button_pressed")
+Button/styles/disabled = SubResource("SBF_button_normal")
+Button/styles/focus = SubResource("SBF_button_hover")
+
+Label/colors/font_color = Color(0.910, 0.875, 0.780, 1)
+Label/font_sizes/font_size = 14
+
+LineEdit/colors/font_color = Color(0.910, 0.875, 0.780, 1)
+LineEdit/colors/font_placeholder_color = Color(0.910, 0.875, 0.780, 0.45)
+LineEdit/colors/caret_color = Color(0.784, 0.878, 0.439, 1)
+LineEdit/colors/selection_color = Color(0.784, 0.878, 0.439, 0.35)
+LineEdit/font_sizes/font_size = 16
+LineEdit/styles/normal = SubResource("SBF_lineedit_normal")
+LineEdit/styles/focus = SubResource("SBF_lineedit_focus")
+
+Panel/styles/panel = SubResource("SBF_panel")
+
+OptionCard/base_type = "PanelContainer"
+OptionCard/styles/panel = SubResource("SBF_card_unselected")
+OptionCard/styles/panel_selected = SubResource("SBF_card_selected")
