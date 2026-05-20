@@ -294,6 +294,7 @@ func _show_form(can_cancel: bool) -> void:
 	btn_left.button_pressed   = false
 	validation_hint.text = ""
 	name_input.grab_focus()
+	_refresh_toggles()
 
 
 func _rebuild_list() -> void:
@@ -382,15 +383,45 @@ func _confirm_delete(index: int) -> void:
 
 func _on_btn_male_pressed() -> void:
 	btn_male.button_pressed = true; btn_female.button_pressed = false
+	_refresh_toggles()
 
 func _on_btn_female_pressed() -> void:
 	btn_female.button_pressed = true; btn_male.button_pressed = false
+	_refresh_toggles()
 
 func _on_btn_right_pressed() -> void:
 	btn_right.button_pressed = true; btn_left.button_pressed = false
+	_refresh_toggles()
 
 func _on_btn_left_pressed() -> void:
 	btn_left.button_pressed = true; btn_right.button_pressed = false
+	_refresh_toggles()
+
+func _refresh_toggles() -> void:
+	_set_toggle_style(btn_male,   btn_male.button_pressed)
+	_set_toggle_style(btn_female, btn_female.button_pressed)
+	_set_toggle_style(btn_right,  btn_right.button_pressed)
+	_set_toggle_style(btn_left,   btn_left.button_pressed)
+
+func _set_toggle_style(btn: Button, active: bool) -> void:
+	var s := StyleBoxFlat.new()
+	s.set_corner_radius_all(7)
+	s.content_margin_left = 10; s.content_margin_right = 10
+	s.content_margin_top  = 8;  s.content_margin_bottom = 8
+	if active:
+		s.bg_color     = Color(0.12, 0.45, 0.12, 1.0)
+		s.border_color = Color(0.40, 0.90, 0.30, 1.0)
+		s.set_border_width_all(2)
+		btn.add_theme_color_override("font_color", Color(1.0, 1.0, 0.55, 1))
+	else:
+		s.bg_color     = Color(0.07, 0.12, 0.07, 1.0)
+		s.border_color = Color(0.25, 0.40, 0.22, 0.6)
+		s.set_border_width_all(1)
+		btn.add_theme_color_override("font_color", Color(0.60, 0.72, 0.58, 1))
+	btn.add_theme_stylebox_override("normal",   s)
+	btn.add_theme_stylebox_override("pressed",  s)
+	btn.add_theme_stylebox_override("hover",    s)
+	btn.add_theme_stylebox_override("focus",    s)
 
 
 func _on_btn_create_pressed() -> void:
