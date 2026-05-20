@@ -1,49 +1,273 @@
 extends Control
 ## golfer_select.gd
-## Shown after title screen.
-## - If profiles exist: scrollable list with Play / New / Delete
-## - If no profiles: create form shown immediately
-## On confirm: sets ProfileManager.active, pushes to GameState, goes to course_select
+## Fully code-driven — no dependency on hand-written .tscn node paths
+## First run: create form only. Returning: profile list + New Golfer option.
 
-# ── node refs ─────────────────────────────────────────────────────────────
-@onready var list_panel      = $ListPanel
-@onready var golfer_list     = %GolferList
-@onready var btn_new_golfer  = %BtnNewGolfer
-@onready var btn_play        = %BtnPlay
-@onready var create_form     = $CreateForm
-@onready var name_input      = %NameInput
-@onready var btn_male        = %BtnMale
-@onready var btn_female      = %BtnFemale
-@onready var btn_right       = %BtnRight
-@onready var btn_left        = %BtnLeft
-@onready var btn_cancel      = %BtnCancel
-@onready var btn_create      = %BtnCreate
-@onready var validation_hint = %ValidationHint
-@onready var back_btn        = $BackButton
+# ── node refs (built in _build_ui) ───────────────────────────────────────
+var list_panel:      VBoxContainer
+var golfer_list:     VBoxContainer
+var btn_new_golfer:  Button
+var btn_play:        Button
+var create_form:     VBoxContainer
+var name_input:      LineEdit
+var btn_male:        Button
+var btn_female:      Button
+var btn_right:       Button
+var btn_left:        Button
+var btn_cancel:      Button
+var btn_create:      Button
+var validation_hint: Label
+var scroll:          ScrollContainer
 
 # ── state ─────────────────────────────────────────────────────────────────
-var _profiles: Array = []        # cached list from ProfileManager
-var _selected: int   = -1        # index into _profiles
-var _row_buttons: Array = []     # one HBoxContainer per profile row
+var _profiles: Array = []
+var _selected: int   = -1
+var _row_buttons: Array = []
 
 
 func _ready() -> void:
-	_apply_theme()
-	_connect_signals()
+	_build_ui()
 	_refresh()
 
 
-# ── boot logic ────────────────────────────────────────────────────────────
+# ══════════════════════════════════════════════════════════════════════════
+#  UI BUILDER
+# ══════════════════════════════════════════════════════════════════════════
+
+func _build_ui() -> void:
+	anchor_right  = 1.0
+	anchor_bottom = 1.0
+
+	# Background
+	var bg := ColorRect.new()
+	bg.anchor_right  = 1.0
+	bg.anchor_bottom = 1.0
+	bg.color = Color(0.04, 0.07, 0.04, 1)
+	add_child(bg)
+
+	# Header
+	var header := Label.new()
+	header.anchor_right  = 1.0
+	header.anchor_bottom = 0.09
+	header.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	header.text = "⛳  Open World Golf — Golfer Select"
+	header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	header.vertical_alignment   = VERTICAL_ALIGNMENT_CENTER
+	header.add_theme_font_size_override("font_size", 26)
+	header.add_theme_color_override("font_color", Color(0.95, 0.88, 0.4, 1))
+	add_child(header)
+
+	# Back button
+	var back := Button.new()
+	back.anchor_top    = 0.01
+	back.anchor_bottom = 0.08
+	back.anchor_right  = 0.10
+	back.offset_left   = 8
+	back.text = "◀  Title"
+	back.add_theme_font_size_override("font_size", 14)
+	back.pressed.connect(func():
+		get_tree().change_scene_to_file("res://scenes/title_screen.tscn")
+	)
+	add_child(back)
+
+	# Hint bar
+	var hint := Label.new()
+	hint.anchor_top    = 0.94
+	hint.anchor_right  = 1.0
+	hint.anchor_bottom = 1.0
+	hint.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	hint.text = "↑ ↓ to select  |  Enter to play  |  ESC = title"
+	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hint.vertical_alignment   = VERTICAL_ALIGNMENT_CENTER
+	hint.add_theme_font_size_override("font_size", 12)
+	hint.add_theme_color_override("font_color", Color(0.4, 0.55, 0.4, 0.75))
+	add_child(hint)
+
+	_build_list_panel()
+	_build_create_form()
+
+
+func _build_list_panel() -> void:
+	list_panel = VBoxContainer.new()
+	list_panel.anchor_left   = 0.20
+	list_panel.anchor_top    = 0.10
+	list_panel.anchor_right  = 0.80
+	list_panel.anchor_bottom = 0.92
+	list_panel.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	list_panel.grow_vertical   = Control.GROW_DIRECTION_BOTH
+	list_panel.add_theme_constant_override("separation", 10)
+	add_child(list_panel)
+
+	var title := Label.new()
+	title.text = "Select Golfer"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_font_size_override("font_size", 18)
+	title.add_theme_color_override("font_color", Color(0.75, 0.90, 0.65, 1))
+	list_panel.add_child(title)
+
+	scroll = ScrollContainer.new()
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.custom_minimum_size = Vector2(0, 200)
+	list_panel.add_child(scroll)
+
+	golfer_list = VBoxContainer.new()
+	golfer_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	golfer_list.add_theme_constant_override("separation", 6)
+	scroll.add_child(golfer_list)
+
+	var list_btns := HBoxContainer.new()
+	list_btns.alignment = BoxContainer.ALIGNMENT_CENTER
+	list_btns.add_theme_constant_override("separation", 16)
+	list_panel.add_child(list_btns)
+
+	btn_new_golfer = Button.new()
+	btn_new_golfer.text = "＋  New Golfer"
+	btn_new_golfer.custom_minimum_size = Vector2(160, 48)
+	btn_new_golfer.add_theme_font_size_override("font_size", 16)
+	btn_new_golfer.pressed.connect(func(): _show_form(true))
+	list_btns.add_child(btn_new_golfer)
+
+	btn_play = Button.new()
+	btn_play.text = "▶  Play as …"
+	btn_play.custom_minimum_size = Vector2(200, 48)
+	btn_play.disabled = true
+	btn_play.add_theme_font_size_override("font_size", 20)
+	btn_play.add_theme_color_override("font_color", Color(0.95, 1.0, 0.6, 1))
+	btn_play.pressed.connect(_on_btn_play_pressed)
+	list_btns.add_child(btn_play)
+
+
+func _build_create_form() -> void:
+	create_form = VBoxContainer.new()
+	create_form.visible = false
+	create_form.anchor_left   = 0.25
+	create_form.anchor_top    = 0.12
+	create_form.anchor_right  = 0.75
+	create_form.anchor_bottom = 0.90
+	create_form.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	create_form.grow_vertical   = Control.GROW_DIRECTION_BOTH
+	create_form.add_theme_constant_override("separation", 22)
+	add_child(create_form)
+
+	var form_title := Label.new()
+	form_title.text = "Create New Golfer"
+	form_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	form_title.add_theme_font_size_override("font_size", 20)
+	form_title.add_theme_color_override("font_color", Color(0.75, 0.90, 0.65, 1))
+	create_form.add_child(form_title)
+
+	# Name
+	var name_label := Label.new()
+	name_label.text = "Name"
+	name_label.add_theme_font_size_override("font_size", 15)
+	name_label.add_theme_color_override("font_color", Color(0.70, 0.82, 0.65, 1))
+	create_form.add_child(name_label)
+
+	name_input = LineEdit.new()
+	name_input.placeholder_text = "Enter your name…"
+	name_input.max_length = 24
+	name_input.custom_minimum_size = Vector2(0, 44)
+	name_input.add_theme_font_size_override("font_size", 18)
+	create_form.add_child(name_input)
+
+	# Gender
+	var gender_label := Label.new()
+	gender_label.text = "Gender"
+	gender_label.add_theme_font_size_override("font_size", 15)
+	gender_label.add_theme_color_override("font_color", Color(0.70, 0.82, 0.65, 1))
+	create_form.add_child(gender_label)
+
+	var gender_row := HBoxContainer.new()
+	gender_row.add_theme_constant_override("separation", 12)
+	create_form.add_child(gender_row)
+
+	btn_male = Button.new()
+	btn_male.text = "♂  Male"
+	btn_male.toggle_mode = true
+	btn_male.button_pressed = true
+	btn_male.custom_minimum_size = Vector2(110, 44)
+	btn_male.add_theme_font_size_override("font_size", 16)
+	btn_male.pressed.connect(_on_btn_male_pressed)
+	gender_row.add_child(btn_male)
+
+	btn_female = Button.new()
+	btn_female.text = "♀  Female"
+	btn_female.toggle_mode = true
+	btn_female.custom_minimum_size = Vector2(110, 44)
+	btn_female.add_theme_font_size_override("font_size", 16)
+	btn_female.pressed.connect(_on_btn_female_pressed)
+	gender_row.add_child(btn_female)
+
+	# Handedness
+	var hand_label := Label.new()
+	hand_label.text = "Handedness"
+	hand_label.add_theme_font_size_override("font_size", 15)
+	hand_label.add_theme_color_override("font_color", Color(0.70, 0.82, 0.65, 1))
+	create_form.add_child(hand_label)
+
+	var hand_row := HBoxContainer.new()
+	hand_row.add_theme_constant_override("separation", 12)
+	create_form.add_child(hand_row)
+
+	btn_right = Button.new()
+	btn_right.text = "Right"
+	btn_right.toggle_mode = true
+	btn_right.button_pressed = true
+	btn_right.custom_minimum_size = Vector2(110, 44)
+	btn_right.add_theme_font_size_override("font_size", 16)
+	btn_right.pressed.connect(_on_btn_right_pressed)
+	hand_row.add_child(btn_right)
+
+	btn_left = Button.new()
+	btn_left.text = "Left"
+	btn_left.toggle_mode = true
+	btn_left.custom_minimum_size = Vector2(110, 44)
+	btn_left.add_theme_font_size_override("font_size", 16)
+	btn_left.pressed.connect(_on_btn_left_pressed)
+	hand_row.add_child(btn_left)
+
+	# Validation hint
+	validation_hint = Label.new()
+	validation_hint.text = ""
+	validation_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	validation_hint.add_theme_font_size_override("font_size", 13)
+	validation_hint.add_theme_color_override("font_color", Color(0.9, 0.4, 0.3, 1))
+	create_form.add_child(validation_hint)
+
+	# Action buttons
+	var actions := HBoxContainer.new()
+	actions.alignment = BoxContainer.ALIGNMENT_CENTER
+	actions.add_theme_constant_override("separation", 16)
+	create_form.add_child(actions)
+
+	btn_cancel = Button.new()
+	btn_cancel.text = "Cancel"
+	btn_cancel.visible = false
+	btn_cancel.custom_minimum_size = Vector2(120, 44)
+	btn_cancel.add_theme_font_size_override("font_size", 15)
+	btn_cancel.pressed.connect(_on_btn_cancel_pressed)
+	actions.add_child(btn_cancel)
+
+	btn_create = Button.new()
+	btn_create.text = "✔  Create & Play"
+	btn_create.custom_minimum_size = Vector2(200, 44)
+	btn_create.add_theme_font_size_override("font_size", 18)
+	btn_create.add_theme_color_override("font_color", Color(0.95, 1.0, 0.6, 1))
+	btn_create.pressed.connect(_on_btn_create_pressed)
+	actions.add_child(btn_create)
+
+
+# ══════════════════════════════════════════════════════════════════════════
+#  LOGIC  (unchanged from original)
+# ══════════════════════════════════════════════════════════════════════════
 
 func _refresh() -> void:
 	_profiles = ProfileManager.list_profiles()
-
 	if _profiles.is_empty():
-		_show_form(false)   # no cancel — this is the only path
+		_show_form(false)
 	else:
 		_show_list()
 		_rebuild_list()
-		# Auto-select last active, or first
 		var last = ProfileManager.get_last_active()
 		var target := 0
 		if not last.is_empty():
@@ -55,15 +279,15 @@ func _refresh() -> void:
 
 
 func _show_list() -> void:
-	list_panel.visible = true
+	list_panel.visible  = true
 	create_form.visible = false
 
 
 func _show_form(can_cancel: bool) -> void:
-	list_panel.visible = false
+	list_panel.visible  = false
 	create_form.visible = true
-	btn_cancel.visible = can_cancel
-	name_input.text = ""
+	btn_cancel.visible  = can_cancel
+	name_input.text     = ""
 	btn_male.button_pressed   = true
 	btn_female.button_pressed = false
 	btn_right.button_pressed  = true
@@ -72,8 +296,6 @@ func _show_form(can_cancel: bool) -> void:
 	name_input.grab_focus()
 
 
-# ── profile list ─────────────────────────────────────────────────────────
-
 func _rebuild_list() -> void:
 	for child in golfer_list.get_children():
 		child.queue_free()
@@ -81,36 +303,33 @@ func _rebuild_list() -> void:
 
 	for i in range(_profiles.size()):
 		var p = _profiles[i]
-
-		var row = HBoxContainer.new()
+		var row := HBoxContainer.new()
 		row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		row.theme_override_constants_separation = 8
+		row.add_theme_constant_override("separation", 8)
 
-		# Main select button — name + gender + hand
 		var sex_icon  = "♂" if p.get("sex", "M") == "M" else "♀"
 		var hand_icon = "R" if p.get("right_handed", true) else "L"
-		var label_btn = Button.new()
-		label_btn.text = "%s  %s  [%s]" % [p.name, sex_icon, hand_icon]
-		label_btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		label_btn.flat = true
-		label_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		label_btn.add_theme_font_size_override("font_size", 17)
+		var lbl := Button.new()
+		lbl.text = "%s  %s  [%s]" % [p.name, sex_icon, hand_icon]
+		lbl.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		lbl.flat = true
+		lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		lbl.add_theme_font_size_override("font_size", 17)
 		var idx = i
-		label_btn.pressed.connect(func(): _select(idx))
+		lbl.pressed.connect(func(): _select(idx))
 
-		# Delete button
-		var del_btn = Button.new()
-		del_btn.text = "✕"
-		del_btn.flat = true
-		del_btn.custom_minimum_size = Vector2(36, 36)
-		del_btn.add_theme_font_size_override("font_size", 14)
-		del_btn.add_theme_color_override("font_color", Color(0.8, 0.3, 0.3, 0.8))
-		del_btn.pressed.connect(func(): _confirm_delete(idx))
+		var del := Button.new()
+		del.text = "✕"
+		del.flat = true
+		del.custom_minimum_size = Vector2(36, 36)
+		del.add_theme_font_size_override("font_size", 14)
+		del.add_theme_color_override("font_color", Color(0.8, 0.3, 0.3, 0.8))
+		del.pressed.connect(func(): _confirm_delete(idx))
 
-		row.add_child(label_btn)
-		row.add_child(del_btn)
+		row.add_child(lbl)
+		row.add_child(del)
 		golfer_list.add_child(row)
-		_row_buttons.append({"row": row, "btn": label_btn, "del": del_btn})
+		_row_buttons.append({"row": row, "btn": lbl, "del": del})
 
 	_update_row_styles()
 
@@ -119,8 +338,7 @@ func _select(index: int) -> void:
 	if index < 0 or index >= _profiles.size():
 		return
 	_selected = index
-	var p = _profiles[index]
-	btn_play.text = "▶  Play as %s" % p.name
+	btn_play.text = "▶  Play as %s" % _profiles[index].name
 	btn_play.disabled = false
 	_update_row_styles()
 
@@ -128,202 +346,92 @@ func _select(index: int) -> void:
 func _update_row_styles() -> void:
 	for i in range(_row_buttons.size()):
 		var btn: Button = _row_buttons[i].btn
-		var is_sel = (i == _selected)
-		var s = StyleBoxFlat.new()
+		var s := StyleBoxFlat.new()
 		s.set_corner_radius_all(5)
-		s.content_margin_left   = 12
-		s.content_margin_right  = 8
-		s.content_margin_top    = 7
-		s.content_margin_bottom = 7
-		if is_sel:
-			s.bg_color     = Color(0.15, 0.32, 0.15, 1.0)
-			s.border_color = Color(0.45, 0.80, 0.35, 1.0)
+		s.content_margin_left = 12; s.content_margin_right = 8
+		s.content_margin_top  = 7;  s.content_margin_bottom = 7
+		if i == _selected:
+			s.bg_color = Color(0.15, 0.32, 0.15, 1)
+			s.border_color = Color(0.45, 0.80, 0.35, 1)
 			s.set_border_width_all(2)
 			btn.add_theme_color_override("font_color", Color(1.0, 0.96, 0.55, 1))
 		else:
-			s.bg_color     = Color(0.07, 0.12, 0.07, 0.9)
+			s.bg_color = Color(0.07, 0.12, 0.07, 0.9)
 			s.border_color = Color(0.25, 0.40, 0.25, 0.4)
 			s.set_border_width_all(1)
 			btn.add_theme_color_override("font_color", Color(0.82, 0.90, 0.76, 1))
-		btn.add_theme_stylebox_override("normal",  s)
-		var h = s.duplicate(); h.bg_color = Color(0.11, 0.20, 0.11, 1)
-		btn.add_theme_stylebox_override("hover",   h)
+		btn.add_theme_stylebox_override("normal", s)
 
 
 func _confirm_delete(index: int) -> void:
 	if index < 0 or index >= _profiles.size():
 		return
-	var pname = _profiles[index].name
-	# Simple confirmation via OS dialog isn't available in Godot 4 without plugin,
-	# so we do a second-press pattern: first press turns the button red + "Sure?",
-	# second press within the same session deletes.
 	var del_btn: Button = _row_buttons[index].del
 	if del_btn.text == "✕":
 		del_btn.text = "?"
 		del_btn.add_theme_color_override("font_color", Color(1.0, 0.2, 0.2, 1.0))
-		# Reset after 3 seconds if not confirmed
 		get_tree().create_timer(3.0).timeout.connect(func():
-			if is_instance_valid(del_btn):
+			if is_instance_valid(del_btn) and del_btn.text == "?":
 				del_btn.text = "✕"
 				del_btn.add_theme_color_override("font_color", Color(0.8, 0.3, 0.3, 0.8))
 		)
 	else:
-		ProfileManager.delete_profile(pname)
+		ProfileManager.delete_profile(_profiles[index].name)
 		_refresh()
 
 
-# ── create form ───────────────────────────────────────────────────────────
-
 func _on_btn_male_pressed() -> void:
-	btn_male.button_pressed   = true
-	btn_female.button_pressed = false
+	btn_male.button_pressed = true; btn_female.button_pressed = false
 
 func _on_btn_female_pressed() -> void:
-	btn_female.button_pressed = true
-	btn_male.button_pressed   = false
+	btn_female.button_pressed = true; btn_male.button_pressed = false
 
 func _on_btn_right_pressed() -> void:
-	btn_right.button_pressed = true
-	btn_left.button_pressed  = false
+	btn_right.button_pressed = true; btn_left.button_pressed = false
 
 func _on_btn_left_pressed() -> void:
-	btn_left.button_pressed  = true
-	btn_right.button_pressed = false
+	btn_left.button_pressed = true; btn_right.button_pressed = false
+
 
 func _on_btn_create_pressed() -> void:
-	var raw_name = name_input.text.strip_edges()
-	if raw_name.length() < 2:
+	var raw := name_input.text.strip_edges()
+	if raw.length() < 2:
 		validation_hint.text = "Name must be at least 2 characters."
 		return
-	# Check for duplicate
 	for p in ProfileManager.list_profiles():
-		if p.name.to_lower() == raw_name.to_lower():
-			validation_hint.text = "A golfer named '%s' already exists." % raw_name
+		if p.name.to_lower() == raw.to_lower():
+			validation_hint.text = "A golfer named '%s' already exists." % raw
 			return
-
 	var profile := {
-		"name":         raw_name,
+		"name":         raw,
 		"sex":          "M" if btn_male.button_pressed else "F",
 		"right_handed": btn_right.button_pressed,
 		"last_active":  true,
 	}
 	ProfileManager.save_profile(profile)
-	ProfileManager.set_active(raw_name)
-	_go_to_course_select()
+	ProfileManager.set_active(raw)
+	get_tree().change_scene_to_file("res://scenes/course_select.tscn")
 
 
 func _on_btn_cancel_pressed() -> void:
 	_show_list()
 
 
-# ── play ─────────────────────────────────────────────────────────────────
-
 func _on_btn_play_pressed() -> void:
 	if _selected < 0 or _selected >= _profiles.size():
 		return
 	ProfileManager.set_active(_profiles[_selected].name)
-	_go_to_course_select()
-
-
-func _go_to_course_select() -> void:
 	get_tree().change_scene_to_file("res://scenes/course_select.tscn")
 
-
-# ── keyboard nav ─────────────────────────────────────────────────────────
 
 func _unhandled_input(event: InputEvent) -> void:
 	if not event is InputEventKey or not event.pressed or event.echo:
 		return
 	if create_form.visible:
-		return   # let form handle its own input
+		return
 	match event.keycode:
-		KEY_UP:
-			_select(max(_selected - 1, 0))
-		KEY_DOWN:
-			_select(min(_selected + 1, _profiles.size() - 1))
-		KEY_ENTER, KEY_KP_ENTER:
-			_on_btn_play_pressed()
+		KEY_UP:    _select(max(_selected - 1, 0))
+		KEY_DOWN:  _select(min(_selected + 1, _profiles.size() - 1))
+		KEY_ENTER, KEY_KP_ENTER: _on_btn_play_pressed()
 		KEY_ESCAPE:
 			get_tree().change_scene_to_file("res://scenes/title_screen.tscn")
-
-
-# ── signal wiring ─────────────────────────────────────────────────────────
-
-func _connect_signals() -> void:
-	back_btn.pressed.connect(func():
-		get_tree().change_scene_to_file("res://scenes/title_screen.tscn")
-	)
-	btn_new_golfer.pressed.connect(func(): _show_form(true))
-	btn_play.pressed.connect(_on_btn_play_pressed)
-	btn_male.pressed.connect(_on_btn_male_pressed)
-	btn_female.pressed.connect(_on_btn_female_pressed)
-	btn_right.pressed.connect(_on_btn_right_pressed)
-	btn_left.pressed.connect(_on_btn_left_pressed)
-	btn_create.pressed.connect(_on_btn_create_pressed)
-	btn_cancel.pressed.connect(_on_btn_cancel_pressed)
-
-
-# ── theme ─────────────────────────────────────────────────────────────────
-
-func _apply_theme() -> void:
-	# Play button — bold green
-	var play_n = StyleBoxFlat.new()
-	play_n.bg_color = Color(0.10, 0.45, 0.10, 1.0)
-	play_n.border_color = Color(0.4, 0.85, 0.3, 1.0)
-	play_n.set_border_width_all(2); play_n.set_corner_radius_all(8)
-	play_n.content_margin_left = 18; play_n.content_margin_right = 18
-	var play_h = play_n.duplicate(); play_h.bg_color = Color(0.15, 0.58, 0.15, 1)
-	var play_d = play_n.duplicate()
-	play_d.bg_color = Color(0.08, 0.18, 0.08, 0.5)
-	play_d.border_color = Color(0.25, 0.40, 0.25, 0.35)
-	btn_play.add_theme_stylebox_override("normal",   play_n)
-	btn_play.add_theme_stylebox_override("hover",    play_h)
-	btn_play.add_theme_stylebox_override("disabled", play_d)
-
-	# Toggle buttons (gender + hand) — shared helper
-	for btn in [btn_male, btn_female, btn_right, btn_left]:
-		_style_toggle(btn)
-
-	# Create button
-	var cr_n = play_n.duplicate()
-	btn_create.add_theme_stylebox_override("normal", cr_n)
-	var cr_h = play_h.duplicate()
-	btn_create.add_theme_stylebox_override("hover", cr_h)
-	btn_create.add_theme_color_override("font_color", Color(0.95, 1.0, 0.6, 1))
-
-	# New Golfer button
-	var new_n = StyleBoxFlat.new()
-	new_n.bg_color = Color(0.08, 0.22, 0.30, 1.0)
-	new_n.border_color = Color(0.30, 0.65, 0.85, 0.9)
-	new_n.set_border_width_all(2); new_n.set_corner_radius_all(8)
-	new_n.content_margin_left = 14; new_n.content_margin_right = 14
-	var new_h = new_n.duplicate(); new_h.bg_color = Color(0.12, 0.30, 0.40, 1)
-	btn_new_golfer.add_theme_stylebox_override("normal", new_n)
-	btn_new_golfer.add_theme_stylebox_override("hover",  new_h)
-	btn_new_golfer.add_theme_color_override("font_color", Color(0.65, 0.90, 1.0, 1))
-
-	# Name input
-	var ni = StyleBoxFlat.new()
-	ni.bg_color = Color(0.06, 0.12, 0.06, 1)
-	ni.border_color = Color(0.35, 0.55, 0.30, 0.8)
-	ni.set_border_width_all(1); ni.set_corner_radius_all(6)
-	ni.content_margin_left = 10
-	name_input.add_theme_stylebox_override("normal", ni)
-	name_input.add_theme_stylebox_override("focus",  ni)
-	name_input.add_theme_color_override("font_color",             Color(0.90, 0.95, 0.80, 1))
-	name_input.add_theme_color_override("font_placeholder_color", Color(0.45, 0.58, 0.42, 0.8))
-	name_input.add_theme_font_size_override("font_size", 18)
-
-
-func _style_toggle(btn: Button) -> void:
-	var on_s = StyleBoxFlat.new()
-	on_s.bg_color = Color(0.15, 0.42, 0.15, 1); on_s.border_color = Color(0.45, 0.85, 0.35, 1)
-	on_s.set_border_width_all(2); on_s.set_corner_radius_all(7)
-	var off_s = StyleBoxFlat.new()
-	off_s.bg_color = Color(0.08, 0.14, 0.08, 1); off_s.border_color = Color(0.28, 0.45, 0.25, 0.6)
-	off_s.set_border_width_all(1); off_s.set_corner_radius_all(7)
-	btn.add_theme_stylebox_override("pressed", on_s)
-	btn.add_theme_stylebox_override("normal",  off_s)
-	btn.add_theme_stylebox_override("hover",   off_s)
-	btn.add_theme_color_override("font_color",         Color(0.88, 0.95, 0.75, 1))
-	btn.add_theme_color_override("font_pressed_color", Color(1.00, 1.00, 0.60, 1))
