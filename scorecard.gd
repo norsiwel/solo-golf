@@ -109,7 +109,7 @@ func _build_card(current_hole: int, par: int, yardage: int, strokes: int):
 	btn_container.add_theme_constant_override("separation", 20)
 	add_child(btn_container)
 
-	var again_btn = _make_button("Replay Hole")
+	var again_btn = _make_button("↺  Replay Hole")
 	again_btn.connect("pressed", _on_play_again)
 	btn_container.add_child(again_btn)
 
@@ -122,6 +122,10 @@ func _build_card(current_hole: int, par: int, yardage: int, strokes: int):
 		var finish_btn = _make_button("🏆  Final Score")
 		finish_btn.connect("pressed", _on_next_hole)
 		btn_container.add_child(finish_btn)
+
+	var select_btn = _make_button("⛳  Course Select")
+	select_btn.connect("pressed", _on_course_select)
+	btn_container.add_child(select_btn)
 
 func _build_scorecard_grid(current_hole: int):
 	# Determine which holes to show - show 9 at a time
@@ -329,3 +333,13 @@ func _on_next_hole():
 	visible = false
 	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
 	emit_signal("next_hole")
+
+func _on_course_select():
+	visible = false
+	GameState.current_course = {}
+	GameState.preloaded_heightmap = null
+	GameState.preloaded_textures = {}
+	GameState.preloaded_splatmap = null
+	GameState.preloaded_holes = {}
+	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
+	get_tree().change_scene_to_file("res://scenes/course_select.tscn")

@@ -29,6 +29,7 @@ var _owg_bunker_tex: Texture2D = null
 var _owg_sand_tex: Texture2D = null
 var _owg_splatmap_tex: Texture2D = null
 var _owg_splatmap_image: Image = null
+var _owg_all_splats: Dictionary = {}  # index -> ImageTexture
 
 # Map Unity Prefab names to local Godot assets
 const ASSET_MAP = {
@@ -57,8 +58,8 @@ void vertex() { world_pos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz; }
 
 void fragment() {
 	vec2 splat_uv = vec2(
-		clamp(-world_pos.x / max(owg_size_x, 1.0), 0.0, 1.0),
-		clamp( world_pos.z / max(owg_size_z, 1.0), 0.0, 1.0)
+		clamp(1.0 + world_pos.x / max(owg_size_x, 1.0), 0.0, 1.0),
+		clamp(1.0 - world_pos.z / max(owg_size_z, 1.0), 0.0, 1.0)
 	);
 	vec4 splat = texture(splatmap, splat_uv);
 	vec2 tiled_uv = world_pos.xz / max(texture_scale, 0.1);
@@ -71,7 +72,7 @@ void fragment() {
 	vec4 final_color = fairway * splat.r + rough * splat.g + green * splat.b +
 		bunker * splat.a + sand * max(0.0, 1.0 - used);
 	ALBEDO = final_color.rgb;
-	ROUGHNESS = 0.7;
+	ROUGHNESS = mix(0.85, 0.55, splat.b);
 	METALLIC = 0.0;
 }
 """
@@ -141,13 +142,14 @@ func _ready() -> void:
 
 func _sample_real_height(world_x: float, world_z: float) -> float:
 	if _owg_size_x > 0.0:
-		# Heightmap saved with: transpose + flipud + fliplr
-		# Verified 0m error: u = 1-(-wx/sx) = 1+wx/sx, v = 1 - wz/sz
 		var u: float = clampf(1.0 + world_x / _owg_size_x, 0.0, 1.0)
 		var v: float = clampf(1.0 - world_z / _owg_size_z, 0.0, 1.0)
 		var px: int = int(u * float(_hm_image.get_width()  - 1))
 		var py: int = int(v * float(_hm_image.get_height() - 1))
-		return _hm_image.get_pixel(px, py).r * _owg_scale_y
+		var pixel_r = _hm_image.get_pixel(px, py).r
+		# Debug: print a sample to verify correct values
+		# Expected: tee ~3-10m, so pixel_r should be 0.02-0.10 range
+		return pixel_r * _owg_scale_y
 	# Old Course built-in heightmap — hardcoded Unity→Godot constants
 	var u: float = 1.0 - (world_x + HM_X_OFFSET) / HM_WORLD_SIZE
 	var v: float = (HM_Z_ZERO - world_z) / HM_WORLD_SIZE
@@ -157,20 +159,42 @@ func _sample_real_height(world_x: float, world_z: float) -> float:
 	var py: int = int(v * float(_hm_image.get_height() - 1))
 	return _hm_image.get_pixel(px, py).r * HM_HEIGHT_SCALE + HM_Y_BASE + HM_Y_GODOT_OFFSET
 
-## Load a heightmap from an absolute or user:// path (OWG extracted course).
-## Replaces the built-in heightmap; subsequent build_from_hole() calls use it.
+## Load heightmap — uses pre-loaded image from GameState if available.
 func load_heightmap(path: String) -> void:
-	# Globalize user:// paths for Image.load_from_file()
+	# Use pre-loaded heightmap if CoursePreloader already did the work
+	if GameState.preloaded_heightmap != null:
+		_hm_image = GameState.preloaded_heightmap
+		var meta = GameState.preloaded_terrain_meta
+		_owg_size_x  = meta.get("terrain_size_x", 0.0)
+		_owg_size_z  = meta.get("terrain_size_z", 0.0)
+		_owg_scale_y = meta.get("scale_y", 0.0)
+		print("TerrainGenerator: using pre-loaded heightmap from GameState (%dx%d)" % [_hm_image.get_width(), _hm_image.get_height()])
+		return
+	# Load from path
 	var global_path = ProjectSettings.globalize_path(path)
 	var img = Image.load_from_file(global_path)
 	if img == null:
-		# Try the path as-is as fallback
 		img = Image.load_from_file(path)
 	if img == null:
 		push_error("TerrainGenerator: Failed to load heightmap from " + path)
 		_owg_size_x = 0.0
 		return
+	# Convert to RF (32-bit float) so get_pixel().r is a proper 0..1 fraction
+	# 16-bit PNG loaded as L8 gives wrong values — RF fixes this
+	if img.get_format() != Image.FORMAT_RF:
+		img.convert(Image.FORMAT_RF)
 	_hm_image = img
+	# Debug — sample known tee position to verify 16-bit read is correct
+	# Sunset Valley hole 1 champ tee: world(-736.3, 406.8), size=1250.3
+	# Expected u=0.411, v=0.675, pixel.r should be ~0.0206 -> height ~9.26m
+	var test_u = 1.0 + (-736.3 / max(_owg_size_x, 1250.3))
+	var test_v = 1.0 - (406.8  / max(_owg_size_z, 1250.3))
+	var test_px = int(test_u * (img.get_width()-1))
+	var test_py = int(test_v * (img.get_height()-1))
+	var test_r = img.get_pixel(test_px, test_py).r
+	print("TerrainGenerator: sample u=%.3f v=%.3f pixel.r=%.4f -> %.2fm (expect 9.26m)" % [
+		test_u, test_v, test_r, test_r * max(_owg_scale_y, 449.5)
+	])
 	var meta_path = path.get_base_dir() + "/terrain_meta.json"
 	var global_meta = ProjectSettings.globalize_path(meta_path)
 	var actual_meta = global_meta if FileAccess.file_exists(global_meta) else meta_path
@@ -178,16 +202,23 @@ func load_heightmap(path: String) -> void:
 		var meta = _load_terrain_meta(actual_meta)
 		_owg_size_x  = meta.get("terrain_size_x", 0.0)
 		_owg_size_z  = meta.get("terrain_size_z", 0.0)
-		_owg_scale_y = meta.get("scale_y",         0.0)
-		print("TerrainGenerator: OWG meta — size %.1fx%.1f m, scale_y %.2f" % [
-			_owg_size_x, _owg_size_z, _owg_scale_y
-		])
+		_owg_scale_y = meta.get("scale_y", 0.0)
+		print("TerrainGenerator: OWG meta — size %.1fx%.1f m, scale_y %.2f" % [_owg_size_x, _owg_size_z, _owg_scale_y])
 	else:
 		push_warning("TerrainGenerator: no terrain_meta.json alongside " + path)
 		_owg_size_x = 0.0
-	print("TerrainGenerator: OWG heightmap loaded %dx%d from %s" % [
-		img.get_width(), img.get_height(), path
-	])
+	print("TerrainGenerator: heightmap loaded %dx%d fmt=%d" % [img.get_width(), img.get_height(), img.get_format()])
+
+
+func _load_splat_channel_map() -> Dictionary:
+	var path = "user://runtime/splat_channel_map.json"
+	var f = FileAccess.open(path, FileAccess.READ)
+	if not f:
+		return {}
+	var json = JSON.new()
+	if json.parse(f.get_as_text()) != OK:
+		return {}
+	return json.get_data()
 
 
 func _load_terrain_meta(path: String) -> Dictionary:
@@ -199,84 +230,82 @@ func _load_terrain_meta(path: String) -> Dictionary:
 	return json.get_data()
 
 
-## Load textures from an absolute or user:// path (OWG extracted course).
-func load_textures(dir_path: String) -> void:
-	# Globalize user:// path for DirAccess and Image loading
-	var global_dir = ProjectSettings.globalize_path(dir_path)
-	var actual_dir = global_dir if DirAccess.dir_exists_absolute(global_dir) else dir_path
-	var file_map = {}
-	var dir = DirAccess.open(actual_dir)
-	if not dir:
-		push_warning("TerrainGenerator: Cannot open texture dir: " + actual_dir)
+## Load textures — uses pre-loaded assets from GameState if available.
+func load_textures(_ignored_path: String = "") -> void:
+	if not GameState.preloaded_textures.is_empty():
+		_owg_fairway_tex = GameState.preloaded_textures.get("fairway")
+		_owg_green_tex   = GameState.preloaded_textures.get("green")
+		_owg_rough_tex   = GameState.preloaded_textures.get("rough")
+		_owg_bunker_tex  = GameState.preloaded_textures.get("bunker")
+		_owg_sand_tex    = GameState.preloaded_textures.get("sand")
+		_owg_splatmap_tex   = GameState.preloaded_splatmap
+		_owg_splatmap_image = GameState.preloaded_splatmap_img
+		print("TerrainGenerator: using pre-loaded textures from GameState")
 		return
-	dir.list_dir_begin()
-	var file_name = dir.get_next()
-	while file_name != "":
-		if not dir.current_is_dir():
-			file_map[file_name.to_lower()] = file_name
-		file_name = dir.get_next()
-	dir.list_dir_end()
 
-	print("TerrainGenerator: scanning %d textures in: %s" % [file_map.size(), dir_path])
+	var rt_tex   = "user://runtime/textures/"
+	var rt_splat = "user://runtime/splat/"
+	var rt_map   = "user://runtime/texture_map.json"
 
-	# Helper: load first match from a list of candidate lowercase names
-	var _load_first = func(candidates: Array) -> ImageTexture:
-		for cname in candidates:
-			if cname in file_map:
-				var img = Image.load_from_file(actual_dir + "/" + file_map[cname])
+	var texture_map: Dictionary = {}
+	var f = FileAccess.open(rt_map, FileAccess.READ)
+	if f:
+		var json = JSON.new()
+		if json.parse(f.get_as_text()) == OK:
+			texture_map = json.get_data()
+		f.close()
+
+	var _load_surface = func(keys: Array) -> ImageTexture:
+		for key in keys:
+			if key in texture_map:
+				var path = rt_tex + texture_map[key]
+				var img = Image.load_from_file(ProjectSettings.globalize_path(path))
 				if img:
-					print("TerrainGenerator: loaded " + file_map[cname])
+					img.generate_mipmaps()
 					return ImageTexture.create_from_image(img)
-		for key in file_map:
-			for cname in candidates:
-				var stem = cname.replace(".png", "")
-				if stem in key and key.ends_with(".png"):
-					var img = Image.load_from_file(actual_dir + "/" + file_map[key])
-					if img:
-						print("TerrainGenerator: loaded (partial) " + file_map[key])
-						return ImageTexture.create_from_image(img)
 		return null
 
-	_owg_fairway_tex = _load_first.call(["fairway.png", "fairway2.png", "o_fairwayplain.png", "base_fairway.png", "surface_fairway.png", "skygrass_fair.png"])
-	_owg_green_tex   = _load_first.call(["green.png", "skygrass_green.png", "o_greenfringe.png", "pickupgreen.png", "surface_green.png"])
-	_owg_rough_tex   = _load_first.call(["terrainrough.png", "o_rough2desat.png", "meshlightrough.png", "base_rough1.png", "surface_rough.png"])
-	_owg_bunker_tex  = _load_first.call(["bunkersandoverhead2.png", "bunkersandrake.png", "bunker.png", "surface_bunker.png"])
-	_owg_sand_tex    = _load_first.call(["bunkersod.png", "sand.png", "gravelpath.png", "path.png"])
+	_owg_fairway_tex = _load_surface.call(["fairway", "tee"])
+	_owg_green_tex   = _load_surface.call(["green"])
+	_owg_rough_tex   = _load_surface.call(["rough"])
+	_owg_bunker_tex  = _load_surface.call(["bunker"])
+	_owg_sand_tex    = _load_surface.call(["sand", "path"])
 
-	# Splatmap — try alphamaps from terrain/splat/ first, then textures folder
-	var splat_candidates = ["splatalpha_0.png", "splatalpha 0.png", "splatmap.png", "alphamap_0.png", "alphamap.png"]
-	_owg_splatmap_tex = null
+	if not _owg_fairway_tex: _owg_fairway_tex = _make_placeholder(Color(0.25, 0.55, 0.20))
+	if not _owg_green_tex:   _owg_green_tex   = _make_placeholder(Color(0.15, 0.65, 0.22))
+	if not _owg_rough_tex:   _owg_rough_tex   = _make_placeholder(Color(0.30, 0.42, 0.18))
+	if not _owg_bunker_tex:  _owg_bunker_tex  = _make_placeholder(Color(0.78, 0.68, 0.42))
+	if not _owg_sand_tex:    _owg_sand_tex    = _make_placeholder(Color(0.82, 0.74, 0.50))
+
+	# Load ALL splatmaps
+	_owg_splatmap_tex   = null
 	_owg_splatmap_image = null
-
-	# Try textures folder
-	for cname in splat_candidates:
-		if cname in file_map:
-			var img = Image.load_from_file(actual_dir + "/" + file_map[cname])
-			if img:
-				_owg_splatmap_image = img
-				_owg_splatmap_tex = ImageTexture.create_from_image(img)
-				print("TerrainGenerator: loaded splatmap: " + file_map[cname])
-				break
-
-	# Try terrain/splat/ subfolder
-	if not _owg_splatmap_tex:
-		var splat_dir = actual_dir.get_base_dir() + "/terrain/splat"
-		var sd = DirAccess.open(splat_dir)
-		if sd:
-			sd.list_dir_begin()
-			var fn = sd.get_next()
-			while fn != "":
-				if fn.to_lower() in splat_candidates or "alphamap" in fn.to_lower():
-					var img = Image.load_from_file(splat_dir + "/" + fn)
-					if img:
+	_owg_all_splats.clear()
+	var sd = DirAccess.open(rt_splat)
+	if sd:
+		sd.list_dir_begin()
+		var fn = sd.get_next()
+		while fn != "":
+			if fn.begins_with("alphamap_") and fn.ends_with(".png"):
+				var idx_str = fn.replace("alphamap_", "").replace(".png", "")
+				var idx = idx_str.to_int()
+				var img = Image.load_from_file(ProjectSettings.globalize_path(rt_splat + fn))
+				if img:
+					img.generate_mipmaps()
+					var tex = ImageTexture.create_from_image(img)
+					_owg_all_splats[idx] = tex
+					if idx == 0:
+						_owg_splatmap_tex   = tex
 						_owg_splatmap_image = img
-						_owg_splatmap_tex = ImageTexture.create_from_image(img)
-						print("TerrainGenerator: loaded splatmap from terrain/splat/: " + fn)
-						break
-				fn = sd.get_next()
+			fn = sd.get_next()
+	print("TerrainGenerator: loaded %d splatmaps" % _owg_all_splats.size())
 
-	if not _owg_splatmap_tex:
-		push_warning("TerrainGenerator: No splatmap found — terrain will use flat color zones")
+
+## Generate a tiny solid-color texture as a placeholder.
+func _make_placeholder(color: Color) -> ImageTexture:
+	var img = Image.create(4, 4, false, Image.FORMAT_RGB8)
+	img.fill(color)
+	return ImageTexture.create_from_image(img)
 
 
 func build_from_hole(tee: Vector3, pin: Vector3, all_tees: Array = [], all_pins: Array = []):
@@ -375,22 +404,26 @@ func build_from_hole(tee: Vector3, pin: Vector3, all_tees: Array = [], all_pins:
 	
 	if _owg_splatmap_tex:
 		var mat := ShaderMaterial.new()
-		# Load .gdshader file — cleaner than inline string
 		var shader = load("res://terrain_splatmap.gdshader")
 		if not shader:
-			# Fallback to inline shader if file not found
 			shader = Shader.new()
 			shader.code = SPLAT_SHADER
 		mat.shader = shader
-		mat.set_shader_parameter("splatmap", _owg_splatmap_tex)
 
-		# Surface textures — fallback to res://assets if not extracted
-		var f_tex = _owg_fairway_tex if _owg_fairway_tex else load("res://assets/terrain/surface_fairway.png")
-		var g_tex = _owg_green_tex   if _owg_green_tex   else load("res://assets/terrain/surface_green.png")
-		var r_tex = _owg_rough_tex   if _owg_rough_tex   else load("res://assets/terrain/surface_rough.png")
-		var b_tex = _owg_bunker_tex  if _owg_bunker_tex  else load("res://assets/terrain/surface_bunker.png")
-		var s_tex = _owg_sand_tex    if _owg_sand_tex    else (b_tex if b_tex else r_tex)
+		# Set all available splatmaps
+		var splat_names = ["splat0","splat1","splat2","splat3","splat4","splat5"]
+		for i in range(6):
+			if i in _owg_all_splats:
+				mat.set_shader_parameter(splat_names[i], _owg_all_splats[i])
+			elif i == 0:
+				mat.set_shader_parameter("splat0", _owg_splatmap_tex)
 
+		# Surface textures
+		var f_tex = _owg_fairway_tex if _owg_fairway_tex else _make_placeholder(Color(0.25,0.55,0.20))
+		var g_tex = _owg_green_tex   if _owg_green_tex   else _make_placeholder(Color(0.15,0.65,0.22))
+		var r_tex = _owg_rough_tex   if _owg_rough_tex   else _make_placeholder(Color(0.30,0.42,0.18))
+		var b_tex = _owg_bunker_tex  if _owg_bunker_tex  else _make_placeholder(Color(0.78,0.68,0.42))
+		var s_tex = _owg_sand_tex    if _owg_sand_tex    else _make_placeholder(Color(0.82,0.74,0.50))
 		mat.set_shader_parameter("fairway_texture", f_tex)
 		mat.set_shader_parameter("green_texture",   g_tex)
 		mat.set_shader_parameter("rough_texture",   r_tex)
@@ -399,6 +432,15 @@ func build_from_hole(tee: Vector3, pin: Vector3, all_tees: Array = [], all_pins:
 		mat.set_shader_parameter("texture_scale",   GRASS_UV_SCALE)
 		mat.set_shader_parameter("owg_size_x",      _owg_size_x)
 		mat.set_shader_parameter("owg_size_z",      _owg_size_z)
+
+		# Channel map — which splatmap/channel for each surface
+		var ch_map = _load_splat_channel_map()
+		mat.set_shader_parameter("ch_fairway", Vector2i(ch_map.get("fairway", {}).get("map", 0), ch_map.get("fairway", {}).get("ch", 0)))
+		mat.set_shader_parameter("ch_rough",   Vector2i(ch_map.get("rough",   {}).get("map", 0), ch_map.get("rough",   {}).get("ch", 1)))
+		mat.set_shader_parameter("ch_green",   Vector2i(ch_map.get("green",   {}).get("map", 0), ch_map.get("green",   {}).get("ch", 2)))
+		mat.set_shader_parameter("ch_bunker",  Vector2i(ch_map.get("bunker",  {}).get("map", 0), ch_map.get("bunker",  {}).get("ch", 3)))
+		mat.set_shader_parameter("ch_sand",    Vector2i(ch_map.get("sand",    {}).get("map", 1), ch_map.get("sand",    {}).get("ch", 0)))
+		print("TerrainGenerator: channel map = ", ch_map)
 		_mesh_instance.material_override = mat
 	else:
 		# No splatmap — use vertex color zones + tiled grass texture
@@ -664,19 +706,53 @@ func spawn_unity_objects(object_list: Array, container: Node3D) -> void:
 			if scene:
 				node = scene.instantiate()
 
-		# Fallback — always create something so node is never null
+		# Placeholder — color-coded by object type so the course reads visually
 		if not node:
 			var mi = MeshInstance3D.new()
-			var box = BoxMesh.new()
-			box.size = Vector3(1, 2, 1)
-			mi.mesh = box
 			var mat = StandardMaterial3D.new()
-			if "tree" in lname or "conifer" in lname or "bush" in lname:
-				mat.albedo_color = Color(0.2, 0.5, 0.2)
-			elif "build" in lname or "house" in lname or "hotel" in lname:
-				mat.albedo_color = Color(0.7, 0.65, 0.55)
+			mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+			if "tree" in lname or "conifer" in lname or "pine" in lname or "oak" in lname or "elm" in lname or "acacia" in lname:
+				# Trees — green cone shape
+				var cone = CylinderMesh.new()
+				cone.top_radius = 0.0
+				cone.bottom_radius = 1.8
+				cone.height = 6.0
+				mi.mesh = cone
+				mat.albedo_color = Color(0.15, 0.42, 0.12)
+			elif "bush" in lname or "shrub" in lname or "hedge" in lname:
+				# Bushes — small dark green box
+				var box = BoxMesh.new()
+				box.size = Vector3(1.2, 1.0, 1.2)
+				mi.mesh = box
+				mat.albedo_color = Color(0.12, 0.35, 0.10)
+			elif "flag" in lname or "pin" in lname:
+				# Flagstick — thin yellow pole
+				var cyl = CylinderMesh.new()
+				cyl.top_radius = 0.05
+				cyl.bottom_radius = 0.05
+				cyl.height = 2.5
+				mi.mesh = cyl
+				mat.albedo_color = Color(1.0, 0.9, 0.1)
+			elif "build" in lname or "house" in lname or "hotel" in lname or "club" in lname:
+				# Buildings — tan/stone box
+				var box = BoxMesh.new()
+				box.size = Vector3(8, 5, 8)
+				mi.mesh = box
+				mat.albedo_color = Color(0.72, 0.65, 0.52)
+			elif "bunker" in lname or "trap" in lname:
+				# Bunker markers — sand colored flat disc
+				var cyl = CylinderMesh.new()
+				cyl.top_radius = 3.0
+				cyl.bottom_radius = 3.0
+				cyl.height = 0.15
+				mi.mesh = cyl
+				mat.albedo_color = Color(0.82, 0.74, 0.48)
 			else:
-				mat.albedo_color = Color(0.6, 0.55, 0.5)
+				# Generic — small grey box
+				var box = BoxMesh.new()
+				box.size = Vector3(1, 1, 1)
+				mi.mesh = box
+				mat.albedo_color = Color(0.55, 0.55, 0.55)
 			mi.material_override = mat
 			node = mi
 

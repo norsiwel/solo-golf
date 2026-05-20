@@ -8,6 +8,10 @@ anchor_left = 0.0
 anchor_top = 0.0
 anchor_right = 1.0
 anchor_bottom = 1.0
+offset_left = 0.0
+offset_top = 0.0
+offset_right = 0.0
+offset_bottom = 0.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_script")
@@ -18,53 +22,63 @@ anchor_left = 0.0
 anchor_top = 0.0
 anchor_right = 1.0
 anchor_bottom = 1.0
+offset_left = 0.0
+offset_top = 0.0
+offset_right = 0.0
+offset_bottom = 0.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.05, 0.08, 0.05, 1)
+color = Color(0.04, 0.07, 0.04, 1)
 
+; ── Title image fills almost everything ──────────────────────────────────
 [node name="TitleImage" type="TextureRect" parent="."]
 layout_mode = 1
-anchor_left = 0.05
-anchor_top = 0.03
-anchor_right = 0.95
-anchor_bottom = 0.74
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 1.0
+anchor_bottom = 0.82
+offset_left = 0.0
+offset_top = 0.0
+offset_right = 0.0
+offset_bottom = 0.0
 grow_horizontal = 2
 grow_vertical = 2
-stretch_mode = 4
+stretch_mode = 6
+expand_mode = 1
 
-[node name="LoadingBar" type="ProgressBar" parent="."]
+; ── Bottom strip for progress and prompt ─────────────────────────────────
+[node name="BottomStrip" type="VBoxContainer" parent="."]
 layout_mode = 1
-anchor_left = 0.15
-anchor_top = 0.78
-anchor_right = 0.85
-anchor_bottom = 0.86
+anchor_left = 0.0
+anchor_top = 0.82
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 0.0
+offset_top = 0.0
+offset_right = 0.0
+offset_bottom = 0.0
 grow_horizontal = 2
 grow_vertical = 2
+alignment = 1
+theme_override_constants/separation = 6
+
+[node name="LoadingBar" type="ProgressBar" parent="BottomStrip"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 22)
+size_flags_horizontal = 3
 value = 0
 
-[node name="LoadingLabel" type="Label" parent="."]
-layout_mode = 1
-anchor_left = 0.0
-anchor_top = 0.87
-anchor_right = 1.0
-anchor_bottom = 0.94
-grow_horizontal = 2
-grow_vertical = 2
+[node name="LoadingLabel" type="Label" parent="BottomStrip"]
+layout_mode = 2
 theme_override_font_sizes/font_size = 16
 theme_override_colors/font_color = Color(0.8, 0.9, 0.7, 1)
-text = "Loading..."
+text = "Scanning courses..."
 horizontal_alignment = 1
 
-[node name="PressEnterLabel" type="Label" parent="."]
+[node name="PressEnterLabel" type="Label" parent="BottomStrip"]
 visible = false
-layout_mode = 1
-anchor_left = 0.0
-anchor_top = 0.87
-anchor_right = 1.0
-anchor_bottom = 0.94
-grow_horizontal = 2
-grow_vertical = 2
-theme_override_font_sizes/font_size = 18
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
 theme_override_colors/font_color = Color(0.9, 0.85, 0.4, 1)
 text = "Press ENTER to continue"
 horizontal_alignment = 1

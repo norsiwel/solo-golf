@@ -4,8 +4,6 @@
 
 [node name="CourseSelectScreen" type="Control"]
 layout_mode = 3
-anchor_left = 0.0
-anchor_top = 0.0
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
@@ -14,117 +12,241 @@ script = ExtResource("1_script")
 
 [node name="Background" type="ColorRect" parent="."]
 layout_mode = 1
-anchor_left = 0.0
-anchor_top = 0.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-color = Color(0.05, 0.08, 0.05, 1)
+color = Color(0.04, 0.07, 0.04, 1)
 
-[node name="HSplitContainer" type="HSplitContainer" parent="."]
+[node name="TitleBar" type="Label" parent="."]
 layout_mode = 1
-anchor_left = 0.0
-anchor_top = 0.0
 anchor_right = 1.0
-anchor_bottom = 1.0
+anchor_bottom = 0.07
 grow_horizontal = 2
 grow_vertical = 2
-split_offset = 380
-dragger_visibility = 2
-
-[node name="LeftPanel" type="VBoxContainer" parent="HSplitContainer"]
-custom_minimum_size = Vector2(320, 0)
-size_flags_horizontal = 3
-theme_override_constants/separation = 10
-layout_mode = 2
-
-[node name="TitleLabel" type="Label" parent="HSplitContainer/LeftPanel"]
-layout_mode = 2
 theme_override_font_sizes/font_size = 22
-theme_override_colors/font_color = Color(0.9, 0.85, 0.4, 1)
-text = "Open World Golf"
+theme_override_colors/font_color = Color(0.95, 0.88, 0.4, 1)
+text = "⛳  Open World Golf — Course Select"
 horizontal_alignment = 1
+vertical_alignment = 1
 
-[node name="SubLabel" type="Label" parent="HSplitContainer/LeftPanel"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 13
-theme_override_colors/font_color = Color(0.5, 0.7, 0.5, 0.8)
-text = "Select a course to play"
-horizontal_alignment = 1
-
-[node name="ScrollContainer" type="ScrollContainer" parent="HSplitContainer/LeftPanel"]
-layout_mode = 2
-size_flags_vertical = 3
-custom_minimum_size = Vector2(0, 100)
-
-[node name="CardsContainer" type="VBoxContainer" parent="HSplitContainer/LeftPanel/ScrollContainer"]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_constants/separation = 8
-
-[node name="LoadingLabel" type="Label" parent="HSplitContainer/LeftPanel"]
-visible = false
-layout_mode = 2
+[node name="BackButton" type="Button" parent="."]
+layout_mode = 1
+anchor_top = 0.01
+anchor_bottom = 0.07
+anchor_right = 0.10
+offset_left = 8
+offset_right = -4
+grow_horizontal = 2
+grow_vertical = 2
 theme_override_font_sizes/font_size = 14
-theme_override_colors/font_color = Color(0.9, 0.75, 0.2, 1)
-text = ""
-horizontal_alignment = 1
+text = "◀  Title"
 
-[node name="HintLabel" type="Label" parent="HSplitContainer/LeftPanel"]
+; ── LEFT PANEL ── anchored left strip ────────────────────────────────────
+[node name="LeftPanel" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchor_top = 0.08
+anchor_right = 0.22
+anchor_bottom = 0.92
+offset_left = 8
+offset_right = -4
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 6
+
+[node name="SearchBox" type="LineEdit" parent="LeftPanel"]
+unique_name_in_owner = true
+layout_mode = 2
+custom_minimum_size = Vector2(0, 36)
+theme_override_font_sizes/font_size = 14
+placeholder_text = "🔍  Search..."
+
+[node name="Counter" type="Label" parent="LeftPanel"]
+unique_name_in_owner = true
 layout_mode = 2
 theme_override_font_sizes/font_size = 11
-theme_override_colors/font_color = Color(0.45, 0.55, 0.45, 0.8)
-text = "↑↓ arrow keys  |  Enter to play  |  ESC in-game to return"
+theme_override_colors/font_color = Color(0.5, 0.65, 0.5, 0.85)
+text = "0 courses"
 horizontal_alignment = 1
 
-[node name="RightPanel" type="Panel" parent="HSplitContainer"]
-size_flags_horizontal = 3
+[node name="ScrollContainer" type="ScrollContainer" parent="LeftPanel"]
 layout_mode = 2
+size_flags_vertical = 3
 
-[node name="SplashImage" type="TextureRect" parent="HSplitContainer/RightPanel"]
-layout_mode = 1
-anchor_left = 0.02
-anchor_top = 0.02
-anchor_right = 0.98
-anchor_bottom = 0.60
-grow_horizontal = 2
-grow_vertical = 2
-stretch_mode = 6
-clip_contents = true
+[node name="CourseList" type="VBoxContainer" parent="LeftPanel/ScrollContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 3
 
-[node name="CourseName" type="Label" parent="HSplitContainer/RightPanel"]
+; ── RIGHT PANEL ── anchor-based, image top 50%, info mid, buttons bottom ─
+[node name="SplashImage" type="TextureRect" parent="."]
+unique_name_in_owner = true
 layout_mode = 1
-anchor_top = 0.62
+anchor_left = 0.23
+anchor_top = 0.08
 anchor_right = 1.0
-anchor_bottom = 0.73
+anchor_bottom = 0.88
+offset_left = 4
+offset_right = -24
+offset_top = 4
+offset_bottom = -4
 grow_horizontal = 2
 grow_vertical = 2
+stretch_mode = 4
+expand_mode = 0
+clip_contents = false
+
+[node name="NoSplashLabel" type="Label" parent="SplashImage"]
+unique_name_in_owner = true
+layout_mode = 1
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 48
+theme_override_colors/font_color = Color(0.3, 0.45, 0.3, 0.4)
+text = "⛳"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+; hidden — info is in the title image itself
+[node name="CourseName" type="Label" parent="."]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchor_left = 0.23
+anchor_top = 0.88
+anchor_right = 1.0
+anchor_bottom = 0.93
+text = ""
+
+[node name="Author" type="Label" parent="."]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+text = ""
+
+[node name="HoleCount" type="Label" parent="."]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+text = ""
+
+[node name="Par" type="Label" parent="."]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+text = ""
+
+[node name="ButtonRow" type="HBoxContainer" parent="."]
+layout_mode = 1
+anchor_left = 0.23
+anchor_top = 0.89
+anchor_right = 1.0
+anchor_bottom = 0.98
+offset_left = 4
+offset_right = -24
+grow_horizontal = 2
+grow_vertical = 2
+alignment = 1
+theme_override_constants/separation = 16
+
+[node name="Btn9Hole" type="Button" parent="ButtonRow"]
+unique_name_in_owner = true
+layout_mode = 2
+custom_minimum_size = Vector2(110, 52)
+size_flags_vertical = 4
+theme_override_font_sizes/font_size = 16
+text = "9 Holes"
+
+[node name="Btn18Hole" type="Button" parent="ButtonRow"]
+unique_name_in_owner = true
+layout_mode = 2
+custom_minimum_size = Vector2(110, 52)
+size_flags_vertical = 4
+theme_override_font_sizes/font_size = 16
+text = "18 Holes"
+
+[node name="BtnRandom" type="Button" parent="ButtonRow"]
+unique_name_in_owner = true
+layout_mode = 2
+custom_minimum_size = Vector2(110, 52)
+size_flags_vertical = 4
+theme_override_font_sizes/font_size = 16
+text = "🎲 Random"
+
+[node name="BtnPlay" type="Button" parent="ButtonRow"]
+unique_name_in_owner = true
+layout_mode = 2
+custom_minimum_size = Vector2(200, 52)
+size_flags_vertical = 4
 theme_override_font_sizes/font_size = 22
-text = ""
-horizontal_alignment = 1
-clip_text = true
+theme_override_colors/font_color = Color(0.95, 1.0, 0.6, 1)
+text = "▶  PLAY"
+disabled = true
 
-[node name="Author" type="Label" parent="HSplitContainer/RightPanel"]
+[node name="HintBar" type="Label" parent="."]
 layout_mode = 1
-anchor_top = 0.74
+anchor_top = 0.94
 anchor_right = 1.0
-anchor_bottom = 0.83
+anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_font_sizes/font_size = 14
-theme_override_colors/font_color = Color(0.55, 0.78, 0.55, 1)
+theme_override_font_sizes/font_size = 12
+theme_override_colors/font_color = Color(0.4, 0.55, 0.4, 0.75)
+text = "↑ ↓ arrow keys  |  Enter to play  |  Type to search  |  ESC = title"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="LoadingOverlay" type="ColorRect" parent="."]
+visible = false
+layout_mode = 1
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.0, 0.0, 0.0, 0.88)
+
+[node name="VBox" type="VBoxContainer" parent="LoadingOverlay"]
+layout_mode = 1
+anchor_left = 0.25
+anchor_top = 0.25
+anchor_right = 0.75
+anchor_bottom = 0.80
+grow_horizontal = 2
+grow_vertical = 2
+alignment = 1
+theme_override_constants/separation = 16
+
+[node name="CourseName" type="Label" parent="LoadingOverlay/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 26
+theme_override_colors/font_color = Color(0.95, 0.88, 0.4, 1)
 text = ""
 horizontal_alignment = 1
 
-[node name="HoleCount" type="Label" parent="HSplitContainer/RightPanel"]
-layout_mode = 1
-anchor_top = 0.84
-anchor_right = 1.0
-anchor_bottom = 0.92
-grow_horizontal = 2
-grow_vertical = 2
-theme_override_font_sizes/font_size = 14
-theme_override_colors/font_color = Color(0.65, 0.65, 0.65, 1)
+[node name="PercentLabel" type="Label" parent="LoadingOverlay/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 96
+theme_override_colors/font_color = Color(0.4, 0.9, 0.35, 1)
+text = "0%"
+horizontal_alignment = 1
+
+[node name="LoadingLabel" type="Label" parent="LoadingOverlay/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 15
+theme_override_colors/font_color = Color(0.75, 0.85, 0.70, 0.9)
 text = ""
 horizontal_alignment = 1
+
+[node name="LoadingBar" type="ProgressBar" parent="LoadingOverlay/VBox"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 10)
+value = 0
+show_percentage = false
+
+[node name="CancelButton" type="Button" parent="LoadingOverlay/VBox"]
+layout_mode = 2
+custom_minimum_size = Vector2(140, 44)
+size_flags_horizontal = 4
+theme_override_font_sizes/font_size = 15
+text = "✕  Cancel"

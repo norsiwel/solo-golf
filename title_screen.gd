@@ -3,10 +3,10 @@ extends Control
 # Title screen — shows Open-world-title.png while preloading course zips,
 # then displays "Press ENTER to continue" when ready.
 
-@onready var title_image     = $TitleImage
-@onready var loading_bar     = $LoadingBar
-@onready var loading_label   = $LoadingLabel
-@onready var press_enter_label = $PressEnterLabel
+@onready var title_image       = $TitleImage
+@onready var loading_bar       = $BottomStrip/LoadingBar
+@onready var loading_label     = $BottomStrip/LoadingLabel
+@onready var press_enter_label = $BottomStrip/PressEnterLabel
 
 var _ready_to_continue := false
 var _preload_thread: Thread

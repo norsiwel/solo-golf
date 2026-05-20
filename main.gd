@@ -74,11 +74,15 @@ func _setup_hole_owg(course_data: Dictionary, hole_num: int) -> void:
 
 	# Load heightmap and textures BEFORE build_from_hole so shader has them ready
 	if hole_terrain:
-		var hm_path = course_data.get("heightmap_path", "")
+		# Heightmap: use staged runtime copy if available, fall back to extract path
+		var hm_path = "user://runtime/heightmap.png"
+		if not FileAccess.file_exists(hm_path):
+			hm_path = course_data.get("heightmap_path", "")
 		if hm_path != "" and hole_terrain.has_method("load_heightmap"):
 			hole_terrain.load_heightmap(hm_path)
-		if extract_path != "" and hole_terrain.has_method("load_textures"):
-			hole_terrain.load_textures(extract_path + "textures")
+		# Textures: always load from staged runtime dir (AssetStager already ran)
+		if hole_terrain.has_method("load_textures"):
+			hole_terrain.load_textures()
 
 	if hole_terrain and hole_terrain.has_method("build_from_hole"):
 		var all_tees_raw: Array = []
@@ -107,13 +111,23 @@ func _setup_hole_owg(course_data: Dictionary, hole_num: int) -> void:
 	await get_tree().physics_frame
 	await get_tree().physics_frame
 
-	# Ground tee/pin via raycast (collision now active) then heightmap fallback
+	# Ground tee/pin — try raycast first, then heightmap, then course.json Y
 	var tee_y := _raycast_ground_y(tee_pos.x, tee_pos.z)
 	var pin_y := _raycast_ground_y(pin_pos.x, pin_pos.z)
+
 	if tee_y == 0.0 and hole_terrain and hole_terrain.has_method("get_height_at"):
 		tee_y = hole_terrain.get_height_at(tee_pos.x, tee_pos.z)
 	if pin_y == 0.0 and hole_terrain and hole_terrain.has_method("get_height_at"):
 		pin_y = hole_terrain.get_height_at(pin_pos.x, pin_pos.z)
+
+	# Last resort — use the Y from course.json (already water-plane corrected)
+	if tee_y < 0.5:
+		tee_y = tee_pos.y
+		print("Main: using course.json tee Y=%.2f" % tee_y)
+	if pin_y < 0.5:
+		pin_y = pin_pos.y
+		print("Main: using course.json pin Y=%.2f" % pin_y)
+
 	tee_pos.y = tee_y
 	pin_pos.y = pin_y
 	print("Main: tee_pos=", tee_pos, " pin_pos=", pin_pos)
@@ -243,8 +257,44 @@ func _setup_hole_owg(course_data: Dictionary, hole_num: int) -> void:
 	# Spawn course objects (buildings, trees, etc.)
 	_spawn_owg_objects(course_data.get("objects", []))
 
+	# Water plane — Y=0 is the datum, render water across the whole terrain
+	_setup_water_plane(course_data)
+
 	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
 	print("Main: OWG hole %d — player spawned at %s" % [hole_num, str(player.global_position)])
+
+
+func _setup_water_plane(course_data: Dictionary) -> void:
+	var old = get_node_or_null("WaterPlane")
+	if old:
+		old.queue_free()
+
+	var terrain = course_data.get("terrain", {})
+	var size_x: float = terrain.get("terrain_size_x", 2271.0)
+	var size_z: float = terrain.get("terrain_size_z", size_x)
+
+	var water = MeshInstance3D.new()
+	water.name = "WaterPlane"
+	var plane = PlaneMesh.new()
+	# Make it slightly larger than the terrain so edges are covered
+	plane.size = Vector2(size_x * 1.2, size_z * 1.2)
+	plane.subdivide_width = 0
+	plane.subdivide_depth = 0
+	water.mesh = plane
+
+	var mat = StandardMaterial3D.new()
+	mat.albedo_color       = Color(0.08, 0.22, 0.42, 0.85)
+	mat.roughness          = 0.04
+	mat.metallic           = 0.0
+	mat.metallic_specular  = 0.95
+	mat.transparency       = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.shading_mode       = BaseMaterial3D.SHADING_MODE_PER_PIXEL
+	water.set_surface_override_material(0, mat)
+
+	# Y=0 is the water surface — terrain and all objects are above this
+	water.global_position = Vector3(0.0, 0.0, 0.0)
+	add_child(water)
+	print("Main: water plane at Y=0, size %.0fx%.0fm" % [size_x, size_z])
 
 
 func _spawn_owg_objects(objects: Array) -> void:

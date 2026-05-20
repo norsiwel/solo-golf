@@ -151,10 +151,7 @@ func _setup_from_owg_data(course_data: Dictionary) -> void:
 	else:
 		push_warning("CourseManager: OWG course has no heightmap_path in course_data")
 
-	# Load textures if they exist in the extracted path
-	var extract_path = course_data.get("extract_path", "")
-	if extract_path != "" and hole_terrain and hole_terrain.has_method("load_textures"):
-		hole_terrain.load_textures(extract_path + "textures")
+	# Textures are staged to user://runtime/ by AssetStager — main.gd handles load_textures()
 
 	# Terrain building is now handled by main.gd._setup_hole_owg() to support multi-hole
 	print("CourseManager: OWG metadata loaded — ", course_data.get("name", "Unknown"))

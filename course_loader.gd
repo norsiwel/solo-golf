@@ -66,68 +66,134 @@ func _peek_course_zip(zip_path: String) -> Dictionary:
 
 
 ## Main entry point — load a course from its zip path.
-## Emits course_ready(course_data) on success, load_failed(reason) on error.
+## Skips extraction if course is already cached and zip hasn't changed.
 func load_course(zip_path: String) -> void:
 	emit_signal("load_progress", "Opening course package...", 0.0)
 
+	var zip_name = zip_path.get_file().get_basename()
+	var extract_path = EXTRACT_DIR + zip_name + "/"
+	var cache_stamp  = extract_path + ".cache_stamp"
+
+	# Check if already extracted and up to date
+	if _is_cache_valid(zip_path, cache_stamp):
+		emit_signal("load_progress", "Loading cached course...", 0.10)
+		var json_path = extract_path + "course.json"
+		var f = FileAccess.open(json_path, FileAccess.READ)
+		if f:
+			var json = JSON.new()
+			if json.parse(f.get_as_text()) == OK:
+				current_course = json.get_data()
+				current_course["extract_path"]   = extract_path
+				current_course["heightmap_path"] = extract_path + "terrain/heightmap.png"
+				var splash = current_course.get("splash_image", "")
+				if splash != "" and FileAccess.file_exists(extract_path + "images/" + splash):
+					current_course["splash_local_path"] = extract_path + "images/" + splash
+				emit_signal("load_progress", "Staging cached assets...", 0.75)
+				AssetStager.staging_complete.connect(func():
+					emit_signal("load_progress", "Ready to play!", 1.0)
+					emit_signal("course_ready", current_course)
+				, CONNECT_ONE_SHOT)
+				AssetStager.staging_failed.connect(func(_r):
+					emit_signal("load_progress", "Ready to play!", 1.0)
+					emit_signal("course_ready", current_course)
+				, CONNECT_ONE_SHOT)
+				AssetStager.stage_course(current_course)
+				return
+			f.close()
+
+	# Not cached — full extraction
 	var reader = ZIPReader.new()
 	if reader.open(zip_path) != OK:
 		emit_signal("load_failed", "Cannot open: " + zip_path)
 		return
 
-	var zip_name = zip_path.get_file().get_basename()
-	var extract_path = EXTRACT_DIR + zip_name + "/"
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(extract_path))
 
-	DirAccess.make_dir_recursive_absolute(
-		ProjectSettings.globalize_path(extract_path)
-	)
-
-	emit_signal("load_progress", "Reading course data...", 0.1)
-
+	# Read course.json first for the name
 	if not reader.file_exists("course.json"):
 		emit_signal("load_failed", "Missing course.json in " + zip_path)
 		reader.close()
 		return
-
 	var json_bytes = reader.read_file("course.json")
 	_write_file(extract_path + "course.json", json_bytes)
-
 	var json = JSON.new()
 	if json.parse(json_bytes.get_string_from_utf8()) != OK:
 		emit_signal("load_failed", "Invalid course.json")
 		reader.close()
 		return
-
 	current_course = json.get_data()
-	emit_signal("load_progress", "Extracting assets...", 0.2)
+	var course_name = current_course.get("name", "Course")
 
-	# Extract ALL files from the ZIP to the user directory
-	var files = reader.get_files()
-	for i in range(files.size()):
-		var fpath = files[i]
-		if fpath.ends_with("/"): # skip directories
-			continue
-		
-		var bytes = reader.read_file(fpath)
-		_write_file(extract_path + fpath, bytes)
-		
-		if i % 10 == 0:
-			emit_signal("load_progress", "Extracting %d/%d..." % [i, files.size()], 0.2 + 0.5 * (float(i)/files.size()))
+	# Split files into categories for granular progress reporting
+	var all_files: Array = Array(reader.get_files())
+	var terrain_files = all_files.filter(func(f): return f.begins_with("terrain/"))
+	var texture_files = all_files.filter(func(f): return f.begins_with("textures/"))
+	var other_files   = all_files.filter(func(f): return not f.begins_with("terrain/") and not f.begins_with("textures/") and f != "course.json")
 
-	# Set paths for specific known assets
-	if FileAccess.file_exists(extract_path + "terrain/heightmap.png"):
-		current_course["heightmap_path"] = extract_path + "terrain/heightmap.png"
-	
-	var splash = current_course.get("splash_image", "")
-	if splash != "" and FileAccess.file_exists(extract_path + "images/" + splash):
-		current_course["splash_local_path"] = extract_path + "images/" + splash
+	# Extract terrain (heightmap, splatmaps) — 8% → 30%
+	emit_signal("load_progress", "Building terrain for %s..." % course_name, 0.08)
+	var done = 0
+	for fpath in terrain_files:
+		if fpath.ends_with("/"): continue
+		_write_file(extract_path + fpath, reader.read_file(fpath))
+		done += 1
+		emit_signal("load_progress",
+			"Terrain data: %s" % fpath.get_file(),
+			0.08 + 0.22 * (float(done) / max(terrain_files.size(), 1)))
+
+	# Extract textures — 30% → 65%
+	emit_signal("load_progress", "Loading %d surface textures..." % texture_files.size(), 0.30)
+	done = 0
+	for fpath in texture_files:
+		if fpath.ends_with("/"): continue
+		_write_file(extract_path + fpath, reader.read_file(fpath))
+		done += 1
+		if done % 8 == 0:
+			emit_signal("load_progress",
+				"Textures: %d of %d" % [done, texture_files.size()],
+				0.30 + 0.35 * (float(done) / max(texture_files.size(), 1)))
+
+	# Extract objects, images, meshes — 65% → 75%
+	emit_signal("load_progress", "Placing course objects...", 0.65)
+	done = 0
+	for fpath in other_files:
+		if fpath.ends_with("/"): continue
+		_write_file(extract_path + fpath, reader.read_file(fpath))
+		done += 1
+		if done % 15 == 0:
+			emit_signal("load_progress",
+				"Objects: %d of %d" % [done, other_files.size()],
+				0.65 + 0.10 * (float(done) / max(other_files.size(), 1)))
 
 	reader.close()
 
+	# Write cache stamp — stores zip modification time so we can detect updates
+	var zip_info = FileAccess.get_modified_time(zip_path)
+	var stamp = FileAccess.open(cache_stamp, FileAccess.WRITE)
+	if stamp:
+		stamp.store_string(str(zip_info))
+		stamp.close()
+
+	# Set known asset paths
+	if FileAccess.file_exists(extract_path + "terrain/heightmap.png"):
+		current_course["heightmap_path"] = extract_path + "terrain/heightmap.png"
+	var splash = current_course.get("splash_image", "")
+	if splash != "" and FileAccess.file_exists(extract_path + "images/" + splash):
+		current_course["splash_local_path"] = extract_path + "images/" + splash
 	current_course["extract_path"] = extract_path
 
-	emit_signal("load_progress", "Ready!", 1.0)
-	emit_signal("course_ready", current_course)
+	# Stage assets to user://runtime/ — 75% → 100%
+	emit_signal("load_progress", "Staging assets for %s..." % course_name, 0.75)
+	AssetStager.staging_complete.connect(func():
+		emit_signal("load_progress", "Ready to play!", 1.0)
+		emit_signal("course_ready", current_course)
+	, CONNECT_ONE_SHOT)
+	AssetStager.staging_failed.connect(func(reason):
+		push_warning("CourseLoader: staging failed (" + reason + ") — continuing")
+		emit_signal("load_progress", "Ready to play!", 1.0)
+		emit_signal("course_ready", current_course)
+	, CONNECT_ONE_SHOT)
+	AssetStager.stage_course(current_course)
 
 
 ## Write bytes to a user:// path, creating directories as needed.
@@ -138,6 +204,22 @@ func _write_file(path: String, data: PackedByteArray) -> void:
 	if f:
 		f.store_buffer(data)
 		f.close()
+
+
+## Check if extracted course cache is valid by comparing zip mod time.
+func _is_cache_valid(zip_path: String, stamp_path: String) -> bool:
+	if not FileAccess.file_exists(stamp_path):
+		return false
+	if not FileAccess.file_exists(zip_path.replace("res://", ProjectSettings.globalize_path("res://"))):
+		# Try globalized path
+		pass
+	var stamp_file = FileAccess.open(stamp_path, FileAccess.READ)
+	if not stamp_file:
+		return false
+	var stored_time = stamp_file.get_as_text().strip_edges()
+	stamp_file.close()
+	var actual_time = str(FileAccess.get_modified_time(zip_path))
+	return stored_time == actual_time
 
 
 ## Get all tee positions for a hole (sorted by difficulty/order)

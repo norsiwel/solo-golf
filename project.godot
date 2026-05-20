@@ -22,12 +22,14 @@ config/icon="res://icon.svg"
 [autoload]
 
 GameState="*res://game_state.gd"
+AssetStager="*res://asset_stager.gd"
+CoursePreloader="*res://course_preloader.gd"
 
 [display]
 
-window/stretch/mode="canvas_items"
-window/stretch/aspect="expand"
-
+window/size/viewport_width=1920
+window/size/viewport_height=1080
+window/stretch/mode="viewport"
 enabled=PackedStringArray("res://addons/terrain_3d/plugin.cfg")
 
 [physics]
