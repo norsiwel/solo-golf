@@ -17,7 +17,7 @@ func _ready():
 	GameState.current_course = {}
 
 	# Load title image
-	var tex = load("res://Open-world-title.png")
+	var tex = load("res://assets/ui/Open-world-title.png")
 	if tex:
 		title_image.texture = tex
 	else:

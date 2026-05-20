@@ -69,7 +69,7 @@ func _build_ui():
 	ball_image.set_anchor(SIDE_BOTTOM, 0.09)
 	ball_image.expand_mode = TextureRect.EXPAND_FIT_HEIGHT_PROPORTIONAL
 	ball_image.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	var ball_tex = load("res://assets/ball_white.png")
+	var ball_tex = load("res://assets/balls/ball_white.png")
 	if ball_tex:
 		ball_image.texture = ball_tex
 	add_child(ball_image)
@@ -448,7 +448,7 @@ func set_putting_mode(enabled: bool, stimp: float = 8.0):
 			selected_club_label.text = "Putter  Stimp:%.0f" % stimp
 		# Show yellow ball for putting
 		if ball_image:
-			var tex = load("res://assets/ball_yellow.png")
+			var tex = load("res://assets/balls/ball_yellow.png")
 			if tex: ball_image.texture = tex
 	else:
 		meter_speed = 0.53  # restore normal shot speed
@@ -456,5 +456,5 @@ func set_putting_mode(enabled: bool, stimp: float = 8.0):
 		_update_club_highlight()
 		# Restore white ball
 		if ball_image:
-			var tex = load("res://assets/ball_white.png")
+			var tex = load("res://assets/balls/ball_white.png")
 			if tex: ball_image.texture = tex

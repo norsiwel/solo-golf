@@ -35,7 +35,7 @@ func _ready() -> void:
 	bg.anchor_right  = 1.0
 	bg.anchor_bottom = 1.0
 	bg.stretch_mode  = TextureRect.STRETCH_SCALE
-	bg.texture       = load("res://assets/Player-select.png")
+	bg.texture       = load("res://assets/ui/player-select.png")
 	add_child(bg)
 
 	create_ui()
