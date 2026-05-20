@@ -65,8 +65,8 @@ func _build_ui() -> void:
 
 	# ── Name LineEdit — over the painted PLAYER NAME box ─────────────
 	name_input                = LineEdit.new()
-	name_input.position       = Vector2(90, 258)
-	name_input.size           = Vector2(400, 52)
+	name_input.position       = Vector2(130, 320)
+	name_input.size           = Vector2(390, 52)
 	name_input.placeholder_text = "Enter your name…"
 	name_input.max_length     = 24
 	name_input.add_theme_font_size_override("font_size", 22)
@@ -84,7 +84,7 @@ func _build_ui() -> void:
 
 	# ── Gender buttons — over painted MALE / FEMALE cards ────────────
 	btn_male                  = Button.new()
-	btn_male.position         = Vector2(90, 500)
+	btn_male.position         = Vector2(130, 492)
 	btn_male.size             = Vector2(188, 100)
 	btn_male.text             = "♂  MALE"
 	btn_male.toggle_mode      = true
@@ -94,7 +94,7 @@ func _build_ui() -> void:
 	add_child(btn_male)
 
 	btn_female                = Button.new()
-	btn_female.position       = Vector2(300, 500)
+	btn_female.position       = Vector2(330, 492)
 	btn_female.size           = Vector2(188, 100)
 	btn_female.text           = "♀  FEMALE"
 	btn_female.toggle_mode    = true
@@ -104,7 +104,7 @@ func _build_ui() -> void:
 
 	# ── Handedness buttons — over painted RIGHT/LEFT HANDED cards ─────
 	btn_right                 = Button.new()
-	btn_right.position        = Vector2(90, 642)
+	btn_right.position        = Vector2(130, 634)
 	btn_right.size            = Vector2(188, 100)
 	btn_right.text            = "RIGHT"
 	btn_right.toggle_mode     = true
@@ -114,7 +114,7 @@ func _build_ui() -> void:
 	add_child(btn_right)
 
 	btn_left                  = Button.new()
-	btn_left.position         = Vector2(300, 642)
+	btn_left.position         = Vector2(330, 634)
 	btn_left.size             = Vector2(188, 100)
 	btn_left.text             = "LEFT"
 	btn_left.toggle_mode      = true
@@ -124,8 +124,8 @@ func _build_ui() -> void:
 
 	# ── Validation hint ───────────────────────────────────────────────
 	validation_hint           = Label.new()
-	validation_hint.position  = Vector2(90, 754)
-	validation_hint.size      = Vector2(400, 30)
+	validation_hint.position  = Vector2(130, 748)
+	validation_hint.size      = Vector2(390, 30)
 	validation_hint.text      = ""
 	validation_hint.add_theme_font_size_override("font_size", 14)
 	validation_hint.add_theme_color_override("font_color", Color(0.95, 0.35, 0.25, 1))
@@ -133,8 +133,8 @@ func _build_ui() -> void:
 
 	# ── Step Onto The Course button ───────────────────────────────────
 	btn_create                = Button.new()
-	btn_create.position       = Vector2(90, 790)
-	btn_create.size           = Vector2(400, 60)
+	btn_create.position       = Vector2(130, 784)
+	btn_create.size           = Vector2(390, 60)
 	btn_create.text           = "⛳  STEP ONTO THE COURSE"
 	btn_create.add_theme_font_size_override("font_size", 20)
 	btn_create.add_theme_color_override("font_color", Color(0.95, 1.0, 0.55, 1))
@@ -143,8 +143,8 @@ func _build_ui() -> void:
 
 	# ── Cancel / back to list ─────────────────────────────────────────
 	btn_cancel                = Button.new()
-	btn_cancel.position       = Vector2(90, 860)
-	btn_cancel.size           = Vector2(400, 40)
+	btn_cancel.position       = Vector2(130, 854)
+	btn_cancel.size           = Vector2(390, 40)
 	btn_cancel.text           = "◀  Back to Golfer List"
 	btn_cancel.visible        = false
 	btn_cancel.add_theme_font_size_override("font_size", 15)
@@ -189,7 +189,7 @@ func _build_list_panel() -> void:
 
 	scroll = ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.custom_minimum_size = Vector2(0, 200)
+	scroll.custom_minimum_size = Vector2(100, 80)
 	list_panel.add_child(scroll)
 
 	golfer_list = VBoxContainer.new()
@@ -204,14 +204,14 @@ func _build_list_panel() -> void:
 
 	btn_new_golfer = Button.new()
 	btn_new_golfer.text = "＋  New Golfer"
-	btn_new_golfer.custom_minimum_size = Vector2(160, 48)
+	btn_new_golfer.custom_minimum_size = Vector2(260, -72)
 	btn_new_golfer.add_theme_font_size_override("font_size", 16)
 	btn_new_golfer.pressed.connect(func(): _show_form(true))
 	list_btns.add_child(btn_new_golfer)
 
 	btn_play = Button.new()
 	btn_play.text = "▶  Play as …"
-	btn_play.custom_minimum_size = Vector2(200, 48)
+	btn_play.custom_minimum_size = Vector2(300, -72)
 	btn_play.disabled = true
 	btn_play.add_theme_font_size_override("font_size", 20)
 	btn_play.add_theme_color_override("font_color", Color(0.95, 1.0, 0.6, 1))
@@ -287,7 +287,7 @@ func _rebuild_list() -> void:
 		var del := Button.new()
 		del.text = "✕"
 		del.flat = true
-		del.custom_minimum_size = Vector2(36, 36)
+		del.custom_minimum_size = Vector2(136, -84)
 		del.add_theme_font_size_override("font_size", 14)
 		del.add_theme_color_override("font_color", Color(0.8, 0.3, 0.3, 0.8))
 		del.pressed.connect(func(): _confirm_delete(idx))
@@ -374,15 +374,15 @@ func _set_toggle_style(btn: Button, active: bool) -> void:
 	s.content_margin_left = 10; s.content_margin_right = 10
 	s.content_margin_top  = 8;  s.content_margin_bottom = 8
 	if active:
-		s.bg_color     = Color(0.12, 0.45, 0.12, 1.0)
-		s.border_color = Color(0.40, 0.90, 0.30, 1.0)
-		s.set_border_width_all(2)
+		s.bg_color     = Color(0.12, 0.45, 0.12, 0.65)
+		s.border_color = Color(0.50, 0.95, 0.35, 1.0)
+		s.set_border_width_all(3)
 		btn.add_theme_color_override("font_color", Color(1.0, 1.0, 0.55, 1))
 	else:
-		s.bg_color     = Color(0.07, 0.12, 0.07, 1.0)
-		s.border_color = Color(0.25, 0.40, 0.22, 0.6)
-		s.set_border_width_all(1)
-		btn.add_theme_color_override("font_color", Color(0.60, 0.72, 0.58, 1))
+		s.bg_color     = Color(0.0, 0.0, 0.0, 0.0)
+		s.border_color = Color(0.0, 0.0, 0.0, 0.0)
+		s.set_border_width_all(0)
+		btn.add_theme_color_override("font_color", Color(0.0, 0.0, 0.0, 0.0))
 	btn.add_theme_stylebox_override("normal",   s)
 	btn.add_theme_stylebox_override("pressed",  s)
 	btn.add_theme_stylebox_override("hover",    s)
