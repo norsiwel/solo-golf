@@ -14,17 +14,19 @@ uniform sampler2D rough_texture : source_color;
 uniform sampler2D green_texture : source_color;
 uniform sampler2D bunker_texture : source_color;
 uniform sampler2D sand_texture : source_color;
+uniform sampler2D base_texture : source_color;  // satellite/overhead photo
 uniform float texture_scale = 8.0;
 
 uniform float owg_size_x = 2271.0;
 uniform float owg_size_z = 2271.0;
 
 // Which splatmap (0-5) and channel (0=R,1=G,2=B,3=A) for each surface
-uniform ivec2 ch_fairway = ivec2(0, 0);
+uniform ivec2 ch_fairway = ivec2(1, 2);
 uniform ivec2 ch_rough   = ivec2(0, 1);
 uniform ivec2 ch_green   = ivec2(0, 2);
 uniform ivec2 ch_bunker  = ivec2(0, 3);
 uniform ivec2 ch_sand    = ivec2(1, 0);
+uniform ivec2 ch_base    = ivec2(0, 0);  // satellite layer
 
 varying vec3 world_pos;
 
@@ -48,8 +50,8 @@ float sample_channel(vec2 uv, ivec2 map_ch) {
 
 void fragment() {
 	vec2 splat_uv = vec2(
-		clamp(1.0 + world_pos.x / max(owg_size_x, 1.0), 0.0, 1.0),
-		clamp(1.0 - world_pos.z / max(owg_size_z, 1.0), 0.0, 1.0)
+		clamp(-world_pos.x / max(owg_size_x, 1.0), 0.0, 1.0),
+		clamp( world_pos.z / max(owg_size_z, 1.0), 0.0, 1.0)
 	);
 
 	float w_fairway = sample_channel(splat_uv, ch_fairway);
@@ -57,6 +59,7 @@ void fragment() {
 	float w_green   = sample_channel(splat_uv, ch_green);
 	float w_bunker  = sample_channel(splat_uv, ch_bunker);
 	float w_sand    = sample_channel(splat_uv, ch_sand);
+	float w_base    = sample_channel(splat_uv, ch_base);
 
 	vec2 tiled_uv = world_pos.xz / max(texture_scale, 0.1);
 
@@ -65,14 +68,15 @@ void fragment() {
 	vec4 green   = texture(green_texture,   tiled_uv);
 	vec4 bunker  = texture(bunker_texture,  tiled_uv);
 	vec4 sand    = texture(sand_texture,    tiled_uv);
+	vec4 base    = texture(base_texture,    splat_uv);  // satellite uses splat UV (full terrain)
 
-	float used = w_fairway + w_rough + w_green + w_bunker + w_sand;
-	vec4 col = fairway * w_fairway
-			 + rough   * w_rough
-			 + green   * w_green
-			 + bunker  * w_bunker
-			 + sand    * w_sand
-			 + fairway * max(0.0, 1.0 - used);  // default to fairway
+	// Blend tiling textures over the satellite base
+	float tiling_total = w_fairway + w_rough + w_green + w_bunker + w_sand;
+	vec4 tiling_col = fairway * w_fairway + rough * w_rough + green * w_green
+		+ bunker * w_bunker + sand * w_sand;
+
+	// Satellite shows through where tiling coverage is low
+	vec4 col = mix(base, tiling_col / max(tiling_total, 0.001), clamp(tiling_total, 0.0, 1.0));
 
 	ALBEDO    = col.rgb;
 	ROUGHNESS = mix(0.85, 0.55, w_green);

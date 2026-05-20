@@ -203,8 +203,15 @@ func _build_splat_channel_map(texture_map: Dictionary) -> Dictionary:
 	var result = {}
 	for layer in layers:
 		var idx: int = layer.get("index", 0)
-		var alphamap_idx = idx / 4       # which alphamap file
-		var channel_idx  = idx % 4       # R=0 G=1 B=2 A=3
+		var alphamap_idx = idx / 4
+		var channel_idx  = idx % 4
+
+		# Layer 0 with full-terrain tile size = satellite/overhead photo → mark as "base"
+		var tile_x = layer.get("tile_size_x", 5.0)
+		if idx == 0 and tile_x > 100.0:
+			if "base" not in result:
+				result["base"] = {"map": alphamap_idx, "ch": channel_idx}
+			continue  # don't classify as a surface type
 
 		# Try surface_type first
 		var stype = layer.get("surface_type", "unknown").to_lower()
@@ -218,7 +225,8 @@ func _build_splat_channel_map(texture_map: Dictionary) -> Dictionary:
 					surface = name_map[key]
 					break
 
-		if surface != "" and surface not in result:
+		# For duplicate surface entries, keep the one with more coverage (higher index = later layer usually wins)
+		if surface != "":
 			result[surface] = {"map": alphamap_idx, "ch": channel_idx}
 
 	return result

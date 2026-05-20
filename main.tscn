@@ -1,4 +1,4 @@
-[gd_scene load_steps=33 format=3 uid="uid://dvcp2wpqd25c6"]
+[gd_scene load_steps=29 format=3 uid="uid://dvcp2wpqd25c6"]
 
 [ext_resource type="Script" uid="uid://cch7i6fyywjos" path="res://main.gd" id="1_main"]
 [ext_resource type="Script" uid="uid://bagc1rj48iic7" path="res://player.gd" id="2_player"]
@@ -9,21 +9,9 @@
 [ext_resource type="Script" uid="uid://jnuydiewf0yg" path="res://green.gd" id="8_green"]
 [ext_resource type="Script" uid="uid://btr64vpnrmohl" path="res://tee.gd" id="9_tee"]
 [ext_resource type="Script" uid="uid://cvn4viqosvqe4" path="res://flag_animator.gd" id="10_flag"]
-[ext_resource type="Texture2D" uid="uid://c4p5702bpacy1" path="res://assets/terrain/surface_fairway.png" id="11_fairway"]
 [ext_resource type="Texture2D" uid="uid://b6lyhsbfdhova" path="res://assets/terrain/surface_green.png" id="12_green_tex"]
 [ext_resource type="Script" uid="uid://5ce7060ltfjq" path="res://terrain_generator.gd" id="13_terrain"]
 [ext_resource type="Script" path="res://owg_environment.gd" id="14_env"]
-
-[sub_resource type="PlaneMesh" id="PlaneMesh_fallback"]
-size = Vector2(4000, 4000)
-
-[sub_resource type="StandardMaterial3D" id="Material_grass"]
-albedo_texture = ExtResource("11_fairway")
-roughness = 0.9
-uv1_scale = Vector3(200, 200, 200)
-
-[sub_resource type="BoxShape3D" id="BoxShape3D_fallback"]
-size = Vector3(4000, 0.2, 4000)
 
 [sub_resource type="BoxMesh" id="CylinderMesh_teebox"]
 size = Vector3(10.0, 0.04, 5.0)
@@ -112,16 +100,6 @@ script = ExtResource("5_map")
 
 [node name="CourseManager" type="Node" parent="."]
 script = ExtResource("6_cm")
-
-[node name="FallbackGround" type="StaticBody3D" parent="."]
-
-[node name="GroundMesh" type="MeshInstance3D" parent="FallbackGround"]
-mesh = SubResource("PlaneMesh_fallback")
-surface_material_override/0 = SubResource("Material_grass")
-
-[node name="GroundCollision" type="CollisionShape3D" parent="FallbackGround"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.1, 0)
-shape = SubResource("BoxShape3D_fallback")
 
 [node name="HoleGeometry" type="Node3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -2000, 0)

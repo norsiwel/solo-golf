@@ -34,11 +34,6 @@ func _load_course():
 
 
 func _setup_hole_owg(course_data: Dictionary, hole_num: int) -> void:
-	# Hide fallback ground for OWG
-	var fallback = get_node_or_null("FallbackGround")
-	if fallback:
-		fallback.visible = false
-
 	var player = get_node_or_null("Player")
 	if not player:
 		push_error("Main: Missing Player node for OWG setup")
@@ -106,10 +101,9 @@ func _setup_hole_owg(course_data: Dictionary, hole_num: int) -> void:
 			)
 		hole_terrain.build_from_hole(tee_pos, pin_pos, all_tees_raw, all_pins_raw)
 
-	# Wait for Jolt to register the HeightMapShape3D collision
-	await get_tree().physics_frame
-	await get_tree().physics_frame
-	await get_tree().physics_frame
+	# Wait for Jolt to register the HeightMapShape3D collision — needs more frames than expected
+	for i in range(8):
+		await get_tree().physics_frame
 
 	# Ground tee/pin — try raycast first, then heightmap, then course.json Y
 	var tee_y := _raycast_ground_y(tee_pos.x, tee_pos.z)
@@ -291,8 +285,8 @@ func _setup_water_plane(course_data: Dictionary) -> void:
 	mat.shading_mode       = BaseMaterial3D.SHADING_MODE_PER_PIXEL
 	water.set_surface_override_material(0, mat)
 
-	# Y=0 is the water surface — terrain and all objects are above this
-	water.global_position = Vector3(0.0, 0.0, 0.0)
+	# Y=-2 keeps water below terrain (links sit ~3m above datum) — only visible at sea/burn edges
+	water.global_position = Vector3(0.0, -2.0, 0.0)
 	add_child(water)
 	print("Main: water plane at Y=0, size %.0fx%.0fm" % [size_x, size_z])
 
@@ -337,13 +331,6 @@ func _setup_hole(hole_num: int):
 			Vector3(pin.x, 0, pin.z),
 			all_tees, all_pins
 		)
-
-	# Hide the flat fallback ground mesh now that heightmap terrain is active
-	var fallback = get_node_or_null("FallbackGround")
-	if fallback:
-		var gm = fallback.get_node_or_null("GroundMesh")
-		if gm:
-			gm.visible = false
 
 	# Get ground heights via downward raycast so player/geometry land on the actual surface
 	var tee_y: float = maxf(_raycast_ground_y(tee.x, tee.z), 0.0)

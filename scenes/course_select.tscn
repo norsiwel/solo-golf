@@ -91,9 +91,9 @@ offset_top = 4
 offset_bottom = -4
 grow_horizontal = 2
 grow_vertical = 2
-stretch_mode = 4
+stretch_mode = 6
 expand_mode = 0
-clip_contents = false
+clip_contents = true
 
 [node name="NoSplashLabel" type="Label" parent="SplashImage"]
 unique_name_in_owner = true

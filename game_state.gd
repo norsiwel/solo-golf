@@ -15,6 +15,7 @@ var preloaded_terrain_meta:  Dictionary    = {}
 var preloaded_textures:      Dictionary    = {}  # surface → ImageTexture
 var preloaded_splatmap:      ImageTexture  = null
 var preloaded_splatmap_img:  Image         = null
+var preloaded_all_splats:    Dictionary    = {}  # index → ImageTexture
 var preloaded_holes:         Dictionary    = {}  # hole_num → {tee, pin, par, ...}
 
 # Player profile — set on player setup screen

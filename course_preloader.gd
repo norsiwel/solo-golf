@@ -61,25 +61,27 @@ func preload_course(course_data: Dictionary) -> void:
 	GameState.preloaded_textures = textures
 	print("CoursePreloader: %d surface textures ready" % textures.size())
 
-	# 5. Splatmap
+	# 5. All splatmaps — store as dict index->ImageTexture in GameState
 	emit_signal("preload_progress", "Loading splatmap...", 0.93)
-	var splat_tex = null
+	var all_splats = {}
 	var splat_img = null
 	var sd = DirAccess.open(RT_SPLAT_DIR)
 	if sd:
 		sd.list_dir_begin()
 		var fn = sd.get_next()
 		while fn != "":
-			if "alphamap_0" in fn.to_lower():
+			if fn.begins_with("alphamap_") and fn.ends_with(".png"):
+				var idx = fn.replace("alphamap_","").replace(".png","").to_int()
 				var img = Image.load_from_file(ProjectSettings.globalize_path(RT_SPLAT_DIR + fn))
 				if img:
 					img.generate_mipmaps()
-					splat_img = img
-					splat_tex = ImageTexture.create_from_image(img)
+					all_splats[idx] = ImageTexture.create_from_image(img)
+					if idx == 0:
+						splat_img = img
 					print("CoursePreloader: splatmap ready — ", fn)
-					break
 			fn = sd.get_next()
-	GameState.preloaded_splatmap     = splat_tex
+	GameState.preloaded_all_splats   = all_splats
+	GameState.preloaded_splatmap     = all_splats.get(0)
 	GameState.preloaded_splatmap_img = splat_img
 
 	# 6. Cache hole 1 tee/pin positions

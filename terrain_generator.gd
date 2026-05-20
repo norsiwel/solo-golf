@@ -58,8 +58,8 @@ void vertex() { world_pos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz; }
 
 void fragment() {
 	vec2 splat_uv = vec2(
-		clamp(1.0 + world_pos.x / max(owg_size_x, 1.0), 0.0, 1.0),
-		clamp(1.0 - world_pos.z / max(owg_size_z, 1.0), 0.0, 1.0)
+		clamp(-world_pos.x / max(owg_size_x, 1.0), 0.0, 1.0),
+		clamp( world_pos.z / max(owg_size_z, 1.0), 0.0, 1.0)
 	);
 	vec4 splat = texture(splatmap, splat_uv);
 	vec2 tiled_uv = world_pos.xz / max(texture_scale, 0.1);
@@ -230,18 +230,23 @@ func _load_terrain_meta(path: String) -> Dictionary:
 	return json.get_data()
 
 
-## Load textures — uses pre-loaded assets from GameState if available.
+## Load textures — loads directly from staged runtime directory.
+## GameState preload cache used only if already populated (avoids timing race).
 func load_textures(_ignored_path: String = "") -> void:
-	if not GameState.preloaded_textures.is_empty():
-		_owg_fairway_tex = GameState.preloaded_textures.get("fairway")
-		_owg_green_tex   = GameState.preloaded_textures.get("green")
-		_owg_rough_tex   = GameState.preloaded_textures.get("rough")
-		_owg_bunker_tex  = GameState.preloaded_textures.get("bunker")
-		_owg_sand_tex    = GameState.preloaded_textures.get("sand")
+	# Use GameState cache only if fully populated (all four keys present)
+	var gs = GameState.preloaded_textures
+	if gs.has("fairway") and gs.has("rough") and GameState.preloaded_splatmap != null:
+		_owg_fairway_tex    = gs.get("fairway")
+		_owg_green_tex      = gs.get("green")
+		_owg_rough_tex      = gs.get("rough")
+		_owg_bunker_tex     = gs.get("bunker")
+		_owg_sand_tex       = gs.get("sand")
 		_owg_splatmap_tex   = GameState.preloaded_splatmap
 		_owg_splatmap_image = GameState.preloaded_splatmap_img
-		print("TerrainGenerator: using pre-loaded textures from GameState")
+		_owg_all_splats     = GameState.preloaded_all_splats
+		print("TerrainGenerator: using pre-loaded textures from GameState (%d splats)" % _owg_all_splats.size())
 		return
+	print("TerrainGenerator: GameState cache empty, loading from disk")
 
 	var rt_tex   = "user://runtime/textures/"
 	var rt_splat = "user://runtime/splat/"
@@ -385,17 +390,11 @@ func build_from_hole(tee: Vector3, pin: Vector3, all_tees: Array = [], all_pins:
 	shape.map_data = _heightmap
 	_collision_shape = CollisionShape3D.new()
 	_collision_shape.shape = shape
-	# Build transform: scale cell spacing, then translate so shape covers _origin → _origin+bounds
-	# HeightMapShape3D is centered at (0,0,0) spanning -(w-1)/2 to +(w-1)/2 in X and Z
-	# After scaling by step: spans -bounds/2 to +bounds/2
-	# Translate by bounds center to align with mesh origin
 	var cx = _origin.x + _bounds.size.x * 0.5
 	var cz = _origin.z + _bounds.size.z * 0.5
-	_collision_shape.transform = Transform3D(
-		Basis(Vector3(_step_x, 0, 0), Vector3(0, 1, 0), Vector3(0, 0, _step_z)),
-		Vector3(cx, 0.0, cz)
-	)
 	add_child(_collision_shape)
+	_collision_shape.global_position = Vector3(cx, 0.0, cz)
+	_collision_shape.scale = Vector3(_step_x, 1.0, _step_z)
 
 	# Visual mesh
 	_mesh_instance = MeshInstance3D.new()
@@ -403,6 +402,7 @@ func build_from_hole(tee: Vector3, pin: Vector3, all_tees: Array = [], all_pins:
 	_mesh_instance.position = _origin
 	
 	if _owg_splatmap_tex:
+		print("TerrainGenerator: APPLYING SPLATMAP SHADER — size_x=%.1f size_z=%.1f splats=%d" % [_owg_size_x, _owg_size_z, _owg_all_splats.size()])
 		var mat := ShaderMaterial.new()
 		var shader = load("res://terrain_splatmap.gdshader")
 		if not shader:
@@ -424,22 +424,40 @@ func build_from_hole(tee: Vector3, pin: Vector3, all_tees: Array = [], all_pins:
 		var r_tex = _owg_rough_tex   if _owg_rough_tex   else _make_placeholder(Color(0.30,0.42,0.18))
 		var b_tex = _owg_bunker_tex  if _owg_bunker_tex  else _make_placeholder(Color(0.78,0.68,0.42))
 		var s_tex = _owg_sand_tex    if _owg_sand_tex    else _make_placeholder(Color(0.82,0.74,0.50))
+		# Base texture — satellite/overhead photo used as fallback where tiling textures are absent
+		var base_img_path = "user://runtime/textures/St_Andrews_Overhead_2016.png"
+		var base_tex: ImageTexture = null
+		var base_img = Image.load_from_file(ProjectSettings.globalize_path(base_img_path))
+		if base_img:
+			base_img.generate_mipmaps()
+			base_tex = ImageTexture.create_from_image(base_img)
+		if not base_tex:
+			base_tex = _make_placeholder(Color(0.45, 0.55, 0.35))
 		mat.set_shader_parameter("fairway_texture", f_tex)
 		mat.set_shader_parameter("green_texture",   g_tex)
 		mat.set_shader_parameter("rough_texture",   r_tex)
 		mat.set_shader_parameter("bunker_texture",  b_tex)
 		mat.set_shader_parameter("sand_texture",    s_tex)
+		mat.set_shader_parameter("base_texture",    base_tex)
 		mat.set_shader_parameter("texture_scale",   GRASS_UV_SCALE)
 		mat.set_shader_parameter("owg_size_x",      _owg_size_x)
 		mat.set_shader_parameter("owg_size_z",      _owg_size_z)
 
 		# Channel map — which splatmap/channel for each surface
+		# Fallback: missing keys default to rough channel so terrain shows something
 		var ch_map = _load_splat_channel_map()
-		mat.set_shader_parameter("ch_fairway", Vector2i(ch_map.get("fairway", {}).get("map", 0), ch_map.get("fairway", {}).get("ch", 0)))
-		mat.set_shader_parameter("ch_rough",   Vector2i(ch_map.get("rough",   {}).get("map", 0), ch_map.get("rough",   {}).get("ch", 1)))
-		mat.set_shader_parameter("ch_green",   Vector2i(ch_map.get("green",   {}).get("map", 0), ch_map.get("green",   {}).get("ch", 2)))
-		mat.set_shader_parameter("ch_bunker",  Vector2i(ch_map.get("bunker",  {}).get("map", 0), ch_map.get("bunker",  {}).get("ch", 3)))
-		mat.set_shader_parameter("ch_sand",    Vector2i(ch_map.get("sand",    {}).get("map", 1), ch_map.get("sand",    {}).get("ch", 0)))
+		var fairway_def = ch_map.get("fairway", ch_map.get("rough", {"map": 0, "ch": 1}))
+		var rough_def   = ch_map.get("rough",   {"map": 0, "ch": 1})
+		var green_def   = ch_map.get("green",   rough_def)
+		var bunker_def  = ch_map.get("bunker",  rough_def)
+		var sand_def    = ch_map.get("sand",    rough_def)
+		var base_def   = ch_map.get("base",    {"map": 0, "ch": 0})
+		mat.set_shader_parameter("ch_fairway", Vector2i(fairway_def.get("map", 1), fairway_def.get("ch", 2)))
+		mat.set_shader_parameter("ch_rough",   Vector2i(rough_def.get("map",   0), rough_def.get("ch",   1)))
+		mat.set_shader_parameter("ch_green",   Vector2i(green_def.get("map",   0), green_def.get("ch",   2)))
+		mat.set_shader_parameter("ch_bunker",  Vector2i(bunker_def.get("map",  0), bunker_def.get("ch",  3)))
+		mat.set_shader_parameter("ch_sand",    Vector2i(sand_def.get("map",    0), sand_def.get("ch",    0)))
+		mat.set_shader_parameter("ch_base",    Vector2i(base_def.get("map",    0), base_def.get("ch",    0)))
 		print("TerrainGenerator: channel map = ", ch_map)
 		_mesh_instance.material_override = mat
 	else:

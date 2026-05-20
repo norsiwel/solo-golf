@@ -325,6 +325,12 @@ func _input(event):
 				else:
 					# ESC returns to course selector
 					get_tree().change_scene_to_file("res://scenes/course_select.tscn")
+			if event.keycode == KEY_F1:
+				# Toggle mouse capture for debug access
+				if Input.get_mouse_mode() == Input.MOUSE_MODE_CAPTURED:
+					Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
+				else:
+					Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
 
 func _open_viewfinder():
 	viewfinder_active = true

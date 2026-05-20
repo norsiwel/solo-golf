@@ -1,6 +1,35 @@
 # Open World Golf — Project Status
 
-## Current State (May 19 2026 — Evening Session)
+## Current State (May 20 2026)
+
+### Working ✅
+- Full gameplay loop: walk → aim → shoot → roll → putt → hole-out → scorecard
+- Title screen → course selector → game → ESC back
+- Both OWG zips load: The Old Course and Sunset Valley GC
+- Player spawns on terrain and walks correctly over hills/valleys
+- HeightMapShape3D collision working with Jolt (scale not Basis transform)
+- Splatmap shader running — satellite photo base layer confirmed
+- All 3 splatmaps loading (alphamap_0/1/2) with correct channel map
+- AssetStager builds correct channel map: base=0R, rough=1R, fairway=1B, path=2R
+- F1 toggles mouse capture for debug access in-game
+- Course select cards fitting correctly (stretch_mode=6, clip_contents=true)
+- Water plane at Y=-2 (below terrain datum)
+- FallbackGround removed from scene entirely
+
+### Needs Fixing 🔲
+- Terrain still shows solid green — satellite base texture not rendering through
+  (shader confirmed running, base_texture loaded, UV math correct — needs investigation)
+- Swilcan Burn not showing — _setup_swilcan_burn() not called from _setup_hole_owg()
+- Player spawn: collision shape alignment needs verification after Basis→scale fix
+- Viewfinder changes player position (bug in _open_viewfinder or aim_point)
+- Old Course card still overflowing right edge at 1920x1080
+
+### Next Session Priorities
+1. Fix satellite texture showing through (base layer solid green)
+2. Add _setup_swilcan_burn() call to _setup_hole_owg()
+3. Fix viewfinder position bug
+4. Normal maps on terrain shader
+5. Billboard trees from extracted course textures
 
 ### Working ✅
 - Full gameplay loop: walk → aim → shoot → roll → putt → hole-out → scorecard
