@@ -1,84 +1,78 @@
 # Open World Golf — Project Status
 
-## Current State (May 19 2026)
+## Current State (May 19 2026 — Evening Session)
 
 ### Working ✅
 - Full gameplay loop: walk → aim → shoot → roll → putt → hole-out → scorecard
-- Title screen → course selector (card UI with splash images) → game → ESC back
-- Both OWG zips load: The Old Course (332MB) and Sunset Valley GC (680MB)
-- Runtime heightmap terrain visible with rolling hills — St Andrews shape confirmed
-- Splatmap shader wired up (PBR burley/schlick, 5 surface channels)
-- ACES tonemapping + glow + SSAO environment node
-- Wind system, animated flag, viewfinder rangefinder
-- Shot tracer, ball flight arc with ball camera
-- Putting system with stimp, cup detection, hole-out animation
-- Scorecard with play-again / next-hole
-- Jump (Space) and crouch (C) controls for terrain navigation
-- Water level datum: tee/pin Y positions correctly offset from water plane
-  - St Andrews: tee Y=3.1m, pin Y=0.7m (verified from new zip)
-  - Sunset Valley: tee Y=9.3m, pin Y=6.6m
-- apply_terrain_material() in course_loader.gd with texture_map.json lookup
-- Dev fallback (F6) now loads OWG zip via CourseLoader properly
+- Title screen → course selector → game → ESC back
+- Both OWG zips load: The Old Course and Sunset Valley GC
+- Player spawns on terrain (fallback chain: raycast → heightmap → course.json Y)
+- Walking up hills with collision working
+- Water plane at Y=0 (datum), sized to full terrain
+- Splatmap UV fixed: u=1+world_x/size_x matches heightmap formula exactly
+- Multi-splatmap shader: reads correct channel per course from splat_channel_map.json
+- 16-bit heightmap: FORMAT_RF conversion gives correct pixel.r values
+- Asset staging pipeline: user://runtime/ holds all active course assets
+- Cache stamp: second load of same course skips extraction entirely
+- Course select screen: anchor-based layout, splash image as card
+- Loading overlay: big % counter, green→yellow→white, Cancel button
+- Scorecard: Course Select button to return to selector
+- Wind system, viewfinder, shot tracer, putting, scorecard all intact
 
 ### Needs Testing / Known Issues 🔲
-- Player spawn: lands on terrain at correct Y? (screenshot showed wrong location — F6 key)
-- Splatmap textures: were null in last test (used F6/dev fallback before fix)
-- Collision shape: Transform3D fix applied, needs verification player walks on hills
-- Ball appears as blue diamond shape — likely material load failure, should fix with F5
-- Course objects: 7237 objects spawn as grey/green boxes (no billboard mapping yet)
-- Water planes: water_plane_y in course.json but not rendered in Godot yet
+- Terrain textures: splatmap channel map built from splat_layers.json — needs visual verify
+- Heightmap FORMAT_RF: debug print added, need to confirm pixel.r ~0.02 for SV tee
+- Water plane: visible on Sunset Valley (no water on hole 1) — correct behavior
+- Billboard trees: still placeholder cones/boxes, real textures are in the zip
 - Multi-hole: only hole 1 terrain built
 
-### What To Test Next Session
-1. **F5 to run** (not F6) → course selector appears → pick The Old Course
-2. Player should spawn at tee, standing on terrain ~3m above water plane
-3. Check console for splatmap tex load — should NOT be null anymore
-4. Walk around — do hills have collision?
-5. V to aim at flag (375 yds) → shoot → walk → putt
+### Next Session Priorities
+1. Verify terrain textures showing correctly with new channel map
+2. Remove debug print from load_heightmap once confirmed
+3. Player profile screen (name, sex, handedness)
+4. 9-hole mode implementation in main.gd
+5. Normal maps on terrain shader (biggest visual quality jump)
+6. Billboard trees from extracted course textures
 
-## Session History (May 19 2026)
+## Session History (May 19 2026 — Evening)
 
-**Converter rewrite (pg_to_owg_converter.py)**
-- Water plane as Y reference: all tee/pin/shot positions now offset by -water_plane_y
-- Both courses reconverted with correct datum
-- texture_map.json classification: fairway/rough/green/bunker/sand/path/tee/water
+**Asset Pipeline**
+- AssetStager autoload: stages all course files to user://runtime/
+- CoursePreloader autoload: pre-loads heightmap+textures into GameState memory
+- Cache stamp: zip mod time check, skips re-extraction on repeat loads
+- splat_layers.json → splat_channel_map.json: per-course texture layer mapping
 
-**Shader upgrade**
-- terrain_splatmap.gdshader: PBR render_mode, diffuse_burley, specular_schlick_ggx
-- World-space UV for splatmap: u=-world_x/size_x, v=world_z/size_z
-- 5 channels: fairway(R) rough(G) green(B) bunker(A) sand(remainder)
-- shaders/ directory alias for compatibility
+**Terrain Shader Overhaul**
+- terrain_splatmap.gdshader: now supports 6 splatmaps (PG courses have up to 24 layers)
+- Per-course channel uniforms: ch_fairway/rough/green/bunker/sand as ivec2(map,channel)
+- Splatmap UV formula corrected to match heightmap exactly
+- 16-bit PNG heightmap: convert(FORMAT_RF) before use
 
-**Environment node (owg_environment.gd)**
-- ACES tonemapping, glow (intensity 0.6), SSAO (radius 1.2)
-- +15% saturation adjustment, contrast 1.05
-- Procedural sky with golf course colours
+**Water Plane**
+- Added _setup_water_plane() in main.gd
+- Rendered at Y=0 (Unity water plane datum), 120% terrain size
+- Semi-transparent blue, high specularity
 
-**course_loader.gd**
-- apply_terrain_material() reads texture_map.json for actual filenames
-- Passes owg_size_x/z to shader for correct UV mapping
+**Course Select UI**
+- Replaced VBoxContainer with anchor-based layout (like CSS absolute)
+- Splash image IS the card — course title/author baked into image by convention
+- Buttons always at bottom: 9 Hole / 18 Hole / 🎲 Random / ▶ PLAY
+- Back button top-left returns to title screen
+- Cancel button on loading overlay
+- Large % counter with color shift during load
 
-**main.gd dev fallback**
-- Now loads OWG zip via CourseLoader instead of legacy CourseManager
-- Textures will extract properly even on F6 direct run
+**Spawn Height Fix**
+- Fallback chain: raycast → heightmap.get_height_at() → course.json Y value
+- course.json Y is already water-plane corrected, guaranteed correct
 
-**Player controls**
-- Jump: Space when walking freely (6 m/s, escapes terrain gaps)
-- Crouch: hold C (camera 0.9m, good for reading putts)
-
-## File Inventory
-
-### Converter Pipeline
-- `pg_to_owg_converter.py` — full pipeline: heightmap+splatmap+textures+meshes+objects+tscn
-- `build_tscn.py` — standalone terrain.tscn builder (called by converter)
-- `extract_textures.py` — standalone texture extractor (called by converter)
-- `tools/` — fetch_osm, obj_to_glb, spline_mesh_placer, unity_mesh_to_obj
-
-### Course Packages
-- `courses/OWG-The-Old-Course.zip` — St Andrews, 18 holes, Par 72, water_level=21.5m
-- `courses/OWG-Sunset-Valley-GC.zip` — Sunset Valley, 18 holes, Par 70, water_level=10.9m
-- Original PG zips: `/home/ron/Downloads/PG-golf courses/`
-
-### Reference
-- `/home/ron/solo-golf-backup/` — old project backup, do not edit
-- `/home/ron/open-world-golf-backup/` — pre-session backup
+## File Inventory (additions this session)
+- `asset_stager.gd` — NEW autoload, stages course to user://runtime/
+- `course_preloader.gd` — NEW autoload, pre-loads assets into GameState memory
+- `game_state.gd` — added preloaded_* fields and player profile vars
+- `course_loader.gd` — cache stamp, granular progress, calls AssetStager
+- `terrain_generator.gd` — FORMAT_RF, multi-splat, channel map, _owg_all_splats
+- `terrain_splatmap.gdshader` — 6 splatmap inputs, per-course channel uniforms
+- `main.gd` — water plane, spawn fallback chain
+- `scorecard.gd` — Course Select button
+- `scenes/course_select.tscn` — full anchor-based rewrite
+- `course_select.gd` — back button, cancel, themed buttons
