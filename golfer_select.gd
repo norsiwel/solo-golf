@@ -461,7 +461,7 @@ func _on_btn_play_pressed() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if not event is InputEventKey or not event.pressed or event.echo:
 		return
-	if create_form.visible:
+	if list_panel.visible and name_input.has_focus():
 		return
 	match event.keycode:
 		KEY_UP:    _select(max(_selected - 1, 0))
