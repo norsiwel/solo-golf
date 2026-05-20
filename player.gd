@@ -74,10 +74,11 @@ var right_handed := true
 
 ## NODES
 @onready var camera: Camera3D = $Camera3D
-@onready var head: Node3D = $Head
-@onready var footstep_audio: AudioStreamPlayer3D = $FootstepAudio
-@onready var jump_audio: AudioStreamPlayer3D = $JumpAudio
-@onready var land_audio: AudioStreamPlayer3D = $LandAudio
+var head: Node3D  # built in _setup_head, not a scene node
+var hud: CanvasLayer  # built in _setup_hud
+#@onready var footstep_audio: AudioStreamPlayer3D = $FootstepAudio  # TODO: add sounds
+#@onready var jump_audio: AudioStreamPlayer3D = $JumpAudio
+#@onready var land_audio: AudioStreamPlayer3D = $LandAudio
 
 func _ready():
 	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
@@ -153,7 +154,7 @@ func _setup_hud():
 	canvas.add_child(green_overlay)
 	
 	# Store references
-	$HUD = canvas
+	hud = canvas
 
 func _setup_address_screen():
 	# Your existing address screen setup
@@ -321,32 +322,32 @@ func _update_surface_detection():
 
 func _on_surface_changed():
 	# Visual feedback - screen tint
-	var tint = $HUD.get_node_or_null("SurfaceTint")
+	var tint = hud.get_node_or_null("SurfaceTint")
 	if not tint:
 		tint = ColorRect.new()
 		tint.name = "SurfaceTint"
 		tint.position = Vector2(0, 0)
 		tint.size = Vector2(1920, 1080)
-		$HUD.add_child(tint)
+		hud.add_child(tint)
 	
 	match current_surface:
 		"rough":
 			tint.color = Color(0.3, 0.4, 0.2, 0.1)
-			$HUD/SurfaceLabel.text = "ROUGH - Slower movement"
+			hud/SurfaceLabel.text = "ROUGH - Slower movement"
 		"deep_rough":
 			tint.color = Color(0.2, 0.3, 0.1, 0.2)
-			$HUD/SurfaceLabel.text = "DEEP ROUGH - Very slow"
+			hud/SurfaceLabel.text = "DEEP ROUGH - Very slow"
 		"bunker":
 			tint.color = Color(0.8, 0.7, 0.5, 0.15)
-			$HUD/SurfaceLabel.text = "BUNKER - Use sprint+jump to escape"
+			hud/SurfaceLabel.text = "BUNKER - Use sprint+jump to escape"
 		"green":
 			tint.color = Color(0.2, 0.5, 0.2, 0.05)
-			$HUD/SurfaceLabel.text = "GREEN - Crouch to read putts"
+			hud/SurfaceLabel.text = "GREEN - Crouch to read putts"
 		"fairway":
 			tint.color = Color(0, 0, 0, 0)
-			$HUD/SurfaceLabel.text = "FAIRWAY"
+			hud/SurfaceLabel.text = "FAIRWAY"
 		_:
-			$HUD/SurfaceLabel.text = ""
+			hud/SurfaceLabel.text = ""
 
 func _start_crouch():
 	if current_state == PlayerState.SWINGING:
@@ -358,7 +359,7 @@ func _start_crouch():
 	
 	# Show green reading overlay on greens
 	if is_on_green:
-		var overlay = $HUD/GreenOverlay
+		var overlay = hud/GreenOverlay
 		if overlay:
 			overlay.visible = true
 			_show_green_contours()
@@ -377,7 +378,7 @@ func _stop_crouch():
 		current_state = PlayerState.WALKING
 		current_camera_height = normal_height
 		
-		var overlay = $HUD/GreenOverlay
+		var overlay = hud/GreenOverlay
 		if overlay:
 			overlay.visible = false
 
@@ -403,7 +404,7 @@ func _jump():
 	
 	velocity.y = jump_power
 	current_state = PlayerState.IN_AIR
-	jump_audio.play()
+	#jump_audio.play()  # TODO: add sounds
 
 func _show_bunker_escape_effect():
 	# Flash white and show text
@@ -411,21 +412,21 @@ func _show_bunker_escape_effect():
 	flash.color = Color.WHITE
 	flash.position = Vector2(0, 0)
 	flash.size = Vector2(1920, 1080)
-	$HUD.add_child(flash)
+	hud.add_child(flash)
 	
 	var tween = create_tween()
 	tween.tween_property(flash, "modulate:a", 0.0, 0.3)
 	await tween.finished
 	flash.queue_free()
 	
-	var label = $HUD.get_node_or_null("BunkerEscape")
+	var label = hud.get_node_or_null("BunkerEscape")
 	if not label:
 		label = Label.new()
 		label.name = "BunkerEscape"
 		label.position = Vector2(960, 540)
 		label.add_theme_font_size_override("font_size", 24)
 		label.add_theme_color_override("font_color", Color(1, 1, 0))
-		$HUD.add_child(label)
+		hud.add_child(label)
 	
 	label.text = "⚡ BUNKER ESCAPE! ⚡"
 	label.position = Vector2(960 - label.size.x / 2, 540)
@@ -446,7 +447,7 @@ func _update_stamina(delta):
 			exhausted_label.text = "GASPING FOR AIR..."
 			exhausted_label.position = Vector2(960, 400)
 			exhausted_label.add_theme_font_size_override("font_size", 18)
-			$HUD.add_child(exhausted_label)
+			hud.add_child(exhausted_label)
 			await get_tree().create_timer(2.0).timeout
 			exhausted_label.queue_free()
 			is_exhausted = false
@@ -454,7 +455,7 @@ func _update_stamina(delta):
 		current_stamina = min(current_stamina + stamina_regen * delta, max_stamina)
 	
 	# Update stamina bar
-	var stamina_bar = $HUD/StaminaBar
+	var stamina_bar = hud/StaminaBar
 	if stamina_bar:
 		stamina_bar.value = current_stamina
 		
@@ -492,29 +493,30 @@ func _play_footstep_sound(delta):
 		_last_footstep = Time.get_ticks_msec() / 1000.0
 		
 		# Select footstep sound based on surface
-		var sound_map = {
-			"fairway": preload("res://sounds/footstep_grass.wav"),
-			"rough": preload("res://sounds/footstep_rough.wav"),
-			"green": preload("res://sounds/footstep_grass_short.wav"),
-			"bunker": preload("res://sounds/footstep_sand.wav"),
-			"path": preload("res://sounds/footstep_gravel.wav"),
-			"tee": preload("res://sounds/footstep_grass.wav"),
-		}
-		
-		var sound = sound_map.get(current_surface, sound_map["fairway"])
-		if sound:
-			footstep_audio.stream = sound
-			footstep_audio.pitch_scale = randf_range(0.9, 1.1)
-			footstep_audio.volume_db = -10 if current_state == PlayerState.CROUCHING else -5
-			footstep_audio.play()
+	# TODO: add sounds -- sound_map and footstep_audio disabled until sounds folder exists
+	#var sound_map = {
+		#"fairway": preload("res://sounds/footstep_grass.wav"),
+		#"rough": preload("res://sounds/footstep_rough.wav"),
+		#"green": preload("res://sounds/footstep_grass_short.wav"),
+		#"bunker": preload("res://sounds/footstep_sand.wav"),
+		#"path": preload("res://sounds/footstep_gravel.wav"),
+		#"tee": preload("res://sounds/footstep_grass.wav"),
+	#}
+	#var sound = sound_map.get(current_surface, sound_map["fairway"])
+	#if sound:
+		#footstep_audio.stream = sound
+		#footstep_audio.pitch_scale = randf_range(0.9, 1.1)
+		#footstep_audio.volume_db = -10 if current_state == PlayerState.CROUCHING else -5
+		#footstep_audio.play()
 
 var _last_footstep: float = 0.0
 
 func _play_land_sound():
-	if land_audio.stream:
-		land_audio.pitch_scale = randf_range(0.8, 1.2)
-		land_audio.volume_db = -15 + (abs(velocity.y) * 2)
-		land_audio.play()
+	pass  # TODO: add sounds
+	#if land_audio.stream:
+		#land_audio.pitch_scale = randf_range(0.8, 1.2)
+		#land_audio.volume_db = -15 + (abs(velocity.y) * 2)
+		#land_audio.play()
 
 func _update_camera_bobbing(delta):
 	if is_on_floor() and velocity.length() > 0.5 and current_state != PlayerState.SWINGING:
@@ -530,14 +532,14 @@ func _update_camera_bobbing(delta):
 		head.rotation.z = move_toward(head.rotation.z, 0.0, delta * 10.0)
 
 func _update_hud():
-	var speed_label = $HUD/SpeedLabel
+	var speed_label = hud/SpeedLabel
 	if speed_label:
 		var speed_kph = velocity.length() * 3.6
 		speed_label.text = "%d km/h" % speed_kph
 
 func _show_green_contours():
 	# Show green grid overlay for putting
-	var overlay = $HUD/GreenOverlay
+	var overlay = hud/GreenOverlay
 	if overlay and green_node:
 		overlay.visible = true
 		overlay.size = get_viewport().get_visible_rect().size
