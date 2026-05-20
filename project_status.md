@@ -1,107 +1,84 @@
 # Open World Golf — Project Status
 
-## Current State (May 20 2026)
+## Current State (May 20 2026 — Evening)
 
-### Working ✅
+### Architecture ✅ (completed this session)
+- main.tscn rebuilt as clean lobby shell — NO terrain, NO hole geometry
+- Old_bad_Main.tscn preserved as salvage/reference backup
+- CurrentHole node: empty Node3D, runtime container for dynamic hole scenes
+- hole_loader.gd: load_hole(path), load_hole_by_number(n), unload_hole()
+- Profile system fully built (see below)
+- Scene flow: title → golfer_select → course_select → main ✅
+
+### Profile System ✅ (new this session)
+- profile_manager.gd: autoload singleton, saves to user://profiles/<name>.json
+- golfer_select.tscn + golfer_select.gd: full select/create/delete screen
+- Fields: name, gender (M/F), handedness (R/L)
+- last_active flag: auto-selects previous golfer on return
+- First run: create form shown directly (no cancel)
+- Returning: scrollable list, New Golfer button, two-press delete confirm
+- Keyboard nav: ↑↓ / Enter / ESC
+- Duplicate name detection on create
+- ProfileManager added to project.godot autoloads
+
+### Still Working ✅ (from previous sessions)
 - Full gameplay loop: walk → aim → shoot → roll → putt → hole-out → scorecard
-- Title screen → course selector → game → ESC back
 - Both OWG zips load: The Old Course and Sunset Valley GC
-- Player spawns on terrain and walks correctly over hills/valleys
-- HeightMapShape3D collision working with Jolt (scale not Basis transform)
-- Splatmap shader running — satellite photo base layer confirmed
-- All 3 splatmaps loading (alphamap_0/1/2) with correct channel map
-- AssetStager builds correct channel map: base=0R, rough=1R, fairway=1B, path=2R
-- F1 toggles mouse capture for debug access in-game
-- Course select cards fitting correctly (stretch_mode=6, clip_contents=true)
-- Water plane at Y=-2 (below terrain datum)
-- FallbackGround removed from scene entirely
+- Player spawns on terrain with correct tee Y
+- Splatmap shader running
+- Course select screen with splash images, search, random
+- Wind system, viewfinder, shot tracer, putting, scorecard
 
-### Needs Fixing 🔲
-- Terrain still shows solid green — satellite base texture not rendering through
-  (shader confirmed running, base_texture loaded, UV math correct — needs investigation)
-- Swilcan Burn not showing — _setup_swilcan_burn() not called from _setup_hole_owg()
-- Player spawn: collision shape alignment needs verification after Basis→scale fix
-- Viewfinder changes player position (bug in _open_viewfinder or aim_point)
-- Old Course card still overflowing right edge at 1920x1080
+### Needs Work 🔲
+- main.gd: still the old monolithic version — needs rewrite as thin coordinator
+  (reads GameState.current_course, calls HoleLoader, positions Player)
+- Terrain textures: solid green — satellite base not rendering through shader
+- Swilcan Burn: _setup_swilcan_burn() not called from _setup_hole_owg()
+- Viewfinder bug: changes player position
+- Billboard trees: still placeholder geometry
 
-### Next Session Priorities
-1. Fix satellite texture showing through (base layer solid green)
-2. Add _setup_swilcan_burn() call to _setup_hole_owg()
+## Next Session Priorities
+
+1. **Rewrite main.gd** as thin coordinator — this is the key remaining framework piece
+   - Read GameState.current_course (populated by course_select)
+   - Call HoleLoader.load_hole_by_number(GameState.current_hole)
+   - Pass tee/pin to Player for positioning
+   - Handle go_to_next_hole() cleanly
+   - Move all terrain/geometry/water/objects code INTO hole scenes
+2. Fix terrain satellite texture rendering
 3. Fix viewfinder position bug
-4. Normal maps on terrain shader
-5. Billboard trees from extracted course textures
+4. Add Swilcan Burn call
 
-### Working ✅
-- Full gameplay loop: walk → aim → shoot → roll → putt → hole-out → scorecard
-- Title screen → course selector → game → ESC back
-- Both OWG zips load: The Old Course and Sunset Valley GC
-- Player spawns on terrain (fallback chain: raycast → heightmap → course.json Y)
-- Walking up hills with collision working
-- Water plane at Y=0 (datum), sized to full terrain
-- Splatmap UV fixed: u=1+world_x/size_x matches heightmap formula exactly
-- Multi-splatmap shader: reads correct channel per course from splat_channel_map.json
-- 16-bit heightmap: FORMAT_RF conversion gives correct pixel.r values
-- Asset staging pipeline: user://runtime/ holds all active course assets
-- Cache stamp: second load of same course skips extraction entirely
-- Course select screen: anchor-based layout, splash image as card
-- Loading overlay: big % counter, green→yellow→white, Cancel button
-- Scorecard: Course Select button to return to selector
-- Wind system, viewfinder, shot tracer, putting, scorecard all intact
+## Session History
 
-### Needs Testing / Known Issues 🔲
-- Terrain textures: splatmap channel map built from splat_layers.json — needs visual verify
-- Heightmap FORMAT_RF: debug print added, need to confirm pixel.r ~0.02 for SV tee
-- Water plane: visible on Sunset Valley (no water on hole 1) — correct behavior
-- Billboard trees: still placeholder cones/boxes, real textures are in the zip
-- Multi-hole: only hole 1 terrain built
+### May 20 2026 — Architecture Rebuild
+**Problem:** main.tscn had baked terrain and hole geometry embedded directly.
+Caused instability, broken terrain loading, transform inheritance issues.
 
-### Next Session Priorities
-1. Verify terrain textures showing correctly with new channel map
-2. Remove debug print from load_heightmap once confirmed
-3. Player profile screen (name, sex, handedness)
-4. 9-hole mode implementation in main.gd
-5. Normal maps on terrain shader (biggest visual quality jump)
-6. Billboard trees from extracted course textures
+**Solution:** Rebuilt entire scene architecture.
 
-## Session History (May 19 2026 — Evening)
+Files created/changed:
+- `main.tscn` — rebuilt as clean lobby shell
+- `Old_bad_Main.tscn` — old scene preserved as backup
+- `hole_loader.gd` — new dynamic hole loading script
+- `profile_manager.gd` — new autoload for golfer profiles
+- `golfer_select.gd` — new golfer select/create screen
+- `scenes/golfer_select.tscn` — new scene
+- `title_screen.gd` — redirect changed to golfer_select
+- `project.godot` — ProfileManager added to autoloads
+- `CLAUDE.md` — rewritten to reflect new architecture
+- `project_status.md` — this file
 
-**Asset Pipeline**
-- AssetStager autoload: stages all course files to user://runtime/
-- CoursePreloader autoload: pre-loads heightmap+textures into GameState memory
-- Cache stamp: zip mod time check, skips re-extraction on repeat loads
-- splat_layers.json → splat_channel_map.json: per-course texture layer mapping
+### May 19 2026 — Asset Pipeline
+- AssetStager, CoursePreloader autoloads
+- Cache stamp: skip re-extraction on repeat loads
+- Splatmap shader overhaul (6 splatmap inputs, per-course channel map)
+- Water plane system
+- Course select UI anchor-based rewrite
+- Spawn height fallback chain
 
-**Terrain Shader Overhaul**
-- terrain_splatmap.gdshader: now supports 6 splatmaps (PG courses have up to 24 layers)
-- Per-course channel uniforms: ch_fairway/rough/green/bunker/sand as ivec2(map,channel)
-- Splatmap UV formula corrected to match heightmap exactly
-- 16-bit PNG heightmap: convert(FORMAT_RF) before use
-
-**Water Plane**
-- Added _setup_water_plane() in main.gd
-- Rendered at Y=0 (Unity water plane datum), 120% terrain size
-- Semi-transparent blue, high specularity
-
-**Course Select UI**
-- Replaced VBoxContainer with anchor-based layout (like CSS absolute)
-- Splash image IS the card — course title/author baked into image by convention
-- Buttons always at bottom: 9 Hole / 18 Hole / 🎲 Random / ▶ PLAY
-- Back button top-left returns to title screen
-- Cancel button on loading overlay
-- Large % counter with color shift during load
-
-**Spawn Height Fix**
-- Fallback chain: raycast → heightmap.get_height_at() → course.json Y value
-- course.json Y is already water-plane corrected, guaranteed correct
-
-## File Inventory (additions this session)
-- `asset_stager.gd` — NEW autoload, stages course to user://runtime/
-- `course_preloader.gd` — NEW autoload, pre-loads assets into GameState memory
-- `game_state.gd` — added preloaded_* fields and player profile vars
-- `course_loader.gd` — cache stamp, granular progress, calls AssetStager
-- `terrain_generator.gd` — FORMAT_RF, multi-splat, channel map, _owg_all_splats
-- `terrain_splatmap.gdshader` — 6 splatmap inputs, per-course channel uniforms
-- `main.gd` — water plane, spawn fallback chain
-- `scorecard.gd` — Course Select button
-- `scenes/course_select.tscn` — full anchor-based rewrite
-- `course_select.gd` — back button, cancel, themed buttons
+### Earlier Sessions
+- Full gameplay loop implemented
+- Both OWG courses working
+- HeightMapShape3D collision with Jolt
+- Viewfinder, address screen, shot engine, scorecard

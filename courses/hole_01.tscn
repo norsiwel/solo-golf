@@ -1,0 +1,10 @@
+; ============================================================
+; hole_01.tscn  —  Template / placeholder for hole 01
+; Actual geometry is generated at runtime by terrain_generator.gd
+; This scene is the CONTAINER — CourseLoader instantiates it into
+; Main/CurrentHole at runtime.
+; ============================================================
+[gd_scene format=3]
+
+[node name="Hole01" type="Node3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)

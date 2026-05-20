@@ -62,4 +62,4 @@ func _unhandled_input(event: InputEvent):
 		return
 	if event is InputEventKey and event.pressed and not event.echo:
 		if event.keycode in [KEY_ENTER, KEY_KP_ENTER, KEY_SPACE]:
-			get_tree().change_scene_to_file("res://scenes/course_select.tscn")
+			get_tree().change_scene_to_file("res://scenes/golfer_select.tscn")

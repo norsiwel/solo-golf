@@ -1,4 +1,9 @@
-[gd_scene load_steps=29 format=3 uid="uid://dvcp2wpqd25c6"]
+; ============================================================
+; main.tscn  —  Lightweight game shell for Open World Golf
+; NO baked terrain, NO hole geometry, NO procedural meshes.
+; All hole content is loaded at runtime into CurrentHole.
+; ============================================================
+[gd_scene format=3 uid="uid://dvcp2wpqd25c6"]
 
 [ext_resource type="Script" uid="uid://cch7i6fyywjos" path="res://main.gd" id="1_main"]
 [ext_resource type="Script" uid="uid://bagc1rj48iic7" path="res://player.gd" id="2_player"]
@@ -6,159 +11,42 @@
 [ext_resource type="Script" uid="uid://o7u3tpuf6tj0" path="res://wind_hud.gd" id="4_wind_hud"]
 [ext_resource type="Script" uid="uid://jqwulnyojnii" path="res://hole_map.gd" id="5_map"]
 [ext_resource type="Script" uid="uid://bfp36uxh8t7xy" path="res://course_manager.gd" id="6_cm"]
-[ext_resource type="Script" uid="uid://jnuydiewf0yg" path="res://green.gd" id="8_green"]
-[ext_resource type="Script" uid="uid://btr64vpnrmohl" path="res://tee.gd" id="9_tee"]
-[ext_resource type="Script" uid="uid://cvn4viqosvqe4" path="res://flag_animator.gd" id="10_flag"]
-[ext_resource type="Texture2D" uid="uid://b6lyhsbfdhova" path="res://assets/terrain/surface_green.png" id="12_green_tex"]
-[ext_resource type="Script" uid="uid://5ce7060ltfjq" path="res://terrain_generator.gd" id="13_terrain"]
-[ext_resource type="Script" path="res://owg_environment.gd" id="14_env"]
-
-[sub_resource type="BoxMesh" id="CylinderMesh_teebox"]
-size = Vector3(10.0, 0.04, 5.0)
-
-[sub_resource type="StandardMaterial3D" id="Material_teebox"]
-albedo_color = Color(0.15, 0.58, 0.14, 1)
-roughness = 0.95
-
-[sub_resource type="BoxShape3D" id="CylinderShape3D_teebox"]
-size = Vector3(10.0, 0.5, 5.0)
-
-[sub_resource type="CylinderMesh" id="CylinderMesh_tee"]
-top_radius = 0.02
-bottom_radius = 0.04
-height = 0.05
-
-[sub_resource type="StandardMaterial3D" id="Material_tee"]
-albedo_color = Color(0.8, 0.3, 0.1, 1)
-
-[sub_resource type="PlaneMesh" id="PlaneMesh_green"]
-size = Vector2(22, 16)
-
-[sub_resource type="StandardMaterial3D" id="Material_green"]
-albedo_texture = ExtResource("12_green_tex")
-roughness = 0.95
-uv1_scale = Vector3(8, 8, 8)
-
-[sub_resource type="BoxShape3D" id="BoxShape3D_green"]
-size = Vector3(22, 0.3, 16)
-
-[sub_resource type="CylinderMesh" id="CylinderMesh_cup"]
-top_radius = 0.27
-bottom_radius = 0.27
-height = 0.1
-
-[sub_resource type="StandardMaterial3D" id="Material_cup"]
-albedo_color = Color(0.02, 0.02, 0.02, 1)
-
-[sub_resource type="CylinderMesh" id="CylinderMesh_flagpole"]
-top_radius = 0.03
-bottom_radius = 0.03
-height = 3.0
-
-[sub_resource type="StandardMaterial3D" id="Material_pole"]
-albedo_color = Color(0.9, 0.9, 0.9, 1)
-
-[sub_resource type="BoxMesh" id="BoxMesh_flag"]
-size = Vector3(0.6, 0.4, 0.02)
-
-[sub_resource type="StandardMaterial3D" id="Material_flag"]
-albedo_color = Color(1, 0.1, 0.1, 1)
-
-[sub_resource type="CylinderMesh" id="CylinderMesh_hole"]
-top_radius = 0.27
-bottom_radius = 0.27
-height = 0.05
-
-[sub_resource type="StandardMaterial3D" id="Material_hole"]
-albedo_color = Color(0.05, 0.05, 0.05, 1)
+[ext_resource type="Script" uid="uid://dtm4m8shyksd3" path="res://course_loader.gd" id="7_cl"]
+[ext_resource type="Script" uid="uid://gt56w0ox3wnp" path="res://game_state.gd" id="8_ps"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_player"]
 radius = 0.4
 height = 1.8
 
-
 [node name="Main" type="Node3D"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.00112879, 0, -0.00213514)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
 script = ExtResource("1_main")
 
-[node name="OWGEnvironment" type="Node" parent="."]
-script = ExtResource("14_env")
+; ── UI ─────────────────────────────────────────────────────
+[node name="UI" type="CanvasLayer" parent="."]
 
+[node name="WindHUD" type="CanvasLayer" parent="UI"]
+script = ExtResource("4_wind_hud")
+
+[node name="HoleMap" type="CanvasLayer" parent="UI"]
+script = ExtResource("5_map")
+
+; ── World Environment ───────────────────────────────────────
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+
+; ── Sun ─────────────────────────────────────────────────────
 [node name="Sun" type="DirectionalLight3D" parent="."]
 transform = Transform3D(0.866, -0.5, 0, 0.25, 0.433, -0.866, 0.433, 0.75, 0.5, 50, 80, 50)
 light_energy = 1.2
 shadow_enabled = true
 
+; ── Wind System ─────────────────────────────────────────────
 [node name="WindSystem" type="Node3D" parent="."]
 script = ExtResource("3_wind")
 
-[node name="WindHUD" type="CanvasLayer" parent="."]
-script = ExtResource("4_wind_hud")
-
-[node name="HoleMap" type="CanvasLayer" parent="."]
-script = ExtResource("5_map")
-
-[node name="CourseManager" type="Node" parent="."]
-script = ExtResource("6_cm")
-
-[node name="HoleGeometry" type="Node3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -2000, 0)
-
-[node name="TeeBox" type="MeshInstance3D" parent="HoleGeometry"]
-mesh = SubResource("CylinderMesh_teebox")
-surface_material_override/0 = SubResource("Material_teebox")
-
-[node name="TeeArea" type="Area3D" parent="HoleGeometry"]
-script = ExtResource("9_tee")
-par = 4
-yardage = 400
-
-[node name="TeeCollision" type="CollisionShape3D" parent="HoleGeometry/TeeArea"]
-shape = SubResource("CylinderShape3D_teebox")
-
-[node name="TeePeg" type="MeshInstance3D" parent="HoleGeometry"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.03, -1)
-mesh = SubResource("CylinderMesh_tee")
-surface_material_override/0 = SubResource("Material_tee")
-
-[node name="Green" type="MeshInstance3D" parent="HoleGeometry"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.02, 0)
-mesh = SubResource("PlaneMesh_green")
-surface_material_override/0 = SubResource("Material_green")
-
-[node name="GreenArea" type="Area3D" parent="HoleGeometry"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.02, 0)
-script = ExtResource("8_green")
-par = 4
-
-[node name="GreenCollision" type="CollisionShape3D" parent="HoleGeometry/GreenArea"]
-shape = SubResource("BoxShape3D_green")
-
-[node name="Cup" type="MeshInstance3D" parent="HoleGeometry/GreenArea"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.01, 0)
-mesh = SubResource("CylinderMesh_cup")
-surface_material_override/0 = SubResource("Material_cup")
-
-[node name="Flagstick" type="Node3D" parent="HoleGeometry"]
-
-[node name="Pole" type="MeshInstance3D" parent="HoleGeometry/Flagstick"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 0)
-mesh = SubResource("CylinderMesh_flagpole")
-surface_material_override/0 = SubResource("Material_pole")
-
-[node name="Flag" type="MeshInstance3D" parent="HoleGeometry/Flagstick"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.35, 2.9, 0)
-mesh = SubResource("BoxMesh_flag")
-surface_material_override/0 = SubResource("Material_flag")
-script = ExtResource("10_flag")
-
-[node name="HoleCup" type="MeshInstance3D" parent="HoleGeometry/Flagstick"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.01, 0)
-mesh = SubResource("CylinderMesh_hole")
-surface_material_override/0 = SubResource("Material_hole")
-
+; ── Player ──────────────────────────────────────────────────
 [node name="Player" type="CharacterBody3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -2000, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
 script = ExtResource("2_player")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Player"]
@@ -168,6 +56,30 @@ shape = SubResource("CapsuleShape3D_player")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.7, 0)
 current = true
 
-[node name="HoleTerrain" type="StaticBody3D" parent="."]
-script = ExtResource("13_terrain")
+; ── Ball ────────────────────────────────────────────────────
+; Ball is spawned/managed by Player script — placeholder node
+[node name="Ball" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
 
+; ── Camera Rig ──────────────────────────────────────────────
+[node name="CameraRig" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+
+; ── Course Manager ──────────────────────────────────────────
+[node name="CourseManager" type="Node" parent="."]
+script = ExtResource("6_cm")
+
+; ── Course Loader ───────────────────────────────────────────
+[node name="CourseLoader" type="Node" parent="."]
+script = ExtResource("7_cl")
+
+; ── Profile Manager ─────────────────────────────────────────
+[node name="ProfileManager" type="Node" parent="."]
+script = ExtResource("8_ps")
+
+; ── Current Hole ────────────────────────────────────────────
+; Empty Node3D — runtime container for dynamically loaded hole scenes.
+; CourseLoader.load_hole() instantiates into this node.
+; Position/Rotation/Scale always (0,0,0)/(0,0,0)/(1,1,1) — never baked.
+[node name="CurrentHole" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
