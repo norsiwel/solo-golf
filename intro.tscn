@@ -1,9 +1,4 @@
-; ============================================================
-; intro.tscn — Game session shell for Open World Golf
-; NO baked terrain, NO hole geometry, NO procedural meshes.
-; All hole content is loaded at runtime into CurrentHole.
-; ============================================================
-[gd_scene load_steps=14 format=3 uid="uid://dvcp2wpqd25c6"]
+[gd_scene load_steps=12 format=3 uid="uid://dvcp2wpqd25c6"]
 
 [ext_resource type="Script" uid="uid://cch7i6fyywjos" path="res://intro.gd" id="1_main"]
 [ext_resource type="Script" uid="uid://bagc1rj48iic7" path="res://player.gd" id="2_player"]
@@ -14,7 +9,6 @@
 [ext_resource type="Script" uid="uid://dtm4m8shyksd3" path="res://course_loader.gd" id="7_cl"]
 [ext_resource type="Script" uid="uid://gt56w0ox3wnp" path="res://game_state.gd" id="8_ps"]
 [ext_resource type="Script" path="res://hole_loader.gd" id="9_hl"]
-[ext_resource type="Script" path="res://owg_environment.gd" id="10_env"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_player"]
 radius = 0.4
