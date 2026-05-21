@@ -145,7 +145,11 @@ func build_from_unity_terrain_dict(data: Dictionary) -> bool:
 		terrain_collision.name = "TerrainCollision"
 
 		var shape := ConcavePolygonShape3D.new()
-		shape.set_faces(mesh.get_faces())
+		var faces := mesh.get_faces()
+		print("TerrainGeneratorNew: collision faces = ", faces.size())
+		if faces.size() == 0:
+			push_error("TerrainGeneratorNew: mesh.get_faces() returned empty — collision will not work!")
+		shape.set_faces(faces)
 		terrain_collision.shape = shape
 
 		terrain_body.add_child(terrain_collision)
