@@ -333,21 +333,21 @@ func _on_surface_changed():
 	match current_surface:
 		"rough":
 			tint.color = Color(0.3, 0.4, 0.2, 0.1)
-			hud/SurfaceLabel.text = "ROUGH - Slower movement"
+			hud.get_node("SurfaceLabel").text = "ROUGH - Slower movement"
 		"deep_rough":
 			tint.color = Color(0.2, 0.3, 0.1, 0.2)
-			hud/SurfaceLabel.text = "DEEP ROUGH - Very slow"
+			hud.get_node("SurfaceLabel").text = "DEEP ROUGH - Very slow"
 		"bunker":
 			tint.color = Color(0.8, 0.7, 0.5, 0.15)
-			hud/SurfaceLabel.text = "BUNKER - Use sprint+jump to escape"
+			hud.get_node("SurfaceLabel").text = "BUNKER - Use sprint+jump to escape"
 		"green":
 			tint.color = Color(0.2, 0.5, 0.2, 0.05)
-			hud/SurfaceLabel.text = "GREEN - Crouch to read putts"
+			hud.get_node("SurfaceLabel").text = "GREEN - Crouch to read putts"
 		"fairway":
 			tint.color = Color(0, 0, 0, 0)
-			hud/SurfaceLabel.text = "FAIRWAY"
+			hud.get_node("SurfaceLabel").text = "FAIRWAY"
 		_:
-			hud/SurfaceLabel.text = ""
+			hud.get_node("SurfaceLabel").text = ""
 
 func _start_crouch():
 	if current_state == PlayerState.SWINGING:
@@ -359,7 +359,7 @@ func _start_crouch():
 	
 	# Show green reading overlay on greens
 	if is_on_green:
-		var overlay = hud/GreenOverlay
+		var overlay = hud.get_node_or_null("GreenOverlay")
 		if overlay:
 			overlay.visible = true
 			_show_green_contours()
@@ -378,7 +378,7 @@ func _stop_crouch():
 		current_state = PlayerState.WALKING
 		current_camera_height = normal_height
 		
-		var overlay = hud/GreenOverlay
+		var overlay = hud.get_node_or_null("GreenOverlay")
 		if overlay:
 			overlay.visible = false
 
@@ -455,7 +455,7 @@ func _update_stamina(delta):
 		current_stamina = min(current_stamina + stamina_regen * delta, max_stamina)
 	
 	# Update stamina bar
-	var stamina_bar = hud/StaminaBar
+	var stamina_bar = hud.get_node_or_null("StaminaBar")
 	if stamina_bar:
 		stamina_bar.value = current_stamina
 		
@@ -532,14 +532,14 @@ func _update_camera_bobbing(delta):
 		head.rotation.z = move_toward(head.rotation.z, 0.0, delta * 10.0)
 
 func _update_hud():
-	var speed_label = hud/SpeedLabel
+	var speed_label = hud.get_node_or_null("SpeedLabel")
 	if speed_label:
 		var speed_kph = velocity.length() * 3.6
 		speed_label.text = "%d km/h" % speed_kph
 
 func _show_green_contours():
 	# Show green grid overlay for putting
-	var overlay = hud/GreenOverlay
+	var overlay = hud.get_node_or_null("GreenOverlay")
 	if overlay and green_node:
 		overlay.visible = true
 		overlay.size = get_viewport().get_visible_rect().size
@@ -559,7 +559,7 @@ func _show_green_contours():
 
 func _get_green_slope_at_position() -> float:
 	# Sample terrain normal at current position
-	var terrain = get_node("/root/Game/TerrainGenerator")
+	var terrain = get_node_or_null("/root/Main/CurrentHole/TerrainGenerator")
 	if terrain and terrain.has_method("get_normal_at"):
 		var normal = terrain.get_normal_at(global_position.x, global_position.z)
 		return Vector3.UP.angle_to(normal)
