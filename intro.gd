@@ -64,25 +64,25 @@ func _load_hole(hole_num: int) -> void:
 
 func _on_hole_loaded(hole_node: Node3D) -> void:
 	print("Main: hole %d loaded → %s" % [_current_hole_num, hole_node.name])
-	
-	# DEBUG: Add a bright red marker at origin so we can see scale/position
-	var marker := MeshInstance3D.new()
-	var box := BoxMesh.new()
-	box.size = Vector3(4, 20, 4)
-	marker.mesh = box
-	var mat := StandardMaterial3D.new()
-	mat.albedo_color = Color(1, 0, 0)
-	mat.emission_enabled = true
-	mat.emission = Color(1, 0, 0)
-	marker.material_override = mat
-	marker.position = Vector3(0, 10, 0)
-	hole_node.add_child(marker)
-	
 	var player = get_node_or_null("Player")
 	if player:
-		player.global_position = Vector3(0, 200.0, 0)
+		# Wait a frame for terrain_generator to finish building
+		await get_tree().process_frame
+		await get_tree().process_frame
+		# Spawn above tee position — terrain_generator places terrain at world coords
+		var tee := Vector3(0, 100.0, 0)
+		var course = GameState.current_course
+		if not course.is_empty():
+			for hole in course.get("holes", []):
+				if hole.get("hole_number") == _current_hole_num:
+					for t in hole.get("tees", []):
+						if t.get("type") == "Championship":
+							var p = t.get("position", {})
+							tee = Vector3(p.get("x",0), p.get("y",0) + 10.0, p.get("z",0))
+					break
+		player.global_position = tee
 		player.rotation = Vector3.ZERO
-		print("Main: player spawned above terrain center")
+		print("Main: player at ", tee)
 
 
 func _on_hole_load_failed(path: String) -> void:

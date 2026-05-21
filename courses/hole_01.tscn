@@ -1,14 +1,8 @@
-; hole_01.tscn — Woody's Practice Area, Hole 1
-; References terrain.tscn extracted from OWG zip
 [gd_scene load_steps=2 format=3]
 
-[ext_resource type="PackedScene" path="res://courses/woodys_test/terrain/terrain.tscn" id="1_terrain"]
+[ext_resource type="Script" path="res://hole_scene.gd" id="1_script"]
 
 [node name="Hole01" type="Node3D"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
-
-[node name="Terrain" type="Node3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
-
-[node name="TerrainInstance" parent="Terrain" instance=ExtResource("1_terrain")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+script = ExtResource("1_script")
+heightmap_path = "res://courses/woodys_test/terrain/heightmap.png"
+hole_number = 1
