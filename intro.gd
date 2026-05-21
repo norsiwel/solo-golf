@@ -17,7 +17,7 @@ func _ready() -> void:
 		return
 
 	_course_data   = GameState.current_course
-	_current_hole_num = GameState.get("current_hole_number", 1)
+	_current_hole_num = GameState.current_hole
 
 	print("Main: loaded course — %s" % _course_data.get("name", "Unknown"))
 	print("Main: starting hole %d" % _current_hole_num)
@@ -35,7 +35,7 @@ func go_to_next_hole() -> void:
 	if _current_hole_num > total:
 		_finish_round()
 		return
-	GameState.set("current_hole_number", _current_hole_num)
+	GameState.current_hole = _current_hole_num
 	_load_hole(_current_hole_num)
 
 
