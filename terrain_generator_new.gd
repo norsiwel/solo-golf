@@ -233,7 +233,7 @@ func _build_terrain_mesh(
 
 	for zi in z_indices:
 		for xi in x_indices:
-			var v := _height_vertex(position, size, width, height, heights, heights_are_normalized, xi, zi)
+			var v: Vector3 = _height_vertex(position, size, width, height, heights, heights_are_normalized, xi, zi)
 			vertices.append(v)
 
 			var u := float(xi) / float(width - 1)
@@ -262,7 +262,7 @@ func _build_terrain_mesh(
 			indices.append(i2)
 			indices.append(i3)
 
-	var arrays := []
+	var arrays: Array = []
 	arrays.resize(Mesh.ARRAY_MAX)
 	arrays[Mesh.ARRAY_VERTEX] = vertices
 	arrays[Mesh.ARRAY_TEX_UV] = uvs
@@ -296,7 +296,7 @@ func _height_vertex(
 		read_z = height - 1 - read_z
 
 	var h_raw := float(heights[read_z * width + read_x])
-	var y := h_raw * size.y if heights_are_normalized else h_raw
+	var y: float = h_raw * size.y if heights_are_normalized else h_raw
 
 	var fx := float(x) / float(width - 1)
 	var fz := float(z) / float(height - 1)

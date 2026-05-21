@@ -124,7 +124,7 @@ def extract_heightmap(terrain_data, output_dir, water_plane_y=None):
 
         # Convert to numpy float32 for processing
         arr = np.array(heights, dtype=np.float32).reshape(height, width)
-        effective_scale_y = scale.y * 2.0
+        effective_scale_y = scale.y  # Unity: height = normalized * scale.y (no * 2)
 
         # Normalize to 0-1 range
         norm_array = arr / 65535.0
@@ -177,8 +177,8 @@ def extract_heightmap(terrain_data, output_dir, water_plane_y=None):
 
         info(f"Heightmap saved: {width}x{height} 16-bit PNG ✓")
 
-        terrain_size_x = width * scale.x
-        terrain_size_z = height * scale.z
+        terrain_size_x = (width - 1) * scale.x
+        terrain_size_z = (height - 1) * scale.z
         real_height_range = float(actual_heights.max() - actual_heights.min())
 
         info(f"Terrain world size: {terrain_size_x:.1f} x {terrain_size_z:.1f} units")
