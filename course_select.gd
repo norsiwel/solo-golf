@@ -161,7 +161,7 @@ func _rebuild_list() -> void:
 		btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		btn.clip_text = true
 		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		btn.add_theme_font_size_override("font_size", 14)
+		btn.add_theme_font_size_override("font_size", 22)
 		btn.flat = true
 		_style_list_btn(btn, false)
 		var idx = i

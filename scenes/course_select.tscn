@@ -37,7 +37,7 @@ offset_left = 8
 offset_right = -4
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_font_sizes/font_size = 14
+theme_override_font_sizes/font_size = 22
 text = "◀  Title"
 
 ; ── LEFT PANEL ── anchored left strip ────────────────────────────────────
@@ -56,13 +56,13 @@ theme_override_constants/separation = 6
 unique_name_in_owner = true
 layout_mode = 2
 custom_minimum_size = Vector2(0, 36)
-theme_override_font_sizes/font_size = 14
+theme_override_font_sizes/font_size = 22
 placeholder_text = "🔍  Search..."
 
 [node name="Counter" type="Label" parent="LeftPanel"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_font_sizes/font_size = 11
+theme_override_font_sizes/font_size = 22
 theme_override_colors/font_color = Color(0.5, 0.65, 0.5, 0.85)
 text = "0 courses"
 horizontal_alignment = 1
@@ -155,7 +155,7 @@ unique_name_in_owner = true
 layout_mode = 2
 custom_minimum_size = Vector2(110, 52)
 size_flags_vertical = 4
-theme_override_font_sizes/font_size = 16
+theme_override_font_sizes/font_size = 22
 text = "9 Holes"
 
 [node name="Btn18Hole" type="Button" parent="ButtonRow"]
@@ -163,7 +163,7 @@ unique_name_in_owner = true
 layout_mode = 2
 custom_minimum_size = Vector2(110, 52)
 size_flags_vertical = 4
-theme_override_font_sizes/font_size = 16
+theme_override_font_sizes/font_size = 22
 text = "18 Holes"
 
 [node name="BtnRandom" type="Button" parent="ButtonRow"]
@@ -171,7 +171,7 @@ unique_name_in_owner = true
 layout_mode = 2
 custom_minimum_size = Vector2(110, 52)
 size_flags_vertical = 4
-theme_override_font_sizes/font_size = 16
+theme_override_font_sizes/font_size = 22
 text = "🎲 Random"
 
 [node name="BtnPlay" type="Button" parent="ButtonRow"]
@@ -191,7 +191,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_font_sizes/font_size = 12
+theme_override_font_sizes/font_size = 22
 theme_override_colors/font_color = Color(0.4, 0.55, 0.4, 0.75)
 text = "↑ ↓ arrow keys  |  Enter to play  |  Type to search  |  ESC = title"
 horizontal_alignment = 1
@@ -233,7 +233,7 @@ horizontal_alignment = 1
 
 [node name="LoadingLabel" type="Label" parent="LoadingOverlay/VBox"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 15
+theme_override_font_sizes/font_size = 22
 theme_override_colors/font_color = Color(0.75, 0.85, 0.70, 0.9)
 text = ""
 horizontal_alignment = 1
@@ -248,5 +248,5 @@ show_percentage = false
 layout_mode = 2
 custom_minimum_size = Vector2(140, 44)
 size_flags_horizontal = 4
-theme_override_font_sizes/font_size = 15
+theme_override_font_sizes/font_size = 22
 text = "✕  Cancel"
