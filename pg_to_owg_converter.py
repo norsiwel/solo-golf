@@ -206,6 +206,22 @@ def extract_heightmap(terrain_data, output_dir, water_plane_y=None):
             json.dump(meta, f, indent=2)
         dbg(f"terrain_meta.json written")
 
+        # Also write terrain_heights.json for TerrainGenerator (new script)
+        # Heights are normalized 0..1 in the correct Godot orientation
+        heights_json = {
+            "name": "Terrain",
+            "position": [0.0, 0.0, 0.0],
+            "size": [terrain_size_x, effective_scale_y, terrain_size_z],
+            "heightmapWidth": width,
+            "heightmapHeight": height,
+            "heightsAreNormalized": True,
+            "heights": norm_array.flatten().tolist(),
+        }
+        heights_path = os.path.join(terrain_dir, "terrain_heights.json")
+        with open(heights_path, "w") as f:
+            json.dump(heights_json, f)
+        info(f"terrain_heights.json written ({width}x{height} heights) ✓")
+
         return meta, uint16_arr, adjusted_heights
 
     except AttributeError as e:

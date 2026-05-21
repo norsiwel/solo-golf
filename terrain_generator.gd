@@ -143,7 +143,7 @@ func _ready() -> void:
 func _sample_real_height(world_x: float, world_z: float) -> float:
 	if _owg_size_x > 0.0:
 		var u: float = clampf(1.0 + world_x / _owg_size_x, 0.0, 1.0)
-		var v: float = clampf(1.0 - world_z / _owg_size_z, 0.0, 1.0)
+		var v: float = clampf(-world_z / _owg_size_z, 0.0, 1.0)
 		var px: int = int(u * float(_hm_image.get_width()  - 1))
 		var py: int = int(v * float(_hm_image.get_height() - 1))
 		var pixel_r = _hm_image.get_pixel(px, py).r
@@ -325,25 +325,32 @@ func build_from_hole(tee: Vector3, pin: Vector3, all_tees: Array = [], all_pins:
 		_collision_shape.queue_free()
 		_collision_shape = null
 		
-	# Collect all known points
-	var points: Array[Vector3] = [tee, pin]
-	for t in all_tees:
-		points.append(Vector3(t.get("x", 0), 0, t.get("z", 0)))
-	for p in all_pins:
-		points.append(Vector3(p.get("x", 0), 0, p.get("z", 0)))
-
-	# Build bounding box with margin
-	_bounds = AABB(points[0], Vector3.ZERO)
-	for p in points:
-		_bounds = _bounds.expand(p)
-	_bounds = _bounds.grow(margin)
-	_origin = _bounds.position
-	_origin.y = 0
-
-	_width = resolution
-	_depth = resolution
-	_step_x = _bounds.size.x / (_width - 1)
-	_step_z = _bounds.size.z / (_depth - 1)
+	if _owg_size_x > 0.0 and _hm_image != null:
+		# OWG course — build full-course terrain (all 18 holes) at once.
+		# Positions are in Godot space: x,z both negative (-size to 0).
+		_width = 129
+		_depth = 129
+		_step_x = _owg_size_x / (_width  - 1)
+		_step_z = _owg_size_z / (_depth  - 1)
+		_origin = Vector3(-_owg_size_x, 0.0, -_owg_size_z)
+		_bounds = AABB(_origin, Vector3(_owg_size_x, maxf(_owg_scale_y, 50.0), _owg_size_z))
+	else:
+		# Per-hole bounds (non-OWG courses and Woody's test)
+		var points: Array[Vector3] = [tee, pin]
+		for t in all_tees:
+			points.append(Vector3(t.get("x", 0), 0, t.get("z", 0)))
+		for p in all_pins:
+			points.append(Vector3(p.get("x", 0), 0, p.get("z", 0)))
+		_bounds = AABB(points[0], Vector3.ZERO)
+		for p in points:
+			_bounds = _bounds.expand(p)
+		_bounds = _bounds.grow(margin)
+		_origin = _bounds.position
+		_origin.y = 0
+		_width = resolution
+		_depth = resolution
+		_step_x = _bounds.size.x / (_width - 1)
+		_step_z = _bounds.size.z / (_depth - 1)
 
 	# Noise fallback (light, only used when heightmap is unavailable)
 	var noise := FastNoiseLite.new()
@@ -384,28 +391,34 @@ func build_from_hole(tee: Vector3, pin: Vector3, all_tees: Array = [], all_pins:
 	for child in get_children():
 		child.queue_free()
 
-	# Collision shape
-	# Godot 4 HeightMapShape3D: cells are unit-spaced by default, centered at shape origin.
-	# We use a Transform3D to scale and position correctly — avoids the scale+position bug.
+	# Visual mesh
+	_mesh_instance = MeshInstance3D.new()
+	_mesh_instance.mesh = _generate_mesh()
+	_mesh_instance.position = _origin
+
+	# OWG full-course: collision trimesh from the actual visible mesh — 100% alignment
+	if _owg_size_x > 0.0:
+		_mesh_instance.material_override = _build_owg_terrain_mat()
+		add_child(_mesh_instance)
+		# create_trimesh_static_body() adds a StaticBody3D child whose ConcavePolygonShape3D
+		# is built directly from the mesh geometry, so visual and walkable surface are identical.
+		_mesh_instance.create_trimesh_static_body()
+		print("TerrainGenerator: OWG terrain built %dx%d, trimesh collision added" % [_width, _depth])
+		return
+
+	# Non-OWG: HeightMapShape3D collision (per-hole bounds, existing logic)
 	var shape = HeightMapShape3D.new()
 	shape.map_width = _width
 	shape.map_depth = _depth
 	shape.map_data = _heightmap
 	_collision_shape = CollisionShape3D.new()
 	_collision_shape.shape = shape
-	# CollisionShape3D is child of HoleTerrain (at world origin)
-	# HeightMapShape3D is centered, so position at mesh center in world space
 	var cx = _origin.x + _bounds.size.x * 0.5
 	var cz = _origin.z + _bounds.size.z * 0.5
 	_collision_shape.position = Vector3(cx, 0.0, cz)
 	_collision_shape.scale = Vector3(_step_x, 1.0, _step_z)
 	add_child(_collision_shape)
 
-	# Visual mesh
-	_mesh_instance = MeshInstance3D.new()
-	_mesh_instance.mesh = _generate_mesh()
-	_mesh_instance.position = _origin
-	
 	if _owg_splatmap_tex:
 		print("TerrainGenerator: APPLYING SPLATMAP SHADER — size_x=%.1f size_z=%.1f splats=%d" % [_owg_size_x, _owg_size_z, _owg_all_splats.size()])
 		var mat := ShaderMaterial.new()
@@ -516,7 +529,151 @@ func build_from_hole(tee: Vector3, pin: Vector3, all_tees: Array = [], all_pins:
 
 	print("TerrainGenerator: Built %dx%d terrain for hole" % [_width, _depth])
 
+## Build the best available material for the full OWG course terrain.
+## Tries (in order): splatmap shader, overhead-only shader, green placeholder.
+func _build_owg_terrain_mat() -> Material:
+	# Load satellite/overhead photo directly from disk — no preload dependency
+	var overhead_img: Image = null
+	var candidates := [
+		"user://runtime/textures/St_Andrews_Overhead_2016.png",
+		"user://runtime/textures/St_Andrews_Overhead_2016_2.png",
+		"user://runtime/textures/Google_Earth_Snapshot.png",
+	]
+	for c in candidates:
+		overhead_img = Image.load_from_file(ProjectSettings.globalize_path(c))
+		if overhead_img:
+			print("TerrainGenerator: overhead photo → ", c)
+			break
+	# Scan textures folder for any overhead/satellite image if specific names miss
+	if not overhead_img:
+		var td = DirAccess.open("user://runtime/textures/")
+		if td:
+			td.list_dir_begin()
+			var fn = td.get_next()
+			while fn != "":
+				var lo = fn.to_lower()
+				if ("overhead" in lo or "satellite" in lo or "aerial" in lo) and fn.ends_with(".png"):
+					overhead_img = Image.load_from_file(
+						ProjectSettings.globalize_path("user://runtime/textures/" + fn))
+					if overhead_img:
+						print("TerrainGenerator: overhead fallback scan → ", fn)
+						break
+				fn = td.get_next()
+
+	if overhead_img:
+		overhead_img.generate_mipmaps()
+		var overhead_tex := ImageTexture.create_from_image(overhead_img)
+		# Inline shader: drape satellite photo over terrain using world-position UV
+		var shader := Shader.new()
+		shader.code = """
+shader_type spatial;
+render_mode diffuse_burley, specular_schlick_ggx;
+uniform sampler2D overhead_tex : source_color;
+uniform float size_x = 2271.0;
+uniform float size_z = 2271.0;
+varying vec3 world_pos;
+void vertex() { world_pos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz; }
+void fragment() {
+    vec2 uv = vec2(
+        clamp(1.0 + world_pos.x / max(size_x, 1.0), 0.0, 1.0),
+        clamp(-world_pos.z / max(size_z, 1.0), 0.0, 1.0)
+    );
+    vec4 col = texture(overhead_tex, uv);
+    ALBEDO = col.rgb;
+    ROUGHNESS = 0.9;
+    METALLIC = 0.0;
+}
+"""
+		var mat := ShaderMaterial.new()
+		mat.shader = shader
+		mat.set_shader_parameter("overhead_tex", overhead_tex)
+		mat.set_shader_parameter("size_x", _owg_size_x)
+		mat.set_shader_parameter("size_z", _owg_size_z)
+		return mat
+
+	# No overhead photo — try splatmap shader directly from disk
+	var splat_img := Image.load_from_file(
+		ProjectSettings.globalize_path("user://runtime/splat/alphamap_0.png"))
+	if splat_img:
+		splat_img.generate_mipmaps()
+		var splat_tex := ImageTexture.create_from_image(splat_img)
+		print("TerrainGenerator: using splatmap shader (no overhead photo)")
+
+		# Load surface textures from texture_map.json
+		var tex_map: Dictionary = {}
+		var f = FileAccess.open("user://runtime/texture_map.json", FileAccess.READ)
+		if f:
+			var js = JSON.new()
+			if js.parse(f.get_as_text()) == OK:
+				tex_map = js.get_data()
+			f.close()
+
+		var _load_tex = func(keys: Array) -> ImageTexture:
+			for key in keys:
+				if key in tex_map:
+					var img2 = Image.load_from_file(
+						ProjectSettings.globalize_path("user://runtime/textures/" + tex_map[key]))
+					if img2:
+						img2.generate_mipmaps()
+						return ImageTexture.create_from_image(img2)
+			return _make_placeholder(Color(0.3, 0.5, 0.2))
+
+		var shader := Shader.new()
+		shader.code = """
+shader_type spatial;
+render_mode diffuse_burley, specular_schlick_ggx;
+uniform sampler2D splat0      : source_color;
+uniform sampler2D fairway_tex : source_color;
+uniform sampler2D rough_tex   : source_color;
+uniform sampler2D green_tex   : source_color;
+uniform sampler2D bunker_tex  : source_color;
+uniform float size_x = 2000.0;
+uniform float size_z = 2000.0;
+uniform float tex_scale = 12.0;
+varying vec3 world_pos;
+void vertex() { world_pos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz; }
+void fragment() {
+    vec2 suv = vec2(
+        clamp(1.0 + world_pos.x / max(size_x,1.0), 0.0, 1.0),
+        clamp(-world_pos.z       / max(size_z,1.0), 0.0, 1.0)
+    );
+    vec4 sp = texture(splat0, suv);
+    vec2 tuv = world_pos.xz / max(tex_scale, 0.1);
+    vec4 col = texture(fairway_tex, tuv) * sp.r
+             + texture(rough_tex,   tuv) * sp.g
+             + texture(green_tex,   tuv) * sp.b
+             + texture(bunker_tex,  tuv) * sp.a;
+    float used = sp.r + sp.g + sp.b + sp.a;
+    col += texture(rough_tex, tuv) * max(0.0, 1.0 - used);
+    ALBEDO = col.rgb;
+    ROUGHNESS = 0.88;
+    METALLIC = 0.0;
+}
+"""
+		var mat2 := ShaderMaterial.new()
+		mat2.shader = shader
+		mat2.set_shader_parameter("splat0",      splat_tex)
+		mat2.set_shader_parameter("fairway_tex", _load_tex.call(["fairway", "tee"]))
+		mat2.set_shader_parameter("rough_tex",   _load_tex.call(["rough"]))
+		mat2.set_shader_parameter("green_tex",   _load_tex.call(["green"]))
+		mat2.set_shader_parameter("bunker_tex",  _load_tex.call(["bunker", "sand"]))
+		mat2.set_shader_parameter("size_x", _owg_size_x)
+		mat2.set_shader_parameter("size_z", _owg_size_z)
+		mat2.set_shader_parameter("tex_scale", GRASS_UV_SCALE)
+		return mat2
+
+	# Last resort — plain grass green
+	print("TerrainGenerator: no textures found, using green placeholder")
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color(0.25, 0.50, 0.18)
+	mat.roughness = 0.92
+	return mat
+
+
 func get_height_at(world_x: float, world_z: float) -> float:
+	# For OWG courses, sample the full-resolution heightmap directly
+	if _owg_size_x > 0.0 and _hm_image != null:
+		return _sample_real_height(world_x, world_z)
 	if _heightmap.is_empty():
 		return 0.0
 	var lx: float = (world_x - _origin.x) / _step_x

@@ -1,0 +1,19 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://terrain_generator_new.gd" id="1_terrain"]
+
+[node name="PracticeRange_Hole01" type="Node3D"]
+script = ExtResource("1_terrain")
+terrain_json_path = "res://courses/practice_range_test/terrain/terrain_heights.json"
+save_scene_path = ""
+flip_z = false
+flip_x = false
+swap_xz = false
+unity_to_godot_z_flip = false
+sample_step = 4
+generate_normals = true
+create_collision = true
+collision_layer = 1
+collision_mask = 1
+print_debug_info = true
+add_debug_marker_at_origin = true

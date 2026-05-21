@@ -51,7 +51,7 @@ float sample_channel(vec2 uv, ivec2 map_ch) {
 void fragment() {
 	vec2 splat_uv = vec2(
 		clamp(1.0 + world_pos.x / max(owg_size_x, 1.0), 0.0, 1.0),
-		clamp(1.0 - world_pos.z / max(owg_size_z, 1.0), 0.0, 1.0)
+		clamp(-world_pos.z / max(owg_size_z, 1.0), 0.0, 1.0)
 	);
 
 	float w_fairway = sample_channel(splat_uv, ch_fairway);

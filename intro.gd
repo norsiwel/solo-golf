@@ -66,11 +66,10 @@ func _on_hole_loaded(hole_node: Node3D) -> void:
 	print("Main: hole %d loaded → %s" % [_current_hole_num, hole_node.name])
 	var player = get_node_or_null("Player")
 	if player:
-		# Wait a frame for terrain_generator to finish building
+		# Wait for terrain_generator to finish building its mesh
 		await get_tree().process_frame
 		await get_tree().process_frame
-		# Spawn above tee position — terrain_generator places terrain at world coords
-		var tee := Vector3(0, 100.0, 0)
+		var tee_xz := Vector2.ZERO
 		var course = GameState.current_course
 		if not course.is_empty():
 			for hole in course.get("holes", []):
@@ -78,11 +77,20 @@ func _on_hole_loaded(hole_node: Node3D) -> void:
 					for t in hole.get("tees", []):
 						if t.get("type") == "Championship":
 							var p = t.get("position", {})
-							tee = Vector3(p.get("x",0), p.get("y",0) + 10.0, p.get("z",0))
+							tee_xz = Vector2(p.get("x", 0.0), p.get("z", 0.0))
 					break
-		player.global_position = tee
+		# Get actual terrain height — hole_scene exposes get_terrain_height()
+		var terrain_h := 0.0
+		if hole_node.has_method("get_terrain_height"):
+			terrain_h = hole_node.get_terrain_height(tee_xz.x, tee_xz.y)
+			print("Main: terrain height at tee = %.2fm" % terrain_h)
+		else:
+			push_warning("Main: hole has no get_terrain_height — spawning at y=0")
+		var spawn := Vector3(-495.46, 10.0, -285.10)  # Practice range tee, drop from above
+		player.global_position = spawn
+		player.velocity = Vector3.ZERO
 		player.rotation = Vector3.ZERO
-		print("Main: player at ", tee)
+		print("Main: player spawned at ", spawn)
 
 
 func _on_hole_load_failed(path: String) -> void:
