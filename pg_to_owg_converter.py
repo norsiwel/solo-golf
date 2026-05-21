@@ -206,11 +206,12 @@ def extract_heightmap(terrain_data, output_dir, water_plane_y=None):
             json.dump(meta, f, indent=2)
         dbg(f"terrain_meta.json written")
 
-        # Also write terrain_heights.json for TerrainGenerator (new script)
-        # Heights are normalized 0..1 in the correct Godot orientation
+        # Position.y shifts terrain so minimum surface = y=0 in Godot world
+        min_norm = float(norm_array.min())
+        position_y = -(min_norm * effective_scale_y)
         heights_json = {
             "name": "Terrain",
-            "position": [0.0, 0.0, 0.0],
+            "position": [0.0, position_y, 0.0],
             "size": [terrain_size_x, effective_scale_y, terrain_size_z],
             "heightmapWidth": width,
             "heightmapHeight": height,

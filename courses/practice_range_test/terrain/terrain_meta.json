@@ -2,12 +2,12 @@
   "width": 1025,
   "height": 1025,
   "scale_x": 1.46484375,
-  "scale_y": 2000.0,
+  "scale_y": 1000.0,
   "scale_z": 0.5859375,
-  "terrain_size_x": 1501.46484375,
-  "terrain_size_z": 600.5859375,
+  "terrain_size_x": 1500.0,
+  "terrain_size_z": 600.0,
   "water_level": 49.3,
-  "height_min_m": 185.9636,
-  "height_max_m": 457.9709,
-  "height_range_m": 272.0073
+  "height_min_m": 68.3318,
+  "height_max_m": 204.3355,
+  "height_range_m": 136.0037
 }
