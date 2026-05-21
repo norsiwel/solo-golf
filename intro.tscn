@@ -13,6 +13,7 @@
 [ext_resource type="Script" uid="uid://bfp36uxh8t7xy" path="res://course_manager.gd" id="6_cm"]
 [ext_resource type="Script" uid="uid://dtm4m8shyksd3" path="res://course_loader.gd" id="7_cl"]
 [ext_resource type="Script" uid="uid://gt56w0ox3wnp" path="res://game_state.gd" id="8_ps"]
+[ext_resource type="Script" path="res://hole_loader.gd" id="9_hl"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_player"]
 radius = 0.4
@@ -76,6 +77,10 @@ script = ExtResource("7_cl")
 ; ── Profile Manager ─────────────────────────────────────────
 [node name="ProfileManager" type="Node" parent="."]
 script = ExtResource("8_ps")
+
+; ── Hole Loader ─────────────────────────────────────────────
+[node name="HoleLoader" type="Node" parent="."]
+script = ExtResource("9_hl")
 
 ; ── Current Hole ────────────────────────────────────────────
 ; Empty Node3D — runtime container for dynamically loaded hole scenes.
