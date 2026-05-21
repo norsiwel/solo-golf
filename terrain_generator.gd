@@ -1,5 +1,6 @@
 extends StaticBody3D
-class_name TerrainGenerator
+## terrain_generator.gd (legacy — kept for reference, class_name removed to avoid conflict)
+## Use terrain_generator_new.gd for new hole scenes
 
 # Builds walkable terrain mesh + collision from course waypoints
 # Uses HeightMapShape3D for reliable CharacterBody3D collision
