@@ -38,7 +38,7 @@
 
 
 extends Node3D
-class_name TerrainGenerator
+class_name TerrainGeneratorNew
 
 
 @export var terrain_json_path: String = ""
