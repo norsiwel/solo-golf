@@ -293,6 +293,9 @@ func load_textures(_ignored_path: String = "") -> void:
 		while fn != "":
 			if fn.begins_with("alphamap_") and fn.ends_with(".png"):
 				var idx_str = fn.replace("alphamap_", "").replace(".png", "")
+				if not idx_str.is_valid_int():
+					fn = sd.get_next()
+					continue
 				var idx = idx_str.to_int()
 				var img = Image.load_from_file(ProjectSettings.globalize_path(rt_splat + fn))
 				if img:

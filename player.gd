@@ -155,6 +155,91 @@ func _setup_hud():
 	
 	# Store references
 	hud = canvas
+	_setup_viewfinder_overlay()
+
+func _setup_viewfinder_overlay():
+	var vf = Control.new()
+	vf.name = "ViewfinderOverlay"
+	vf.set_anchors_preset(Control.PRESET_FULL_RECT)
+	vf.visible = false
+	hud.add_child(vf)
+
+	# Device body image — transparent lens circle lets the 3D scene show through
+	var tex = load("res://assets/viewfinder/golf_o_matic_realistic_body_transparent_lens.png")
+	if tex:
+		var device = TextureRect.new()
+		device.name = "DeviceImage"
+		device.texture = tex
+		device.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		device.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		var dev_w := 450.0
+		var dev_h := 630.0
+		device.position = Vector2(960 - dev_w / 2.0, 540 - dev_h / 2.0)
+		device.size = Vector2(dev_w, dev_h)
+		vf.add_child(device)
+
+	# Crosshair at lens centre (≈50% x, 38% y of device image)
+	var dev_top_y := 540.0 - 630.0 / 2.0   # 225
+	var lens_cx := 960.0
+	var lens_cy := dev_top_y + 630.0 * 0.38  # ≈ 464
+
+	var ch_h := ColorRect.new()
+	ch_h.name = "CrosshairH"
+	ch_h.color = Color(0.15, 0.85, 0.15, 0.9)
+	ch_h.size = Vector2(120, 2)
+	ch_h.position = Vector2(lens_cx - 60, lens_cy - 1)
+	vf.add_child(ch_h)
+
+	var ch_v := ColorRect.new()
+	ch_v.name = "CrosshairV"
+	ch_v.color = Color(0.15, 0.85, 0.15, 0.9)
+	ch_v.size = Vector2(2, 120)
+	ch_v.position = Vector2(lens_cx - 1, lens_cy - 60)
+	vf.add_child(ch_v)
+
+	# Yardage number in the display panel (≈50% x, 78% y)
+	var display_cy := dev_top_y + 630.0 * 0.78  # ≈ 716
+
+	var yd_num := Label.new()
+	yd_num.name = "YardageLabel"
+	yd_num.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	yd_num.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	yd_num.add_theme_font_size_override("font_size", 44)
+	yd_num.add_theme_color_override("font_color", Color(0.15, 0.95, 0.15))
+	yd_num.size = Vector2(220, 55)
+	yd_num.position = Vector2(lens_cx - 110, display_cy - 40)
+	vf.add_child(yd_num)
+
+	var yd_unit := Label.new()
+	yd_unit.name = "YardsUnit"
+	yd_unit.text = "YDS"
+	yd_unit.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	yd_unit.add_theme_font_size_override("font_size", 16)
+	yd_unit.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
+	yd_unit.size = Vector2(220, 24)
+	yd_unit.position = Vector2(lens_cx - 110, display_cy + 18)
+	vf.add_child(yd_unit)
+
+	# Wind line below device
+	var wind_lbl := Label.new()
+	wind_lbl.name = "WindLabel"
+	wind_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	wind_lbl.add_theme_font_size_override("font_size", 15)
+	wind_lbl.add_theme_color_override("font_color", Color(0.85, 0.85, 0.55))
+	wind_lbl.size = Vector2(300, 26)
+	wind_lbl.position = Vector2(lens_cx - 150, dev_top_y + 630.0 + 8)
+	vf.add_child(wind_lbl)
+
+	# Hint
+	var hint := Label.new()
+	hint.name = "AimHint"
+	hint.text = "Left-click to lock aim  |  V to close"
+	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hint.add_theme_font_size_override("font_size", 13)
+	hint.add_theme_color_override("font_color", Color(0.65, 0.65, 0.4))
+	hint.size = Vector2(380, 22)
+	hint.position = Vector2(lens_cx - 190, dev_top_y + 630.0 + 36)
+	vf.add_child(hint)
 
 func _setup_address_screen():
 	# Your existing address screen setup
@@ -165,8 +250,8 @@ func _input(event):
 	if addressing:
 		return
 	
-	# Mouse look
-	if event is InputEventMouseMotion and not viewfinder_active:
+	# Mouse look (works in both normal and viewfinder mode)
+	if event is InputEventMouseMotion:
 		yaw -= event.relative.x * mouse_sensitivity
 		pitch -= event.relative.y * mouse_sensitivity
 		pitch = clamp(pitch, -1.4, 1.4)
@@ -569,13 +654,27 @@ func _get_green_slope_at_position() -> float:
 
 func _open_viewfinder():
 	viewfinder_active = true
-	# Your existing viewfinder code
-	pass
+	aim_locked = false
+	var tween = create_tween()
+	tween.tween_property(camera, "fov", 38.0, 0.25)
+	var vf = hud.get_node_or_null("ViewfinderOverlay")
+	if vf:
+		vf.visible = true
+	# Hide normal crosshair
+	var ch = hud.get_node_or_null("Crosshair")
+	if ch:
+		ch.visible = false
 
 func _close_viewfinder():
 	viewfinder_active = false
-	# Your existing close code
-	pass
+	var tween = create_tween()
+	tween.tween_property(camera, "fov", 75.0, 0.25)
+	var vf = hud.get_node_or_null("ViewfinderOverlay")
+	if vf:
+		vf.visible = false
+	var ch = hud.get_node_or_null("Crosshair")
+	if ch:
+		ch.visible = true
 
 func _lock_aim():
 	aim_locked = true
@@ -598,8 +697,35 @@ func _close_address():
 	pass
 
 func _update_yardage():
-	# Your existing yardage code
-	pass
+	var space = get_world_3d().direct_space_state
+	if not space:
+		return
+	var cam_origin = camera.global_position
+	var cam_forward = -camera.global_transform.basis.z.normalized()
+	var query = PhysicsRayQueryParameters3D.create(cam_origin, cam_origin + cam_forward * 600.0)
+	query.exclude = [self]
+	var result = space.intersect_ray(query)
+
+	var yd_label = hud.get_node_or_null("ViewfinderOverlay/YardageLabel")
+	var wind_label = hud.get_node_or_null("ViewfinderOverlay/WindLabel")
+
+	if result:
+		aim_point = result.position
+		aim_yardage = cam_origin.distance_to(result.position) * 1.0936
+		if yd_label:
+			yd_label.text = "%d" % int(aim_yardage)
+	else:
+		aim_point = cam_origin + cam_forward * 600.0
+		aim_yardage = 0.0
+		if yd_label:
+			yd_label.text = "--"
+
+	if wind_label:
+		var ws = get_node_or_null("/root/intro/WindSystem")
+		if ws:
+			wind_label.text = ws.get_wind_description()
+		else:
+			wind_label.text = ""
 
 func _check_ball_stance():
 	# Your existing ball stance code

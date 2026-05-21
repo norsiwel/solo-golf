@@ -9,7 +9,7 @@ Usage:
 Options:
     --output, -o    Output directory for OWG zips (default: current directory)
     --debug         Enable verbose diagnostic output
-    --no-tscn       Skip .tscn generation (use runtime PNG loading instead)
+    --tscn          Build terrain.tscn (large, optional — not used by runtime loader)
 
 Dependencies:
     pip install UnityPy Pillow numpy
@@ -471,15 +471,22 @@ material_override = {material_ref}
 # ─────────────────────────────────────────────
 
 SURFACE_PATTERNS = {
-    "fairway": ["fairway", "fair"],
-    "rough": ["rough"],
+    "fairway":   ["o_fairwayplain", "fairwayplain", "fairwaycross", "o_fairway",
+                  "skygrass_fair", "fairway2", "fairway1", "fairway", "fair",
+                  "base_fairway"],
+    "rough":     ["terrainrough", "meshlightrough", "o_rough2desat", "o_rough",
+                  "rough2", "rough1", "rough", "deep_rough", "deeprough",
+                  "heavyrough", "grass_dry", "grass_light"],
     "deep_rough": ["deeprough", "deep_rough", "heavyrough"],
-    "bunker": ["bunker", "sand", "trap"],
-    "green": ["green", "putting"],
-    "fringe": ["fringe", "collar", "apron"],
-    "water": ["water", "pond", "lake"],
-    "path": ["path", "cart", "road"],
-    "tee": ["tee_box", "teebox", "tee"],
+    "bunker":    ["bunkersandoverhead", "bunkersandrake", "bunkerdirt",
+                  "bunker", "sand", "trap"],
+    "green":     ["pickupgreen", "skygrass_green", "o_greenfringe", "greenfringe",
+                  "green", "putting"],
+    "fringe":    ["fringe", "collar", "apron"],
+    "water":     ["water", "pond", "lake"],
+    "path":      ["gravelpathplain", "gravelpath", "gravel", "cartpath",
+                  "woodchips", "path", "cart", "road"],
+    "tee":       ["tee_box", "teebox", "tee"],
 }
 
 def classify_texture(name):
@@ -507,18 +514,22 @@ def extract_splat_maps(terrain_data, output_dir):
             tex_obj = alpha_tex_ptr.read()
             img = tex_obj.image
             if img:
+                # Apply the same orientation correction used for the heightmap
+                # (T + flipud + fliplr) so the splatmap UV matches the heightmap UV.
+                mode = img.mode
+                arr = np.array(img)
+                if arr.ndim == 3:
+                    arr = arr.transpose(1, 0, 2)
+                    arr = np.flipud(arr)
+                    arr = np.fliplr(arr)
+                else:
+                    arr = arr.T
+                    arr = np.flipud(arr)
+                    arr = np.fliplr(arr)
+                img = Image.fromarray(arr.astype(np.uint8), mode=mode)
+
                 out_path = os.path.join(splat_dir, f"alphamap_{i}.png")
                 img.save(out_path)
-                
-                # Convert RGBA splatmap to separate channel textures for better compatibility
-                if img.mode == 'RGBA':
-                    rgba = np.array(img)
-                    for channel, channel_name in enumerate(['r', 'g', 'b', 'a']):
-                        channel_img = Image.fromarray(rgba[:, :, channel], mode='L')
-                        channel_path = os.path.join(splat_dir, f"alphamap_{i}_{channel_name}.png")
-                        channel_img.save(channel_path)
-                        dbg(f"Saved channel {channel_name} for alphamap {i}")
-                
                 alpha_count += 1
                 dbg(f"Alphamap {i}: {img.size} {img.mode}")
         except Exception as e:
@@ -586,8 +597,7 @@ def extract_textures(env, output_dir):
             dbg(f"Texture: '{data.m_Name}' ({img.size}) → {surface}")
 
             if surface != "unknown":
-                # Store relative path for the scene file
-                texture_map[surface] = f"textures/{safe_name}.png"
+                texture_map[surface] = f"{safe_name}.png"
 
         except Exception as ex:
             skipped += 1
@@ -950,7 +960,7 @@ def dump_bundle_contents(env):
 #  Main conversion
 # ─────────────────────────────────────────────
 
-def convert_course(zip_path, output_base_dir, build_tscn_file=True):
+def convert_course(zip_path, output_base_dir, build_tscn_file=False):
     zip_name = Path(zip_path).stem
     print(f"\n{'='*60}")
     print(f"Converting: {zip_name}")
@@ -1025,17 +1035,17 @@ def convert_course(zip_path, output_base_dir, build_tscn_file=True):
                 terrain_meta = {}
 
             if build_tscn_file and adjusted_heights is not None:
-                print("\n[5/7] Building terrain.tscn...")
+                print("\n[5/6] Building terrain.tscn (optional)...")
                 build_tscn(height_uint16, adjusted_heights, terrain_meta, out_dir, splat_layers, texture_map, safe_name)
 
-            print("\n[6/7] Converting course data...")
             convert_course_json(description_data, terrain_meta, objects, water_plane_y, out_dir)
             copy_images(zf, description_data, out_dir)
 
         output_zip_name = f"OWG-{safe_name}.zip"
         output_zip_path = os.path.join(output_base_dir, output_zip_name)
 
-        print(f"\n[7/7] Packaging → {output_zip_name}...")
+        step = "6/6" if build_tscn_file else "5/5"
+        print(f"\n[{step}] Packaging → {output_zip_name}...")
         with zipfile.ZipFile(output_zip_path, "w", zipfile.ZIP_DEFLATED) as out_zip:
             for root, dirs, files in os.walk(out_dir):
                 for file in files:
@@ -1059,11 +1069,11 @@ def main():
     parser.add_argument("zips", nargs="*", help="Specific zip files to convert")
     parser.add_argument("--output", "-o", default=".", help="Output directory for OWG zips")
     parser.add_argument("--debug", action="store_true", help="Enable verbose diagnostic output")
-    parser.add_argument("--no-tscn", action="store_true", help="Skip .tscn generation")
+    parser.add_argument("--tscn", action="store_true", help="Build terrain.tscn (large file, not used by runtime loader)")
     args = parser.parse_args()
 
     DEBUG = args.debug
-    build_tscn_file = not args.no_tscn
+    build_tscn_file = args.tscn
 
     if args.zips:
         zip_files = [Path(z) for z in args.zips if Path(z).exists()]
