@@ -50,23 +50,14 @@ func go_to_next_hole() -> void:
 
 
 func _load_hole(hole_num: int) -> void:
-	var extract_path: String = _course_data.get("extract_path", "")
-	var hole_scene := "user://courses/%s/hole_%02d.tscn" % [
-		_course_data.get("safe_name", "course"), hole_num
-	]
-
-	# If the per-hole tscn doesn't exist yet, build it first then load
-	if not FileAccess.file_exists(hole_scene):
-		_build_hole_scene(hole_num, extract_path, hole_scene)
-	else:
+	# For now load directly from res://courses/woodys_test terrain
+	# TODO: build proper per-course hole scene from extract_path
+	var hole_scene := "res://courses/hole_%02d.tscn" % hole_num
+	if FileAccess.file_exists(hole_scene):
 		hole_loader.load_hole(hole_scene)
-
-
-func _build_hole_scene(hole_num: int, extract_path: String, out_path: String) -> void:
-	# HoleBuilder lives in the hole scene — for now stub with a flat placeholder
-	# TODO: move terrain_generator logic here in next session
-	push_warning("Main: hole scene not found for hole %d — using flat placeholder" % hole_num)
-	hole_loader.load_hole_by_number(hole_num)
+	else:
+		push_warning("No hole scene for hole %d" % hole_num)
+		_on_hole_load_failed(hole_scene)
 
 
 func _on_hole_loaded(hole_node: Node3D) -> void:
