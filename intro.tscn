@@ -14,20 +14,11 @@
 [ext_resource type="Script" uid="uid://dtm4m8shyksd3" path="res://course_loader.gd" id="7_cl"]
 [ext_resource type="Script" uid="uid://gt56w0ox3wnp" path="res://game_state.gd" id="8_ps"]
 [ext_resource type="Script" path="res://hole_loader.gd" id="9_hl"]
+[ext_resource type="Script" path="res://owg_environment.gd" id="10_env"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_player"]
 radius = 0.4
 height = 1.8
-
-[sub_resource type="Sky" id="Sky_1"]
-
-[sub_resource type="Environment" id="Environment_1"]
-background_mode = 2
-sky = SubResource("Sky_1")
-ambient_light_source = 2
-ambient_light_color = Color(0.8, 0.85, 0.9, 1)
-ambient_light_energy = 1.0
-tonemap_mode = 1
 
 [node name="Main" type="Node3D"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
@@ -41,8 +32,8 @@ script = ExtResource("4_wind_hud")
 [node name="HoleMap" type="CanvasLayer" parent="UI"]
 script = ExtResource("5_map")
 
-[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
-environment = SubResource("Environment_1")
+[node name="OWGEnvironment" type="Node3D" parent="."]
+script = ExtResource("10_env")
 
 [node name="Sun" type="DirectionalLight3D" parent="."]
 transform = Transform3D(0.866, -0.5, 0, 0.25, 0.433, -0.866, 0.433, 0.75, 0.5, 50, 80, 50)
