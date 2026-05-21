@@ -145,11 +145,17 @@ func build_from_unity_terrain_dict(data: Dictionary) -> bool:
 		terrain_collision.name = "TerrainCollision"
 
 		var shape := ConcavePolygonShape3D.new()
-		var faces := mesh.get_faces()
-		print("TerrainGeneratorNew: collision faces = ", faces.size())
-		if faces.size() == 0:
-			push_error("TerrainGeneratorNew: mesh.get_faces() returned empty — collision will not work!")
-		shape.set_faces(faces)
+		# get_faces() doesn't work on indexed ArrayMesh in Godot 4
+		# Build face array directly from vertices + indices
+		var surf_arrays := mesh.surface_get_arrays(0)
+		var verts: PackedVector3Array = surf_arrays[Mesh.ARRAY_VERTEX]
+		var idxs: PackedInt32Array = surf_arrays[Mesh.ARRAY_INDEX]
+		var face_verts := PackedVector3Array()
+		face_verts.resize(idxs.size())
+		for i in range(idxs.size()):
+			face_verts[i] = verts[idxs[i]]
+		print("TerrainGeneratorNew: collision faces = ", idxs.size() / 3)
+		shape.set_faces(face_verts)
 		terrain_collision.shape = shape
 
 		terrain_body.add_child(terrain_collision)
