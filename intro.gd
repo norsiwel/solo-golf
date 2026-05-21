@@ -11,6 +11,7 @@ var _current_hole_num: int   = 1
 
 
 func _ready() -> void:
+	_setup_environment()
 	if GameState.current_course.is_empty():
 		# DEV: load Woody's directly for testing
 		var f = FileAccess.open("res://courses/woodys_test/course.json", FileAccess.READ)
@@ -79,6 +80,28 @@ func _finish_round() -> void:
 	print("Main: round complete!")
 	# TODO: show final scorecard then return to course select
 	get_tree().change_scene_to_file("res://scenes/course_select.tscn")
+
+
+func _setup_environment() -> void:
+	var world_env := WorldEnvironment.new()
+	var env       := Environment.new()
+	var sky       := Sky.new()
+	var sky_mat   := ProceduralSkyMaterial.new()
+	sky_mat.sky_top_color        = Color(0.18, 0.42, 0.82)
+	sky_mat.sky_horizon_color    = Color(0.65, 0.82, 0.98)
+	sky_mat.ground_bottom_color  = Color(0.20, 0.48, 0.18)
+	sky_mat.ground_horizon_color = Color(0.38, 0.58, 0.30)
+	sky_mat.sun_angle_max        = 30.0
+	sky.sky_material             = sky_mat
+	env.background_mode          = Environment.BG_SKY
+	env.sky                      = sky
+	env.ambient_light_source     = Environment.AMBIENT_SOURCE_SKY
+	env.ambient_light_energy     = 1.0
+	env.tonemap_mode             = Environment.TONE_MAPPER_ACES
+	env.tonemap_exposure         = 1.0
+	world_env.environment        = env
+	add_child(world_env)
+	print("intro: environment ready")
 
 
 func _unhandled_input(event: InputEvent) -> void:
