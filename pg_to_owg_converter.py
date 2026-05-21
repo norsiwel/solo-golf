@@ -223,7 +223,7 @@ def extract_heightmap(terrain_data, output_dir, water_plane_y=None):
 #  Godot .tscn generation with proper materials (FIXED)
 # ─────────────────────────────────────────────
 
-def build_tscn(height_uint16, adjusted_heights, meta, output_dir, splat_layers=None, texture_map=None):
+def build_tscn(height_uint16, adjusted_heights, meta, output_dir, splat_layers=None, texture_map=None, course_safe_name="course"):
     """
     Build a Godot 4 .tscn with:
       - StaticBody3D (root)
@@ -374,7 +374,8 @@ def build_tscn(height_uint16, adjusted_heights, meta, output_dir, splat_layers=N
             tex_name = layer.get("texture_name", f"layer_{i}")
             tex_path = os.path.join("textures", f"{tex_name}.png")
             if os.path.exists(os.path.join(output_dir, tex_path)):
-                material_lines.append(f'shader_parameter/albedo_{i} = load("res://{tex_path}")')
+                res_path = f"res://courses/OWG-{course_safe_name}/textures/{tex_name}.png"
+                material_lines.append(f'shader_parameter/albedo_{i} = load("{res_path}")')
                 tex_added += 1
         
         # Add splatmap if available
@@ -386,7 +387,8 @@ def build_tscn(height_uint16, adjusted_heights, meta, output_dir, splat_layers=N
                 break
         
         if splatmap_path:
-            material_lines.append(f'shader_parameter/splatmap = load("res://{splatmap_path}")')
+            res_splat = f"res://courses/OWG-{course_safe_name}/terrain/splat/alphamap_0.png"
+            material_lines.append(f'shader_parameter/splatmap = load("{res_splat}")')
         
         # If no textures found, use fallback
         if tex_added == 0:
@@ -1024,7 +1026,7 @@ def convert_course(zip_path, output_base_dir, build_tscn_file=True):
 
             if build_tscn_file and adjusted_heights is not None:
                 print("\n[5/7] Building terrain.tscn...")
-                build_tscn(height_uint16, adjusted_heights, terrain_meta, out_dir, splat_layers, texture_map)
+                build_tscn(height_uint16, adjusted_heights, terrain_meta, out_dir, splat_layers, texture_map, safe_name)
 
             print("\n[6/7] Converting course data...")
             convert_course_json(description_data, terrain_meta, objects, water_plane_y, out_dir)
