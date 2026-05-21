@@ -66,10 +66,11 @@ func _on_hole_loaded(hole_node: Node3D) -> void:
 	print("Main: hole %d loaded → %s" % [_current_hole_num, hole_node.name])
 	var player = get_node_or_null("Player")
 	if player:
-		# Hardcoded spawn above terrain center for testing
-		player.global_position = Vector3(-1418.84, 60.0, -943.87)
+		# Spawn above terrain center and let gravity drop player onto surface
+		# Terrain is 2001x2001 centered at origin, heights 0-49m
+		player.global_position = Vector3(0, 80.0, 0)
 		player.rotation = Vector3.ZERO
-		print("Main: player spawned at tee")
+		print("Main: player spawned above terrain center, falling to surface")
 
 
 func _on_hole_load_failed(path: String) -> void:
