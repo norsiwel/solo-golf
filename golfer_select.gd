@@ -65,8 +65,12 @@ func create_ui() -> void:
 	name_input.position = Vector2(82, 300)
 	name_input.size     = Vector2(420, 58)
 	name_input.add_theme_font_size_override("font_size", 22)
-	# Transparent — sits over the image's painted name field
-	var ni := StyleBoxEmpty.new()
+	var ni := StyleBoxFlat.new()
+	ni.bg_color    = Color(0.06, 0.12, 0.06, 0.90)
+	ni.border_color = Color(0.40, 0.80, 0.25, 1.0)
+	ni.set_border_width_all(2)
+	ni.set_corner_radius_all(5)
+	ni.content_margin_left = 10
 	name_input.add_theme_stylebox_override("normal", ni)
 	name_input.add_theme_stylebox_override("focus",  ni)
 	name_input.add_theme_color_override("font_color",             Color(0.92, 0.97, 0.82, 1))
