@@ -64,13 +64,25 @@ func _load_hole(hole_num: int) -> void:
 
 func _on_hole_loaded(hole_node: Node3D) -> void:
 	print("Main: hole %d loaded → %s" % [_current_hole_num, hole_node.name])
+	
+	# DEBUG: Add a bright red marker at origin so we can see scale/position
+	var marker := MeshInstance3D.new()
+	var box := BoxMesh.new()
+	box.size = Vector3(4, 20, 4)
+	marker.mesh = box
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color(1, 0, 0)
+	mat.emission_enabled = true
+	mat.emission = Color(1, 0, 0)
+	marker.material_override = mat
+	marker.position = Vector3(0, 10, 0)
+	hole_node.add_child(marker)
+	
 	var player = get_node_or_null("Player")
 	if player:
-		# Spawn above terrain center and let gravity drop player onto surface
-		# Terrain is 2001x2001 centered at origin, heights 0-49m
 		player.global_position = Vector3(0, 20.0, 0)
 		player.rotation = Vector3.ZERO
-		print("Main: player spawned above terrain center, falling to surface")
+		print("Main: player spawned above terrain center")
 
 
 func _on_hole_load_failed(path: String) -> void:
