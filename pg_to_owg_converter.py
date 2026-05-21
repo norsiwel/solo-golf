@@ -276,7 +276,7 @@ def build_tscn(height_uint16, adjusted_heights, meta, output_dir, splat_layers=N
 
     for ri, r in enumerate(rows):
         for ci, c in enumerate(cols):
-            # Center the mesh at origin — match HeightMapShape3D centering
+            # Center mesh at origin — X and Z centered, Y at actual height
             wx = (c - width/2) * scale_x
             wy = float(h2d[r, c])
             wz = (r - height_n/2) * scale_z
@@ -447,7 +447,7 @@ metadata/water_level = {meta["water_level"]:.4f}
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
 shape = SubResource("HeightMapShape3D_1")
-transform = Transform3D({scale_x:.4f}, 0, 0, 0, 1, 0, 0, 0, {scale_z:.4f}, 0, 0, 0)
+transform = Transform3D({scale_x:.4f}, 0, 0, 0, 1, 0, 0, 0, {scale_z:.4f}, {-(width/2)*scale_x:.4f}, 0, {-(height_n/2)*scale_z:.4f})
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="."]
 mesh = SubResource("ArrayMesh_1")
