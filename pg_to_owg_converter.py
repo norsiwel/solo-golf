@@ -206,17 +206,18 @@ def extract_heightmap(terrain_data, output_dir, water_plane_y=None):
             json.dump(meta, f, indent=2)
         dbg(f"terrain_meta.json written")
 
-        # Position.y shifts terrain so minimum surface = y=0 in Godot world
-        min_norm = float(norm_array.min())
-        position_y = -(min_norm * effective_scale_y)
+        # Heights in actual world Y metres (not normalized)
+        # position [0,0,0] — terrain occupies X:[0,terrain_size_x] Z:[0,terrain_size_z]
+        # Player should spawn at Unity world coords (tee position from course.json)
+        world_heights = (norm_array * effective_scale_y).flatten().tolist()
         heights_json = {
             "name": "Terrain",
-            "position": [0.0, position_y, 0.0],
+            "position": [0.0, 0.0, 0.0],
             "size": [terrain_size_x, effective_scale_y, terrain_size_z],
             "heightmapWidth": width,
             "heightmapHeight": height,
-            "heightsAreNormalized": True,
-            "heights": norm_array.flatten().tolist(),
+            "heightsAreNormalized": False,
+            "heights": world_heights,
         }
         heights_path = os.path.join(terrain_dir, "terrain_heights.json")
         with open(heights_path, "w") as f:

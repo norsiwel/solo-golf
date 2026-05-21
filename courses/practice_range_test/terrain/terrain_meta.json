@@ -4,10 +4,6 @@
   "scale_x": 1.46484375,
   "scale_y": 1000.0,
   "scale_z": 0.5859375,
-  "terrain_size_x": 1500.0,
-  "terrain_size_z": 600.0,
-  "water_level": 49.3,
-  "height_min_m": 68.3318,
-  "height_max_m": 204.3355,
-  "height_range_m": 136.0037
+  "terrain_size_x": 1501.46484375,
+  "terrain_size_z": 600.5859375
 }
