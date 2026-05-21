@@ -22,6 +22,7 @@ func _ready() -> void:
 				print("DEV: loaded Woody's course.json for testing")
 			f.close()
 		else:
+
 			push_warning("Main: no course loaded — returning to course select")
 			get_tree().change_scene_to_file("res://scenes/course_select.tscn")
 			return

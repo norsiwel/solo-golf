@@ -1,9 +1,9 @@
 ; ============================================================
-; main.tscn  —  Lightweight game shell for Open World Golf
+; intro.tscn — Game session shell for Open World Golf
 ; NO baked terrain, NO hole geometry, NO procedural meshes.
 ; All hole content is loaded at runtime into CurrentHole.
 ; ============================================================
-[gd_scene format=3 uid="uid://dvcp2wpqd25c6"]
+[gd_scene load_steps=14 format=3 uid="uid://dvcp2wpqd25c6"]
 
 [ext_resource type="Script" uid="uid://cch7i6fyywjos" path="res://intro.gd" id="1_main"]
 [ext_resource type="Script" uid="uid://bagc1rj48iic7" path="res://player.gd" id="2_player"]
@@ -19,11 +19,20 @@
 radius = 0.4
 height = 1.8
 
+[sub_resource type="Sky" id="Sky_1"]
+
+[sub_resource type="Environment" id="Environment_1"]
+background_mode = 2
+sky = SubResource("Sky_1")
+ambient_light_source = 2
+ambient_light_color = Color(0.8, 0.85, 0.9, 1)
+ambient_light_energy = 1.0
+tonemap_mode = 1
+
 [node name="Main" type="Node3D"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
 script = ExtResource("1_main")
 
-; ── UI ─────────────────────────────────────────────────────
 [node name="UI" type="CanvasLayer" parent="."]
 
 [node name="WindHUD" type="CanvasLayer" parent="UI"]
@@ -32,20 +41,17 @@ script = ExtResource("4_wind_hud")
 [node name="HoleMap" type="CanvasLayer" parent="UI"]
 script = ExtResource("5_map")
 
-; ── World Environment ───────────────────────────────────────
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_1")
 
-; ── Sun ─────────────────────────────────────────────────────
 [node name="Sun" type="DirectionalLight3D" parent="."]
 transform = Transform3D(0.866, -0.5, 0, 0.25, 0.433, -0.866, 0.433, 0.75, 0.5, 50, 80, 50)
 light_energy = 1.2
 shadow_enabled = true
 
-; ── Wind System ─────────────────────────────────────────────
 [node name="WindSystem" type="Node3D" parent="."]
 script = ExtResource("3_wind")
 
-; ── Player ──────────────────────────────────────────────────
 [node name="Player" type="CharacterBody3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
 script = ExtResource("2_player")
@@ -54,37 +60,27 @@ script = ExtResource("2_player")
 shape = SubResource("CapsuleShape3D_player")
 
 [node name="Camera3D" type="Camera3D" parent="Player"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.7, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.6, 0)
 current = true
+fov = 75.0
 
-; ── Ball ────────────────────────────────────────────────────
-; Ball is spawned/managed by Player script — placeholder node
 [node name="Ball" type="Node3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
 
-; ── Camera Rig ──────────────────────────────────────────────
 [node name="CameraRig" type="Node3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
 
-; ── Course Manager ──────────────────────────────────────────
 [node name="CourseManager" type="Node" parent="."]
 script = ExtResource("6_cm")
 
-; ── Course Loader ───────────────────────────────────────────
 [node name="CourseLoader" type="Node" parent="."]
 script = ExtResource("7_cl")
 
-; ── Profile Manager ─────────────────────────────────────────
 [node name="ProfileManager" type="Node" parent="."]
 script = ExtResource("8_ps")
 
-; ── Hole Loader ─────────────────────────────────────────────
 [node name="HoleLoader" type="Node" parent="."]
 script = ExtResource("9_hl")
 
-; ── Current Hole ────────────────────────────────────────────
-; Empty Node3D — runtime container for dynamically loaded hole scenes.
-; CourseLoader.load_hole() instantiates into this node.
-; Position/Rotation/Scale always (0,0,0)/(0,0,0)/(1,1,1) — never baked.
 [node name="CurrentHole" type="Node3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
