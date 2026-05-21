@@ -1,0 +1,79 @@
+[
+  {
+    "index": 0,
+    "tile_size_x": 5.0,
+    "tile_size_y": 5.0,
+    "texture_name": "ground2",
+    "surface_type": "unknown"
+  },
+  {
+    "index": 1,
+    "tile_size_x": 10.0,
+    "tile_size_y": 10.0,
+    "texture_name": "ground",
+    "surface_type": "unknown"
+  },
+  {
+    "index": 2,
+    "tile_size_x": 10.0,
+    "tile_size_y": 10.0,
+    "texture_name": "ground4",
+    "surface_type": "unknown"
+  },
+  {
+    "index": 3,
+    "tile_size_x": 7.0,
+    "tile_size_y": 7.0,
+    "texture_name": "ground3",
+    "surface_type": "unknown"
+  },
+  {
+    "index": 4,
+    "tile_size_x": 7.0,
+    "tile_size_y": 8.0,
+    "texture_name": "Terrainrough",
+    "surface_type": "rough"
+  },
+  {
+    "index": 5,
+    "tile_size_x": 5.0,
+    "tile_size_y": 5.0,
+    "texture_name": "earth",
+    "surface_type": "unknown"
+  },
+  {
+    "index": 6,
+    "tile_size_x": 7.0,
+    "tile_size_y": 7.0,
+    "texture_name": "Grass_dry",
+    "surface_type": "unknown"
+  },
+  {
+    "index": 7,
+    "tile_size_x": 5.0,
+    "tile_size_y": 5.0,
+    "texture_name": "woodchips",
+    "surface_type": "unknown"
+  },
+  {
+    "index": 8,
+    "tile_size_x": 7.0,
+    "tile_size_y": 7.0,
+    "texture_name": "ground4a",
+    "surface_type": "unknown"
+  },
+  {
+    "index": 9,
+    "tile_size_x": 10.0,
+    "tile_size_y": 10.0,
+    "texture_name": "ground4b",
+    "surface_type": "unknown"
+  },
+  {
+    "index": 10,
+    "tile_size_x": 5.0,
+    "tile_size_y": 5.0,
+    "texture_name": "ground15b",
+    "surface_type": "unknown"
+  }
+]

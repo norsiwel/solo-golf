@@ -1,10 +1,14 @@
-; ============================================================
-; hole_01.tscn  —  Template / placeholder for hole 01
-; Actual geometry is generated at runtime by terrain_generator.gd
-; This scene is the CONTAINER — CourseLoader instantiates it into
-; Main/CurrentHole at runtime.
-; ============================================================
-[gd_scene format=3]
+; hole_01.tscn — Woody's Practice Area, Hole 1
+; References terrain.tscn extracted from OWG zip
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="PackedScene" path="res://courses/woodys_test/terrain/terrain.tscn" id="1_terrain"]
 
 [node name="Hole01" type="Node3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+
+[node name="Terrain" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+
+[node name="TerrainInstance" parent="Terrain" instance=ExtResource("1_terrain")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)

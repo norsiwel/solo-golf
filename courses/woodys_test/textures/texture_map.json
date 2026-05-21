@@ -1,0 +1,6 @@
+{
+  "fairway": "textures/O_FairwayPlain.png",
+  "rough": "textures/Terrainrough.png",
+  "bunker": "textures/BunkerDirt.png",
+  "green": "textures/O_GreenFringe.png"
+}

@@ -1,0 +1,13 @@
+{
+  "width": 2049,
+  "height": 2049,
+  "scale_x": 0.9765625,
+  "scale_y": 200.0,
+  "scale_z": 0.9765625,
+  "terrain_size_x": 2000.9765625,
+  "terrain_size_z": 2000.9765625,
+  "water_level": 17.2061,
+  "height_min_m": 0.0,
+  "height_max_m": 49.6681,
+  "height_range_m": 49.6681
+}
