@@ -1,160 +1,99 @@
 # Open World Golf — CLAUDE.md
 
 ## Project Summary
-
 Godot 4.6 single-player first-person walking golf simulation. Personal project, no distribution.
 Target: 502 courses loaded dynamically from OWG-*.zip packages.
-Full gameplay loop: walk to ball, aim with viewfinder, address screen, shot, ball flight with tracer,
-rollout, putting, hole-out, scorecard. Uses Jolt 3D physics. No player avatar — first person only.
+Full gameplay loop: walk to ball, aim with Golf-O-Matic viewfinder, address screen, shot, ball flight, rollout, putting, hole-out, scorecard. Uses Jolt 3D physics. No player avatar — first person only.
 
 ## Active Project Directory
-
 `/home/ron/open-world-golf/` — THIS IS THE ONLY ACTIVE PROJECT
 `/home/ron/solo-golf-backup/` — backup only, do not edit
 GitHub: https://github.com/norsiwel/solo-golf (branch: main)
 
 ## Architectural Philosophy (established May 20 2026)
-
-**main.tscn is the lobby, not the game.**
-- main.tscn holds only persistent systems: UI, environment, wind, player, managers
-- NO baked terrain, NO hole geometry, NO procedural meshes in main.tscn ever
-- All hole content loads dynamically into CurrentHole (empty Node3D) at runtime
-- Broken terrain can never corrupt the entire project again
+**intro.tscn is the lobby, not the game.**
+- intro.tscn holds only persistent systems: UI, environment, wind, player, managers
+- NO baked terrain, NO hole geometry in intro.tscn ever
+- Each hole built at runtime by hole_scene.gd → terrain_generator.gd
+- Broken terrain can never corrupt the entire project
 
 ## Scene Flow
-
 ```
-title_screen.tscn   (Open-world-title.png, scans courses, ENTER)
-    ↓
-golfer_select.tscn  (profile list or create form → sets ProfileManager.active)
-    ↓
-course_select.tscn  (splash image, course name, 9/18 holes, ▶ Play)
-    ↓  CourseLoader.load_course(zip_path) → extracts to user://courses/<name>/
-GameState.current_course = course_data dict
-    ↓
-main.tscn           (lobby shell — loads hole scene into CurrentHole)
-    ↓  HoleLoader.load_hole_by_number(n) → instantiates into Main/CurrentHole
+title_screen.tscn   → golfer_select.tscn → course_select.tscn
+    ↓ CourseLoader extracts OWG-*.zip to user://courses/<name>/
+    ↓ GameState.current_course = course_data
+intro.tscn (lobby shell)
+    ↓ HoleLoader instantiates hole_01.tscn into CurrentHole
+hole_scene.gd → terrain_generator.gd builds terrain patch from heightmap
+    ↓ Player spawned at tee position from course.json
 ```
 
-## Directory Structure
-
+## Key Files
 ```
-open-world-golf/
-├── project.godot                    # Godot 4.6, Forward Plus
-│                                    # Autoloads: GameState, AssetStager,
-│                                    #   CoursePreloader, ProfileManager
-├── main.tscn                        # Lobby shell — NO terrain/geometry
-├── Old_bad_Main.tscn                # Salvage backup — DO NOT USE
-├── main.gd                          # Needs rewrite as thin coordinator
-├── hole_loader.gd                   # Dynamic hole scene loader
-├── profile_manager.gd               # Autoload: golfer profile save/load
-├── golfer_select.gd                 # Golfer select/create screen logic
-├── player.gd                        # Camera, WASD, viewfinder, OVB, HUD
-├── ball.gd                          # MasterShotEngine flight/rollout/putting
-├── address_screen.gd                # 3-click meter, club bag, draw/fade, loft
-├── green.gd / tee.gd                # Area3D detection nodes
-├── scorecard.gd                     # Post-hole score display
-├── terrain_generator.gd             # Runtime heightmap terrain
-├── terrain_splatmap.gdshader        # PBR splatmap shader
-├── owg_environment.gd               # Post-processing (ACES, glow, SSAO)
-├── course_loader.gd                 # Scans/extracts OWG-*.zip
-├── course_manager.gd                # Legacy JSON loader (dev fallback)
-├── course_select.gd                 # Course selector UI logic
-├── title_screen.gd                  # Entry point
-├── game_state.gd                    # Autoload: cross-scene state
-├── asset_stager.gd                  # Autoload: stages assets to user://runtime/
-├── course_preloader.gd              # Autoload: pre-loads assets into memory
-├── wind_system.gd / wind_hud.gd     # Wind simulation and HUD
-├── hole_map.gd                      # M key overhead course map
-├── flag_animator.gd                 # Flag waving
-├── scenes/
-│   ├── title_screen.tscn            # Entry point (F5)
-│   ├── golfer_select.tscn           # NEW — profile list + create form
-│   └── course_select.tscn           # Course selector
-├── courses/
-│   ├── OWG-*.zip                    # Course packages
-│   └── The_Old_Course_*.json/png    # Legacy data
-└── tools/                           # Pipeline helper scripts
+intro.tscn / intro.gd          — lobby shell, thin coordinator
+hole_scene.gd                  — builds terrain for a hole using terrain_generator
+terrain_generator.gd           — builds mesh+collision from heightmap PNG
+hole_loader.gd                 — dynamically loads/unloads hole scenes
+course_loader.gd               — scans, extracts, stages OWG zip packages
+course_select.gd / .tscn       — course browser UI
+golfer_select.gd / .tscn       — player profile UI (locker room background)
+profile_manager.gd             — autoload: saves profiles to user://profiles/
+game_state.gd                  — autoload: cross-scene state
+asset_stager.gd                — autoload: stages extracted assets to user://runtime/
+course_preloader.gd            — autoload: pre-loads heightmap+textures into GameState
+player.gd                      — CharacterBody3D: walking, camera, golf input
+address_screen.gd              — shot setup UI
+ball.gd                        — MasterShotEngine: flight/rollout/putting
+wind_system.gd / wind_hud.gd   — wind simulation and HUD
+pg_to_owg_converter.py         — converts Perfect Golf .zip to OWG format
 ```
 
 ## Autoloads (project.godot)
-
 | Name | File | Purpose |
 |------|------|---------|
-| GameState | game_state.gd | Cross-scene state: current course, hole, player vars |
-| AssetStager | asset_stager.gd | Stages extracted course files to user://runtime/ |
-| CoursePreloader | course_preloader.gd | Pre-loads heightmap+textures into GameState memory |
-| ProfileManager | profile_manager.gd | Golfer profiles: save/load/delete from user://profiles/ |
+| GameState | game_state.gd | Cross-scene state |
+| AssetStager | asset_stager.gd | Stages course files to user://runtime/ |
+| CoursePreloader | course_preloader.gd | Pre-loads heightmap+textures |
+| ProfileManager | profile_manager.gd | Golfer profiles |
+| Tokens | ui/tokens.gd | UI design tokens |
 
-## main.tscn Node Structure
+## Courses Available
+- OWG-Woody_s-Practice-Area.zip — 9 holes (primary test course)
+- OWG-Practice-Range.zip — 1 hole, flat
+- OWG-Sunset-Valley-GC.zip — 18 holes
+- OWG-The-Old-Course.zip — 18 holes, St Andrews
 
-```
-Main (Node3D) [main.gd — needs rewrite]
-├── UI (CanvasLayer)
-│   ├── WindHUD
-│   └── HoleMap
-├── WorldEnvironment
-├── Sun (DirectionalLight3D)
-├── WindSystem (Node3D)
-├── Player (CharacterBody3D)
-│   ├── CollisionShape3D
-│   └── Camera3D
-├── Ball (Node3D — placeholder, managed by Player)
-├── CameraRig (Node3D)
-├── CourseManager (Node)
-├── CourseLoader (Node)
-├── HoleLoader (Node)      ← loads hole scenes dynamically
-├── ProfileManager (Node)
-└── CurrentHole (Node3D)   ← EMPTY — hole scenes mount here at runtime
-```
+PG source files: /home/ron/Downloads/PG-golf courses/
 
-## Profile System
+## What Works (May 20 2026 evening)
+- Full scene flow title → golfer → course → game ✅
+- Player walks on terrain with collision ✅
+- Surface detection (Fairway/Rough/Bunker in HUD) ✅
+- Wind system ✅
+- Sky and environment ✅
+- Course loading from OWG zips ✅
+- TerrainGenerator builds hole from heightmap ✅
 
-Profiles saved to `user://profiles/<name>.json`:
-```json
-{ "name": "Ron", "sex": "M", "right_handed": true, "last_active": true }
-```
-- `ProfileManager.set_active(name)` marks last_active and pushes to GameState
-- On golfer_select load: auto-selects last_active profile
-- First run (no profiles): shows create form directly, no cancel option
+## What Needs Work
+- Viewfinder (V key) — Golf-O-Matic overlay, stubs only
+- Address screen — needs viewfinder aim first
+- Ball physics — not tested
+- Splatmap UV scaling — textures load but wrong scale
+- Per-course hole scenes — all courses use Woody's terrain for now
 
-## OWG Package Format
+## Critical Rules
+1. **intro.tscn is the lobby** — never put terrain in it
+2. **Commit before changes** — git is the backup
+3. **One script at a time** — test before moving on
+4. **terrain_generator.gd works** — don't replace it with baked tscn approach
+5. **pg_to_owg_converter.py** — converter outputs correct res:// paths with course safe_name prefix
 
-```
-course.json          — holes (tees/pins/shots), terrain meta, water_plane_y, objects
-terrain/
-  heightmap.png      — 2049×2049 16-bit grayscale, water-level-shifted
-  splat/alphamap_0..N.png
-textures/
-  texture_map.json   — {surface: filename}
-images/
-  splash.jpg
-```
-
-## Heightmap Coordinate System (CRITICAL)
-
-```python
-arr = arr.T; arr = np.flipud(arr); arr = np.fliplr(arr)
-effective_scale_y = scale.y * 2.0
-```
-Godot sampling: `u = clamp(1.0 + world_x/size_x, 0.0, 1.0)` / `v = clamp(1.0 - world_z/size_z, 0.0, 1.0)`
-
-## Critical Operating Rules
-
-1. **F5 to run** — title_screen.tscn is main scene
-2. **main.tscn is the lobby** — never put terrain or hole geometry in it
-3. **Commit before any change** — git is the backup
-4. **Update CLAUDE.md and project_status.md** on every commit
-5. **Delete user:// cache** when testing after reconversion:
-   `rm -rf ~/.local/share/godot/app_userdata/*/courses/OWG-*`
-
-## Key Controls
-
+## Controls
 | Key | Action |
 |-----|--------|
 | WASD | Walk |
-| V | Open viewfinder |
-| Space (aim locked) | Address screen |
+| V | Open viewfinder (stub) |
+| Space (near ball, aim locked) | Address screen |
 | M | Overhead hole map |
-| ESC | Back to course selector |
-| F1 | Toggle mouse capture (debug) |
+| ESC | Release mouse / back to course select |
+| F1 | Toggle mouse capture |
