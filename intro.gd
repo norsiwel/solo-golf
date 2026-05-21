@@ -63,20 +63,12 @@ func _load_hole(hole_num: int) -> void:
 
 func _on_hole_loaded(hole_node: Node3D) -> void:
 	print("Main: hole %d loaded → %s" % [_current_hole_num, hole_node.name])
-
 	var player = get_node_or_null("Player")
 	if player:
-		var hole_data = _get_hole_data(_current_hole_num)
-		var tee_pos   = _get_tee_position(hole_data)
-		# If no tee data found, use a safe default above terrain center
-		if tee_pos == Vector3(0, 2, 0):
-			tee_pos = Vector3(-1418.84, 55.0, -943.87)  # Woody's hole 1 tee
-		player.global_position = tee_pos
-		print("Main: player spawned at ", tee_pos)
-		if player.has_method("on_player_at_tee"):
-			var par     = _get_par(hole_data)
-			var yardage = _get_yardage(hole_data)
-			player.on_player_at_tee(_current_hole_num, par, yardage)
+		# Hardcoded spawn above terrain center for testing
+		player.global_position = Vector3(-1418.84, 60.0, -943.87)
+		player.rotation = Vector3.ZERO
+		print("Main: player spawned at tee")
 
 
 func _on_hole_load_failed(path: String) -> void:
