@@ -71,7 +71,7 @@ var terrain_collision: CollisionShape3D
 
 func _ready() -> void:
 	if terrain_json_path != "":
-		var ok := load_from_json_file(terrain_json_path)
+		var ok: bool = load_from_json_file(terrain_json_path)
 		if ok and save_scene_path != "":
 			save_as_scene(save_scene_path)
 
@@ -95,8 +95,8 @@ func load_from_json_file(path: String) -> bool:
 func build_from_unity_terrain_dict(data: Dictionary) -> bool:
 	clear_existing_terrain()
 
-	var position := _read_vec3(data.get("position", [0, 0, 0]))
-	var size := _read_vec3(data.get("size", [1, 1, 1]))
+	var position: Vector3 = _read_vec3(data.get("position", [0, 0, 0]))
+	var size: Vector3 = _read_vec3(data.get("size", [1, 1, 1]))
 
 	var width := int(data.get("heightmapWidth", data.get("width", 0)))
 	var height := int(data.get("heightmapHeight", data.get("height", 0)))
@@ -116,7 +116,7 @@ func build_from_unity_terrain_dict(data: Dictionary) -> bool:
 		push_error("TerrainGenerator: heights array too small. Expected %d, got %d." % [width * height, heights.size()])
 		return false
 
-	var mesh := _build_terrain_mesh(position, size, width, height, heights, heights_are_normalized)
+	var mesh: ArrayMesh = _build_terrain_mesh(position, size, width, height, heights, heights_are_normalized)
 
 	if mesh == null:
 		return false
@@ -169,7 +169,7 @@ func save_as_scene(path: String) -> bool:
 	# All child resources, including ArrayMesh and ConcavePolygonShape3D,
 	# should be stored as subresources in the .tscn.
 	var packed := PackedScene.new()
-	var result := packed.pack(self)
+	var result: int = packed.pack(self)
 
 	if result != OK:
 		push_error("TerrainGenerator: PackedScene.pack failed with error %s" % result)
@@ -203,7 +203,7 @@ func _build_terrain_mesh(
 	heights: Array,
 	heights_are_normalized: bool
 ) -> ArrayMesh:
-	var step := max(1, sample_step)
+	var step: int = max(1, sample_step)
 
 	var sampled_width := int(floor(float(width - 1) / float(step))) + 1
 	var sampled_height := int(floor(float(height - 1) / float(step))) + 1
@@ -350,14 +350,12 @@ func _calculate_normals(vertices: PackedVector3Array, indices: PackedInt32Array)
 func _read_vec3(value) -> Vector3:
 	if typeof(value) == TYPE_ARRAY and value.size() >= 3:
 		return Vector3(float(value[0]), float(value[1]), float(value[2]))
-
 	if typeof(value) == TYPE_DICTIONARY:
 		return Vector3(
 			float(value.get("x", 0.0)),
 			float(value.get("y", 0.0)),
 			float(value.get("z", 0.0))
 		)
-
 	return Vector3.ZERO
 
 
