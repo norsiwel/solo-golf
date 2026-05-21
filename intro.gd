@@ -80,7 +80,7 @@ func _on_hole_loaded(hole_node: Node3D) -> void:
 	
 	var player = get_node_or_null("Player")
 	if player:
-		player.global_position = Vector3(0, 20.0, 0)
+		player.global_position = Vector3(0, 200.0, 0)
 		player.rotation = Vector3.ZERO
 		print("Main: player spawned above terrain center")
 
