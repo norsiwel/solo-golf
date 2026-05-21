@@ -276,10 +276,10 @@ def build_tscn(height_uint16, adjusted_heights, meta, output_dir, splat_layers=N
 
     for ri, r in enumerate(rows):
         for ci, c in enumerate(cols):
-            # Apply Unity to Godot coordinate transform
-            wx = -(c * scale_x)  # Flip X
+            # Center the mesh at origin — match HeightMapShape3D centering
+            wx = (c - width/2) * scale_x
             wy = float(h2d[r, c])
-            wz = -(r * scale_z)  # Flip Z
+            wz = (r - height_n/2) * scale_z
             verts.append((wx, wy, wz))
             uvs.append((c / width, r / height_n))
 
