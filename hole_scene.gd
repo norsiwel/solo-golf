@@ -40,4 +40,5 @@ func _build_terrain() -> void:
 				break
 
 	print("HoleScene: building hole %d tee=%s pin=%s" % [hole_number, tee, pin])
+	terrain.load_textures()
 	terrain.build_from_hole(tee, pin)
