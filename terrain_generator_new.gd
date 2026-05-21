@@ -139,27 +139,40 @@ func build_from_unity_terrain_dict(data: Dictionary) -> bool:
 		terrain_body.collision_mask = collision_mask
 		terrain_body.transform = Transform3D.IDENTITY
 		add_child(terrain_body)
-		terrain_body.owner = get_tree().edited_scene_root if Engine.is_editor_hint() else self
 
 		terrain_collision = CollisionShape3D.new()
 		terrain_collision.name = "TerrainCollision"
 
-		var shape := ConcavePolygonShape3D.new()
-		# get_faces() doesn't work on indexed ArrayMesh in Godot 4
-		# Build face array directly from vertices + indices
-		var surf_arrays := mesh.surface_get_arrays(0)
-		var verts: PackedVector3Array = surf_arrays[Mesh.ARRAY_VERTEX]
-		var idxs: PackedInt32Array = surf_arrays[Mesh.ARRAY_INDEX]
-		var face_verts := PackedVector3Array()
-		face_verts.resize(idxs.size())
-		for i in range(idxs.size()):
-			face_verts[i] = verts[idxs[i]]
-		print("TerrainGeneratorNew: collision faces = ", idxs.size() / 3)
-		shape.set_faces(face_verts)
-		terrain_collision.shape = shape
+		# Use HeightMapShape3D — the only shape that works reliably with Jolt + CharacterBody3D
+		var hm_shape := HeightMapShape3D.new()
+		hm_shape.map_width  = width
+		hm_shape.map_depth  = height
+		# HeightMapShape3D expects a flat PackedFloat32Array of height values
+		var hm_data := PackedFloat32Array()
+		hm_data.resize(width * height)
+		for i in range(heights.size()):
+			var h: float = float(heights[i])
+			if not heights_are_normalized:
+				hm_data[i] = h
+			else:
+				hm_data[i] = h * size.y
+		hm_shape.map_data = hm_data
+
+		# Scale the collision shape to match the visual mesh world size
+		# HeightMapShape3D is (map_width-1) x (map_depth-1) units by default
+		# Scale to match terrain_size_x / terrain_size_z
+		var scale_x: float = size.x / float(width  - 1)
+		var scale_z: float = size.z / float(height - 1)
+		terrain_collision.transform = Transform3D(
+			Vector3(scale_x, 1.0, 0),
+			Vector3(0, 1.0, 0),
+			Vector3(0, 0, scale_z),
+			position + Vector3(size.x * 0.5, 0, size.z * 0.5)
+		)
+		terrain_collision.shape = hm_shape
+		print("TerrainGeneratorNew: HeightMapShape3D %dx%d scale(%.3f,%.3f)" % [width, height, scale_x, scale_z])
 
 		terrain_body.add_child(terrain_collision)
-		terrain_collision.owner = terrain_body.owner
 
 	if add_debug_marker_at_origin:
 		_add_debug_marker(position)
