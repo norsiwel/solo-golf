@@ -1,0 +1,25 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://dy8xrccr6k3ub"
+path="res://.godot/imported/Conifer_Desktop_small4_LOD0.obj-d0e068b7555a27b5a53d6d934d28731d.mesh"
+
+[deps]
+
+files=["res://.godot/imported/Conifer_Desktop_small4_LOD0.obj-d0e068b7555a27b5a53d6d934d28731d.mesh"]
+
+source_file="res://courses/woodys_test/meshes/Conifer_Desktop_small4_LOD0.obj"
+dest_files=["res://.godot/imported/Conifer_Desktop_small4_LOD0.obj-d0e068b7555a27b5a53d6d934d28731d.mesh", "res://.godot/imported/Conifer_Desktop_small4_LOD0.obj-d0e068b7555a27b5a53d6d934d28731d.mesh"]
+
+[params]
+
+generate_tangents=true
+generate_lods=true
+generate_shadow_mesh=true
+generate_lightmap_uv2=false
+generate_lightmap_uv2_texel_size=0.2
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+force_disable_mesh_compression=false

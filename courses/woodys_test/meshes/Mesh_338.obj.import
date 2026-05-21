@@ -1,0 +1,25 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://2w5wp7ilrsbd"
+path="res://.godot/imported/Mesh_338.obj-4c450d3912d46dfe9436b938fee90c7d.mesh"
+
+[deps]
+
+files=["res://.godot/imported/Mesh_338.obj-4c450d3912d46dfe9436b938fee90c7d.mesh"]
+
+source_file="res://courses/woodys_test/meshes/Mesh_338.obj"
+dest_files=["res://.godot/imported/Mesh_338.obj-4c450d3912d46dfe9436b938fee90c7d.mesh", "res://.godot/imported/Mesh_338.obj-4c450d3912d46dfe9436b938fee90c7d.mesh"]
+
+[params]
+
+generate_tangents=true
+generate_lods=true
+generate_shadow_mesh=true
+generate_lightmap_uv2=false
+generate_lightmap_uv2_texel_size=0.2
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+force_disable_mesh_compression=false

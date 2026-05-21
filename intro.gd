@@ -12,9 +12,19 @@ var _current_hole_num: int   = 1
 
 func _ready() -> void:
 	if GameState.current_course.is_empty():
-		push_warning("Main: no course loaded — returning to course select")
-		get_tree().change_scene_to_file("res://scenes/course_select.tscn")
-		return
+		# DEV: load Woody's directly for testing
+		var f = FileAccess.open("res://courses/woodys_test/course.json", FileAccess.READ)
+		if f:
+			var json = JSON.new()
+			if json.parse(f.get_as_text()) == OK:
+				GameState.current_course = json.get_data()
+				GameState.current_course["safe_name"] = "woodys_test"
+				print("DEV: loaded Woody's course.json for testing")
+			f.close()
+		else:
+			push_warning("Main: no course loaded — returning to course select")
+			get_tree().change_scene_to_file("res://scenes/course_select.tscn")
+			return
 
 	_course_data   = GameState.current_course
 	_current_hole_num = GameState.current_hole
@@ -62,15 +72,19 @@ func _build_hole_scene(hole_num: int, extract_path: String, out_path: String) ->
 func _on_hole_loaded(hole_node: Node3D) -> void:
 	print("Main: hole %d loaded → %s" % [_current_hole_num, hole_node.name])
 
-	# Position player at tee
 	var player = get_node_or_null("Player")
-	if player and player.has_method("on_player_at_tee"):
+	if player:
 		var hole_data = _get_hole_data(_current_hole_num)
 		var tee_pos   = _get_tee_position(hole_data)
-		var par       = _get_par(hole_data)
-		var yardage   = _get_yardage(hole_data)
+		# If no tee data found, use a safe default above terrain center
+		if tee_pos == Vector3(0, 2, 0):
+			tee_pos = Vector3(-1418.84, 55.0, -943.87)  # Woody's hole 1 tee
 		player.global_position = tee_pos
-		player.on_player_at_tee(_current_hole_num, par, yardage)
+		print("Main: player spawned at ", tee_pos)
+		if player.has_method("on_player_at_tee"):
+			var par     = _get_par(hole_data)
+			var yardage = _get_yardage(hole_data)
+			player.on_player_at_tee(_current_hole_num, par, yardage)
 
 
 func _on_hole_load_failed(path: String) -> void:

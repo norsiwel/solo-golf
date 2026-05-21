@@ -1,0 +1,25 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://cn8n482r4o1jg"
+path="res://.godot/imported/European_White_Birch_Desktop_LOD2.obj-eeac1498f614b56d5b6f43dbee064815.mesh"
+
+[deps]
+
+files=["res://.godot/imported/European_White_Birch_Desktop_LOD2.obj-eeac1498f614b56d5b6f43dbee064815.mesh"]
+
+source_file="res://courses/woodys_test/meshes/European_White_Birch_Desktop_LOD2.obj"
+dest_files=["res://.godot/imported/European_White_Birch_Desktop_LOD2.obj-eeac1498f614b56d5b6f43dbee064815.mesh", "res://.godot/imported/European_White_Birch_Desktop_LOD2.obj-eeac1498f614b56d5b6f43dbee064815.mesh"]
+
+[params]
+
+generate_tangents=true
+generate_lods=true
+generate_shadow_mesh=true
+generate_lightmap_uv2=false
+generate_lightmap_uv2_texel_size=0.2
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+force_disable_mesh_compression=false
