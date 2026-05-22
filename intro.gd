@@ -112,8 +112,8 @@ func _setup_environment() -> void:
 	var sky_mat   := ProceduralSkyMaterial.new()
 	sky_mat.sky_top_color        = Color(0.18, 0.42, 0.82)
 	sky_mat.sky_horizon_color    = Color(0.65, 0.82, 0.98)
-	sky_mat.ground_bottom_color  = Color(0.20, 0.48, 0.18)
-	sky_mat.ground_horizon_color = Color(0.38, 0.58, 0.30)
+	sky_mat.ground_bottom_color  = Color(0.10, 0.15, 0.25, 1)
+	sky_mat.ground_horizon_color = Color(0.55, 0.65, 0.75, 1)
 	sky_mat.sun_angle_max        = 30.0
 	sky.sky_material             = sky_mat
 	env.background_mode          = Environment.BG_SKY
