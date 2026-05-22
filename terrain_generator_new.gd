@@ -101,7 +101,6 @@ func build_from_unity_terrain_dict(data: Dictionary) -> bool:
 	var width := int(data.get("heightmapWidth", data.get("width", 0)))
 	var height := int(data.get("heightmapHeight", data.get("height", 0)))
 	var heights = data.get("heights", [])
-
 	var heights_are_normalized := bool(data.get("heightsAreNormalized", true))
 
 	if width <= 1 or height <= 1:
@@ -116,7 +115,25 @@ func build_from_unity_terrain_dict(data: Dictionary) -> bool:
 		push_error("TerrainGenerator: heights array too small. Expected %d, got %d." % [width * height, heights.size()])
 		return false
 
-	var mesh: ArrayMesh = _build_terrain_mesh(position, size, width, height, heights, heights_are_normalized)
+	# Build shared index arrays used by BOTH mesh and collision
+	# This guarantees perfect alignment — same vertices, same grid
+	var step: int = max(1, sample_step)
+	var x_indices: Array[int] = []
+	var z_indices: Array[int] = []
+	var xi := 0
+	while xi < width:
+		x_indices.append(xi)
+		xi += step
+	if x_indices[-1] != width - 1:
+		x_indices.append(width - 1)
+	var zi := 0
+	while zi < height:
+		z_indices.append(zi)
+		zi += step
+	if z_indices[-1] != height - 1:
+		z_indices.append(height - 1)
+
+	var mesh: ArrayMesh = _build_terrain_mesh(position, size, width, height, heights, heights_are_normalized, x_indices, z_indices)
 
 	if mesh == null:
 		return false
@@ -124,54 +141,53 @@ func build_from_unity_terrain_dict(data: Dictionary) -> bool:
 	terrain_mesh_instance = MeshInstance3D.new()
 	terrain_mesh_instance.name = "TerrainVisual"
 	terrain_mesh_instance.mesh = mesh
-
-	# IMPORTANT:
-	# Vertices are already baked in world/course coordinates.
-	# Keep visual and collision transforms identity so they cannot drift apart.
 	terrain_mesh_instance.transform = Transform3D.IDENTITY
 	add_child(terrain_mesh_instance)
 	terrain_mesh_instance.owner = get_tree().edited_scene_root if Engine.is_editor_hint() else self
 
 	if create_collision:
-		# StaticBody3D at terrain world origin — no transform complexity
 		terrain_body = StaticBody3D.new()
 		terrain_body.name = "TerrainBody"
 		terrain_body.collision_layer = collision_layer
 		terrain_body.collision_mask = collision_mask
-		terrain_body.position = position  # terrain world origin
+		terrain_body.position = position
 		add_child(terrain_body)
 
 		terrain_collision = CollisionShape3D.new()
 		terrain_collision.name = "TerrainCollision"
 
 		var hm_shape := HeightMapShape3D.new()
-		hm_shape.map_width = width
-		hm_shape.map_depth = height
+		var cw := x_indices.size()
+		var ch := z_indices.size()
+		hm_shape.map_width = cw
+		hm_shape.map_depth = ch
 
+		# Sample heights at SAME x_indices/z_indices as the visual mesh
 		var hm_data := PackedFloat32Array()
-		hm_data.resize(width * height)
-		for i in range(heights.size()):
-			hm_data[i] = float(heights[i]) if not heights_are_normalized else float(heights[i]) * size.y
+		hm_data.resize(cw * ch)
+		for row in range(ch):
+			for col in range(cw):
+				var src_z := z_indices[row]
+				var src_x := x_indices[col]
+				var h: float = float(heights[src_z * width + src_x])
+				hm_data[row * cw + col] = h if not heights_are_normalized else h * size.y
+
 		hm_shape.map_data = hm_data
 
-		# Clean position and scale on CollisionShape3D
-		# HeightMapShape3D is centered — offset by half terrain size so corner aligns with origin
+		# HeightMapShape3D is centered — position offset + scale to match mesh
 		terrain_collision.position = Vector3(size.x * 0.5, 0.0, size.z * 0.5)
 		terrain_collision.scale = Vector3(
-			size.x / float(width - 1),
+			size.x / float(cw - 1),
 			1.0,
-			size.z / float(height - 1)
+			size.z / float(ch - 1)
 		)
 		terrain_collision.shape = hm_shape
-
 		terrain_body.add_child(terrain_collision)
 
-		print("TerrainGeneratorNew: StaticBody3D at ", position)
-		print("TerrainGeneratorNew: CollisionShape3D pos=", terrain_collision.position, " scale=", terrain_collision.scale)
+		print("TerrainGeneratorNew: mesh %dx%d collision %dx%d — same grid ✓" % [cw, ch, cw, ch])
 
 	if add_debug_marker_at_origin:
 		_add_debug_marker(position)
-
 	if print_debug_info:
 		_print_debug(position, size, width, height, heights_are_normalized)
 
@@ -219,30 +235,10 @@ func _build_terrain_mesh(
 	width: int,
 	height: int,
 	heights: Array,
-	heights_are_normalized: bool
+	heights_are_normalized: bool,
+	x_indices: Array,
+	z_indices: Array
 ) -> ArrayMesh:
-	var step: int = max(1, sample_step)
-
-	var sampled_width := int(floor(float(width - 1) / float(step))) + 1
-	var sampled_height := int(floor(float(height - 1) / float(step))) + 1
-
-	# Ensure final edge is included even when width/height is not divisible by sample_step.
-	var x_indices: Array[int] = []
-	var z_indices: Array[int] = []
-
-	var x := 0
-	while x < width:
-		x_indices.append(x)
-		x += step
-	if x_indices[x_indices.size() - 1] != width - 1:
-		x_indices.append(width - 1)
-
-	var z := 0
-	while z < height:
-		z_indices.append(z)
-		z += step
-	if z_indices[z_indices.size() - 1] != height - 1:
-		z_indices.append(height - 1)
 
 	var vertices := PackedVector3Array()
 	var normals := PackedVector3Array()
