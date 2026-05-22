@@ -133,6 +133,14 @@ func build_from_unity_terrain_dict(data: Dictionary) -> bool:
 	if z_indices[-1] != height - 1:
 		z_indices.append(height - 1)
 
+	# Find min/max heights for shader water level and water plane
+	var min_h: float = float(heights[0])
+	var max_h: float = float(heights[0])
+	for i in range(heights.size()):
+		var h := float(heights[i])
+		if h < min_h: min_h = h
+		if h > max_h: max_h = h
+
 	var mesh: ArrayMesh = _build_terrain_mesh(position, size, width, height, heights, heights_are_normalized, x_indices, z_indices)
 
 	if mesh == null:
@@ -148,14 +156,6 @@ func build_from_unity_terrain_dict(data: Dictionary) -> bool:
 	if shader:
 		var mat := ShaderMaterial.new()
 		mat.shader = shader
-		# Find true min height from full heights array
-		var min_h: float = float(heights[0])
-		var max_h: float = float(heights[0])
-		for i in range(heights.size()):
-			var h := float(heights[i])
-			if h < min_h: min_h = h
-			if h > max_h: max_h = h
-		# Water line = just above absolute minimum (only actual water bodies show blue)
 		var water_h := min_h + 0.5
 		mat.set_shader_parameter("water_height", water_h)
 		terrain_mesh_instance.material_override = mat
@@ -210,7 +210,52 @@ func build_from_unity_terrain_dict(data: Dictionary) -> bool:
 	if print_debug_info:
 		_print_debug(position, size, width, height, heights_are_normalized)
 
+	# Add water plane at terrain minimum height
+	_add_water_plane(position, size, min_h, max_h)
+
 	return true
+
+
+func _add_water_plane(position: Vector3, size: Vector3, min_h: float, max_h: float) -> void:
+	# Water sits just above minimum height — covers actual pond depressions
+	var water_y := min_h + 0.5
+
+	# Visual water plane
+	var water_mesh := MeshInstance3D.new()
+	water_mesh.name = "WaterPlane"
+	var plane := PlaneMesh.new()
+	plane.size = Vector2(size.x, size.z)
+	water_mesh.mesh = plane
+	water_mesh.position = Vector3(
+		position.x + size.x * 0.5,
+		water_y,
+		position.z + size.z * 0.5
+	)
+	var water_mat := StandardMaterial3D.new()
+	water_mat.albedo_color      = Color(0.05, 0.25, 0.75, 0.75)
+	water_mat.transparency      = BaseMaterial3D.TRANSPARENCY_ALPHA
+	water_mat.roughness         = 0.05
+	water_mat.metallic          = 0.1
+	water_mesh.material_override = water_mat
+	add_child(water_mesh)
+
+	# Hazard trigger — ball detection
+	var area := Area3D.new()
+	area.name = "WaterHazard"
+	area.collision_layer = 4
+	area.collision_mask  = 2  # ball layer
+	var col := CollisionShape3D.new()
+	var box := BoxShape3D.new()
+	box.size = Vector3(size.x, 2.0, size.z)
+	col.shape = box
+	area.add_child(col)
+	area.position = Vector3(
+		position.x + size.x * 0.5,
+		water_y,
+		position.z + size.z * 0.5
+	)
+	add_child(area)
+	print("TerrainGeneratorNew: water plane at y=%.2f" % water_y)
 
 
 func save_as_scene(path: String) -> bool:
