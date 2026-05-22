@@ -142,6 +142,11 @@ func build_from_unity_terrain_dict(data: Dictionary) -> bool:
 	terrain_mesh_instance.name = "TerrainVisual"
 	terrain_mesh_instance.mesh = mesh
 	terrain_mesh_instance.transform = Transform3D.IDENTITY
+
+	# Natural shading preserves slope-based color cues (green=flat, tan=slope, grey=cliff)
+	# No material override — default Godot material with lighting gives best readability
+	# Splatmap textures will replace this later
+
 	add_child(terrain_mesh_instance)
 	terrain_mesh_instance.owner = get_tree().edited_scene_root if Engine.is_editor_hint() else self
 
