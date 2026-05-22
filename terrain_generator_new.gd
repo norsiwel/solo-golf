@@ -143,32 +143,29 @@ func build_from_unity_terrain_dict(data: Dictionary) -> bool:
 		terrain_collision = CollisionShape3D.new()
 		terrain_collision.name = "TerrainCollision"
 
-		# Use HeightMapShape3D — the only shape that works reliably with Jolt + CharacterBody3D
 		var hm_shape := HeightMapShape3D.new()
-		hm_shape.map_width  = width
-		hm_shape.map_depth  = height
-		# HeightMapShape3D expects a flat PackedFloat32Array of height values
+		hm_shape.map_width = width
+		hm_shape.map_depth = height
 		var hm_data := PackedFloat32Array()
 		hm_data.resize(width * height)
 		for i in range(heights.size()):
 			var h: float = float(heights[i])
-			if not heights_are_normalized:
-				hm_data[i] = h
-			else:
-				hm_data[i] = h * size.y
+			hm_data[i] = h if not heights_are_normalized else h * size.y
 		hm_shape.map_data = hm_data
 
-		# Scale the collision shape to match visual mesh
-		# HeightMapShape3D is centered at origin, spans (map_width-1) x (map_depth-1)
-		# We need to scale and offset it to match the mesh which goes from 0,0 to size.x,size.z
-		var scale_x: float = size.x / float(width - 1)
-		var scale_z: float = size.z / float(height - 1)
-		var t := Transform3D.IDENTITY
-		t = t.scaled(Vector3(scale_x, 1.0, scale_z))
-		t.origin = position + Vector3(size.x * 0.5, 0.0, size.z * 0.5)
-		terrain_collision.transform = t
 		terrain_collision.shape = hm_shape
-		print("TerrainGeneratorNew: HeightMapShape3D %dx%d scale(%.3f,%.3f)" % [width, height, scale_x, scale_z])
+		terrain_collision.position = position
+		terrain_collision.scale = Vector3(
+			size.x / float(width - 1),
+			size.y,
+			size.z / float(height - 1)
+		)
+		print("TerrainGeneratorNew: HeightMapShape3D %dx%d scale(%.3f, %.3f, %.3f)" % [
+			width, height,
+			size.x / float(width - 1),
+			size.y,
+			size.z / float(height - 1)
+		])
 
 		terrain_body.add_child(terrain_collision)
 
