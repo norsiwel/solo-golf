@@ -143,9 +143,20 @@ func build_from_unity_terrain_dict(data: Dictionary) -> bool:
 	terrain_mesh_instance.mesh = mesh
 	terrain_mesh_instance.transform = Transform3D.IDENTITY
 
-	# Natural shading preserves slope-based color cues (green=flat, tan=slope, grey=cliff)
-	# No material override — default Godot material with lighting gives best readability
-	# Splatmap textures will replace this later
+	# Terrain preview shader — slope/height based coloring
+	# green=flat playable, tan=rough/slope, grey=cliff, blue=water
+	var shader := load("res://shaders/terrain_preview.gdshader")
+	if shader:
+		var mat := ShaderMaterial.new()
+		mat.shader = shader
+		# water_height = min terrain height (sea level for this course)
+		var min_h: float = float(heights[0])
+		for i in range(1, min(heights.size(), 10000)):
+			var h := float(heights[i])
+			if h < min_h:
+				min_h = h
+		mat.set_shader_parameter("water_height", min_h + 1.0)
+		terrain_mesh_instance.material_override = mat
 
 	add_child(terrain_mesh_instance)
 	terrain_mesh_instance.owner = get_tree().edited_scene_root if Engine.is_editor_hint() else self
