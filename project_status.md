@@ -1,32 +1,34 @@
 # Open World Golf — Project Status
 
-## Current State (May 20 2026 — Late Evening)
+## Current State (May 21 2026)
 
 ### WORKING ✅
 - Full scene flow: title → golfer_select → course_select → intro
-- Player walks on terrain with collision
-- Surface detection (Fairway/Rough/Bunker labels in HUD)
-- Wind system with HUD indicator
+- Player walks AND CLIMBS HILLS on real terrain
+- HeightMapShape3D collision solid — no falling through
+- Wind system with HUD
 - Sky and environment (procedural)
-- Course loading from OWG zips (extraction, staging, preloading)
-- TerrainGenerator builds hole patch from heightmap PNG
-- Textures loading (splatmap partially working)
-- 4 courses converted and ready: Woody's, Practice Range, Sunset Valley, Old Course
+- Course loading from OWG zips
+- terrain_generator_new.gd builds terrain from terrain_heights.json
+- pg_to_owg_converter_v2.py outputs correct terrain_heights.json
+- Water plane visible at sea level
+- Practice Range (1 hole, flat) working as test course
 
 ### NOT WORKING YET ❌
-- Viewfinder (V key) — stubs only, needs Golf-O-Matic overlay wired up
-- Address screen — needs viewfinder aim first
-- Ball physics — not tested yet
-- Splatmap UV scaling — textures show but wrong scale
-- Course-specific hole scenes (all use hole_01 → Woody's terrain)
+- Textures/splatmap — terrain is flat green, no surface variation
+- Viewfinder (V key) — stubs only
+- Address screen — needs viewfinder first
+- Ball physics — not tested
+- Course-specific hole scenes — all use practice range terrain
 
 ### NEXT SESSION PRIORITIES
-1. Wire up viewfinder (Golf-O-Matic image + HUD nodes)
-2. Fix splatmap UV scaling
+1. Apply textures to terrain (splatmap shader)
+2. Wire up viewfinder (Golf-O-Matic)
 3. Test ball drop and shot
-4. Build proper per-course hole scene system
+4. Reconvert all 4 courses with v2 converter
 
-## Architecture
-- main scene: intro.tscn (lobby shell)
-- hole scenes: courses/hole_01.tscn → hole_scene.gd → terrain_generator.gd
-- flow: course_select → CourseLoader extracts zip → GameState.current_course → intro.gd → HoleLoader → hole_scene.gd
+## Key Files
+- terrain_generator_new.gd — builds terrain from terrain_heights.json
+- pg_to_owg_converter_v2.py — converts PG zips, outputs terrain_heights.json
+- courses/hole_01.tscn → courses/practice_range_test/terrain/terrain_heights.json
+- intro.gd — spawns player at (750, 350, 300) above terrain center
