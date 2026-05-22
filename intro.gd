@@ -86,8 +86,9 @@ func _on_hole_loaded(hole_node: Node3D) -> void:
 			print("Main: terrain height at tee = %.2fm" % terrain_h)
 		else:
 			push_warning("Main: hole has no get_terrain_height — spawning at y=0")
-		# Practice range tee at (495, 50, 285) — spawn above tee height
-		var spawn := Vector3(495.46, 160.0, 285.10)
+		# Spawn high above tee X/Z — gravity will land us on terrain surface
+		# Terrain Y range is 117-253m, tee Y in course.json is local not world
+		var spawn := Vector3(495.46, 350.0, 285.10)
 		player.global_position = spawn
 		player.velocity = Vector3.ZERO
 		player.rotation = Vector3.ZERO
