@@ -1,4 +1,4 @@
-[gd_scene format=3 uid="uid://dvcp2wpqd25c6"]
+[gd_scene format=3 uid="uid://old_bad_main_backup"]
 
 [ext_resource type="Script" uid="uid://cch7i6fyywjos" path="res://main.gd" id="1_main"]
 [ext_resource type="Script" uid="uid://bagc1rj48iic7" path="res://player.gd" id="2_player"]
