@@ -133,11 +133,12 @@ func build_from_unity_terrain_dict(data: Dictionary) -> bool:
 	terrain_mesh_instance.owner = get_tree().edited_scene_root if Engine.is_editor_hint() else self
 
 	if create_collision:
+		# StaticBody3D at terrain world origin — no transform complexity
 		terrain_body = StaticBody3D.new()
 		terrain_body.name = "TerrainBody"
 		terrain_body.collision_layer = collision_layer
 		terrain_body.collision_mask = collision_mask
-		terrain_body.transform = Transform3D.IDENTITY
+		terrain_body.position = position  # terrain world origin
 		add_child(terrain_body)
 
 		terrain_collision = CollisionShape3D.new()
@@ -146,28 +147,27 @@ func build_from_unity_terrain_dict(data: Dictionary) -> bool:
 		var hm_shape := HeightMapShape3D.new()
 		hm_shape.map_width = width
 		hm_shape.map_depth = height
+
 		var hm_data := PackedFloat32Array()
 		hm_data.resize(width * height)
 		for i in range(heights.size()):
-			var h: float = float(heights[i])
-			hm_data[i] = h if not heights_are_normalized else h * size.y
+			hm_data[i] = float(heights[i]) if not heights_are_normalized else float(heights[i]) * size.y
 		hm_shape.map_data = hm_data
 
-		terrain_collision.shape = hm_shape
-		terrain_collision.position = position
+		# Clean position and scale on CollisionShape3D
+		# HeightMapShape3D is centered — offset by half terrain size so corner aligns with origin
+		terrain_collision.position = Vector3(size.x * 0.5, 0.0, size.z * 0.5)
 		terrain_collision.scale = Vector3(
 			size.x / float(width - 1),
-			size.y,
+			1.0,
 			size.z / float(height - 1)
 		)
-		print("TerrainGeneratorNew: HeightMapShape3D %dx%d scale(%.3f, %.3f, %.3f)" % [
-			width, height,
-			size.x / float(width - 1),
-			size.y,
-			size.z / float(height - 1)
-		])
+		terrain_collision.shape = hm_shape
 
 		terrain_body.add_child(terrain_collision)
+
+		print("TerrainGeneratorNew: StaticBody3D at ", position)
+		print("TerrainGeneratorNew: CollisionShape3D pos=", terrain_collision.position, " scale=", terrain_collision.scale)
 
 	if add_debug_marker_at_origin:
 		_add_debug_marker(position)
