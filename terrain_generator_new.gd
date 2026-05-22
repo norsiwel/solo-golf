@@ -158,6 +158,8 @@ func build_from_unity_terrain_dict(data: Dictionary) -> bool:
 		mat.shader = shader
 		var water_h := min_h + 0.5
 		mat.set_shader_parameter("water_height", water_h)
+		mat.set_shader_parameter("terrain_min_y", min_h)
+		mat.set_shader_parameter("terrain_max_y", max_h)
 		terrain_mesh_instance.material_override = mat
 		print("TerrainGeneratorNew: shader water_height=%.2f min=%.2f max=%.2f" % [water_h, min_h, max_h])
 
