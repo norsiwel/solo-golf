@@ -155,8 +155,8 @@ func build_from_unity_terrain_dict(data: Dictionary) -> bool:
 			var h := float(heights[i])
 			if h < min_h: min_h = h
 			if h > max_h: max_h = h
-		# Water line = just above minimum
-		var water_h := min_h + (max_h - min_h) * 0.05
+		# Water line = just above absolute minimum (only actual water bodies show blue)
+		var water_h := min_h + 0.5
 		mat.set_shader_parameter("water_height", water_h)
 		terrain_mesh_instance.material_override = mat
 		print("TerrainGeneratorNew: shader water_height=%.2f min=%.2f max=%.2f" % [water_h, min_h, max_h])
