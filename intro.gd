@@ -88,7 +88,7 @@ func _on_hole_loaded(hole_node: Node3D) -> void:
 			push_warning("Main: hole has no get_terrain_height — spawning at y=0")
 		# Spawn high above tee X/Z — gravity will land us on terrain surface
 		# Terrain Y range is 117-253m, tee Y in course.json is local not world
-		var spawn := Vector3(495.46, 350.0, 485.10)
+		var spawn := Vector3(750.0, 350.0, 300.0)  # Dead center of 1500x600 terrain
 		player.global_position = spawn
 		player.velocity = Vector3.ZERO
 		player.rotation = Vector3.ZERO
