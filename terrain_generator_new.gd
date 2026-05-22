@@ -158,17 +158,15 @@ func build_from_unity_terrain_dict(data: Dictionary) -> bool:
 				hm_data[i] = h * size.y
 		hm_shape.map_data = hm_data
 
-		# Scale the collision shape to match the visual mesh world size
-		# HeightMapShape3D is (map_width-1) x (map_depth-1) units by default
-		# Scale to match terrain_size_x / terrain_size_z
-		var scale_x: float = size.x / float(width  - 1)
+		# Scale the collision shape to match visual mesh
+		# HeightMapShape3D is centered at origin, spans (map_width-1) x (map_depth-1)
+		# We need to scale and offset it to match the mesh which goes from 0,0 to size.x,size.z
+		var scale_x: float = size.x / float(width - 1)
 		var scale_z: float = size.z / float(height - 1)
-		terrain_collision.transform = Transform3D(
-			Vector3(scale_x, 1.0, 0),
-			Vector3(0, 1.0, 0),
-			Vector3(0, 0, scale_z),
-			position + Vector3(size.x * 0.5, 0, size.z * 0.5)
-		)
+		var t := Transform3D.IDENTITY
+		t = t.scaled(Vector3(scale_x, 1.0, scale_z))
+		t.origin = position + Vector3(size.x * 0.5, 0.0, size.z * 0.5)
+		terrain_collision.transform = t
 		terrain_collision.shape = hm_shape
 		print("TerrainGeneratorNew: HeightMapShape3D %dx%d scale(%.3f,%.3f)" % [width, height, scale_x, scale_z])
 
