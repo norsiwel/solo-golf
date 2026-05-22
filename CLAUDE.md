@@ -10,90 +10,102 @@ Full gameplay loop: walk to ball, aim with Golf-O-Matic viewfinder, address scre
 `/home/ron/solo-golf-backup/` — backup only, do not edit
 GitHub: https://github.com/norsiwel/solo-golf (branch: main)
 
-## Architectural Philosophy (established May 20 2026)
-**intro.tscn is the lobby, not the game.**
-- intro.tscn holds only persistent systems: UI, environment, wind, player, managers
-- NO baked terrain, NO hole geometry in intro.tscn ever
-- Each hole built at runtime by hole_scene.gd → terrain_generator.gd
-- Broken terrain can never corrupt the entire project
-
 ## Scene Flow
 ```
-title_screen.tscn   → golfer_select.tscn → course_select.tscn
+title_screen → golfer_select → course_select → intro.tscn
     ↓ CourseLoader extracts OWG-*.zip to user://courses/<name>/
     ↓ GameState.current_course = course_data
 intro.tscn (lobby shell)
-    ↓ HoleLoader instantiates hole_01.tscn into CurrentHole
-hole_scene.gd → terrain_generator.gd builds terrain patch from heightmap
-    ↓ Player spawned at tee position from course.json
+    ↓ HoleLoader loads courses/hole_01.tscn into CurrentHole
+hole_01.tscn → terrain_generator_new.gd builds terrain from terrain_heights.json
+    ↓ Player spawns at (750, 500, 300) and falls onto surface
 ```
 
 ## Key Files
 ```
-intro.tscn / intro.gd          — lobby shell, thin coordinator
-hole_scene.gd                  — builds terrain for a hole using terrain_generator
-terrain_generator.gd           — builds mesh+collision from heightmap PNG
-hole_loader.gd                 — dynamically loads/unloads hole scenes
-course_loader.gd               — scans, extracts, stages OWG zip packages
-course_select.gd / .tscn       — course browser UI
-golfer_select.gd / .tscn       — player profile UI (locker room background)
-profile_manager.gd             — autoload: saves profiles to user://profiles/
-game_state.gd                  — autoload: cross-scene state
-asset_stager.gd                — autoload: stages extracted assets to user://runtime/
-course_preloader.gd            — autoload: pre-loads heightmap+textures into GameState
-player.gd                      — CharacterBody3D: walking, camera, golf input
-address_screen.gd              — shot setup UI
-ball.gd                        — MasterShotEngine: flight/rollout/putting
-wind_system.gd / wind_hud.gd   — wind simulation and HUD
-pg_to_owg_converter.py         — converts Perfect Golf .zip to OWG format
+intro.tscn / intro.gd              — lobby shell
+terrain_generator_new.gd           — NEW terrain builder from terrain_heights.json
+                                     Uses HeightMapShape3D (sampled grid)
+                                     Same sample_step for mesh AND collision
+                                     Adds water plane + Area3D hazard
+                                     Slope/height shader via UV2.x trick
+shaders/terrain_preview.gdshader   — slope+height visualization shader
+                                     Uses UV2.x for world Y (WORLD_POSITION.y broken)
+                                     MODEL_MATRIX * NORMAL for world normals
+pg_to_owg_converter_v2.py          — ACTIVE converter (use this one)
+                                     Outputs terrain_heights.json (world Y, not normalized)
+                                     No X flip (unity_to_godot_pos returns unchanged)
+courses/hole_01.tscn               — points to practice_range_test terrain
+courses/practice_range_test/       — extracted Practice Range test data
+terrain_generator.gd               — LEGACY (class_name removed, kept for reference)
 ```
 
-## Autoloads (project.godot)
-| Name | File | Purpose |
-|------|------|---------|
-| GameState | game_state.gd | Cross-scene state |
-| AssetStager | asset_stager.gd | Stages course files to user://runtime/ |
-| CoursePreloader | course_preloader.gd | Pre-loads heightmap+textures |
-| ProfileManager | profile_manager.gd | Golfer profiles |
-| Tokens | ui/tokens.gd | UI design tokens |
+## Terrain Architecture (established May 21 2026)
+```
+pg_to_owg_converter_v2.py:
+  Raw Unity heights 1025x1025
+       ↓
+  Saved as terrain_heights.json:
+    heightsAreNormalized: false
+    heights: world Y values (117-253m for practice range)
+    position: [0,0,0]
+    size: [1501, 1000, 600]
+
+terrain_generator_new.gd at runtime:
+  Load terrain_heights.json
+       ↓
+  Downsample once with sample_step=4 → 257x257 grid
+       ↓
+  Build visual mesh from sampled heights
+  Build HeightMapShape3D from SAME sampled heights
+  → Perfect alignment, no holes in collision
+```
+
+## Terrain Coordinate System
+- Terrain origin: (0, 0, 0)
+- Terrain extends: X [0..1501], Y [117..253], Z [0..600]
+- Tee position (practice range): (495, 50, 285) — Y is local not world
+- Player spawn: (750, 500, 300) — drops from above onto surface
+- Water plane: Y = terrain_min + 0.5 = ~118m
+- No X flip from Unity coords — everything uses Unity world space
+
+## Shader Notes
+- `WORLD_POSITION.y` broken in Godot 4.6 spatial shaders
+- Fix: pass vertex Y through UV2.x in vertex shader, read UV2.x in fragment
+- `MODEL_MATRIX * vec4(NORMAL, 0.0)` gives correct world-space normals
+- `render_mode unshaded` essential for debugging — eliminates lighting confusion
 
 ## Courses Available
-- OWG-Woody_s-Practice-Area.zip — 9 holes (primary test course)
-- OWG-Practice-Range.zip — 1 hole, flat
+- OWG-Practice-Range.zip — 1 hole, flat range, ACTIVE TEST COURSE
+- OWG-Woody_s-Practice-Area.zip — 9 holes
 - OWG-Sunset-Valley-GC.zip — 18 holes
-- OWG-The-Old-Course.zip — 18 holes, St Andrews
+- OWG-The-Old-Course.zip — 18 holes
 
 PG source files: /home/ron/Downloads/PG-golf courses/
+New terrain scripts: /home/ron/open-world-golf/new scripts/
 
-## What Works (May 20 2026 evening)
+## What Works (May 21 2026 evening)
 - Full scene flow title → golfer → course → game ✅
-- Player walks on terrain with collision ✅
-- Surface detection (Fairway/Rough/Bunker in HUD) ✅
-- Wind system ✅
-- Sky and environment ✅
-- Course loading from OWG zips ✅
-- TerrainGenerator builds hole from heightmap ✅
+- Player walks and climbs hills on real terrain ✅
+- HeightMapShape3D collision solid — same grid as mesh ✅
+- Water plane + Area3D hazard trigger ✅
+- Slope/height shader (debugging — UV2 fix in progress) ✅
+- SurfaceTool.generate_normals() for smooth normals ✅
+- Wind system, sky, environment ✅
+- 4 courses converted with v2 converter ✅
 
-## What Needs Work
-- Viewfinder (V key) — Golf-O-Matic overlay, stubs only
-- Address screen — needs viewfinder aim first
-- Ball physics — not tested
-- Splatmap UV scaling — textures load but wrong scale
-- Per-course hole scenes — all courses use Woody's terrain for now
+## What Needs Work Next Session
+1. Verify terrain shader shows green/tan/grey/blue correctly
+2. Wire up viewfinder (Golf-O-Matic) — stubs only
+3. Address screen and shot mechanics
+4. Ball physics test
+5. Reconvert all 4 courses with v2 converter
+6. Proper tee spawn using terrain height query
 
 ## Critical Rules
-1. **intro.tscn is the lobby** — never put terrain in it
-2. **Commit before changes** — git is the backup
-3. **One script at a time** — test before moving on
-4. **terrain_generator.gd works** — don't replace it with baked tscn approach
-5. **pg_to_owg_converter.py** — converter outputs correct res:// paths with course safe_name prefix
-
-## Controls
-| Key | Action |
-|-----|--------|
-| WASD | Walk |
-| V | Open viewfinder (stub) |
-| Space (near ball, aim locked) | Address screen |
-| M | Overhead hole map |
-| ESC | Release mouse / back to course select |
-| F1 | Toggle mouse capture |
+1. Use pg_to_owg_converter_v2.py — NOT the old converter
+2. terrain_generator_new.gd — NOT terrain_generator.gd (legacy)
+3. Same sample_step for BOTH mesh and collision
+4. UV2.x not WORLD_POSITION.y in shaders
+5. MODEL_MATRIX * NORMAL for world-space normals
+6. Commit before changes — git is the backup
