@@ -352,7 +352,11 @@ func _build_terrain_mesh(
 	var mesh := ArrayMesh.new()
 	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
 
-	return mesh
+	# Use SurfaceTool to regenerate smooth normals for better shader quality
+	var st := SurfaceTool.new()
+	st.create_from(mesh, 0)
+	st.generate_normals()
+	return st.commit()
 
 
 func _height_vertex(
