@@ -92,7 +92,7 @@ func _on_hole_loaded(hole_node: Node3D) -> void:
 		player.global_position = spawn
 		player.velocity = Vector3.ZERO
 		player.rotation = Vector3.ZERO
-		print("Main: player spawned at ", spawn)
+		print("player y: %.2f" % spawn.y)
 
 
 func _on_hole_load_failed(path: String) -> void:

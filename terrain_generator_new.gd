@@ -217,8 +217,21 @@ func build_from_unity_terrain_dict(data: Dictionary) -> bool:
 
 
 func _add_water_plane(position: Vector3, size: Vector3, min_h: float, max_h: float) -> void:
-	# Water sits just above minimum height — covers actual pond depressions
 	var water_y := min_h + 0.5
+
+	# Debug — verify coordinate alignment
+	print("terrain origin: ", position)
+	print("terrain size: ", size)
+	print("terrain y min/max: %.2f / %.2f" % [min_h, max_h])
+	print("water y: %.2f" % water_y)
+
+	# Water center matches terrain center exactly — same coordinate system
+	var center := Vector3(
+		position.x + size.x * 0.5,
+		water_y,
+		position.z + size.z * 0.5
+	)
+	print("water center: ", center)
 
 	# Visual water plane
 	var water_mesh := MeshInstance3D.new()
@@ -226,36 +239,27 @@ func _add_water_plane(position: Vector3, size: Vector3, min_h: float, max_h: flo
 	var plane := PlaneMesh.new()
 	plane.size = Vector2(size.x, size.z)
 	water_mesh.mesh = plane
-	water_mesh.position = Vector3(
-		position.x + size.x * 0.5,
-		water_y,
-		position.z + size.z * 0.5
-	)
+	water_mesh.position = center
 	var water_mat := StandardMaterial3D.new()
-	water_mat.albedo_color      = Color(0.05, 0.25, 0.75, 0.75)
-	water_mat.transparency      = BaseMaterial3D.TRANSPARENCY_ALPHA
-	water_mat.roughness         = 0.05
-	water_mat.metallic          = 0.1
+	water_mat.albedo_color       = Color(0.05, 0.25, 0.75, 0.75)
+	water_mat.transparency       = BaseMaterial3D.TRANSPARENCY_ALPHA
+	water_mat.roughness          = 0.05
+	water_mat.metallic           = 0.1
 	water_mesh.material_override = water_mat
 	add_child(water_mesh)
 
-	# Hazard trigger — ball detection
+	# Hazard trigger Area3D
 	var area := Area3D.new()
 	area.name = "WaterHazard"
 	area.collision_layer = 4
-	area.collision_mask  = 2  # ball layer
+	area.collision_mask  = 2
 	var col := CollisionShape3D.new()
 	var box := BoxShape3D.new()
 	box.size = Vector3(size.x, 2.0, size.z)
 	col.shape = box
 	area.add_child(col)
-	area.position = Vector3(
-		position.x + size.x * 0.5,
-		water_y,
-		position.z + size.z * 0.5
-	)
+	area.position = center
 	add_child(area)
-	print("TerrainGeneratorNew: water plane at y=%.2f" % water_y)
 
 
 func save_as_scene(path: String) -> bool:
