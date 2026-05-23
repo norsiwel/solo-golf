@@ -119,10 +119,46 @@ func _on_hole_loaded(hole_node: Node3D) -> void:
 		if hole_node.has_method("get_terrain_height"):
 			surface_y = hole_node.get_terrain_height(spawn_x, spawn_z)
 			print("Main: terrain height at tee (%.0f, %.0f) = %.2fm" % [spawn_x, spawn_z, surface_y])
-		var spawn := Vector3(spawn_x, surface_y + 3.0, spawn_z)  # 3m above surface
+
+		# Place the ball on the tee surface
+		var ball = get_node_or_null("Ball")
+		var ball_pos := Vector3(spawn_x, surface_y + 0.08, spawn_z)  # 0.08m = ball radius
+		if ball:
+			ball.global_position = ball_pos
+			ball.visible = true
+			print("Main: ball placed at tee ", ball_pos)
+
+		# Face the player toward the first pin so the shot direction is natural
+		var pin_xz := tee_xz
+		if not course.is_empty():
+			for hole in course.get("holes", []):
+				if hole.get("hole_number") == _current_hole_num:
+					var pins = hole.get("pins", [])
+					if pins.size() > 0:
+						var pp = pins[0].get("position", {})
+						pin_xz = Vector2(pp.get("x", spawn_x), pp.get("z", spawn_z))
+					break
+
+		# Spawn player a step behind the ball, looking toward the pin
+		var to_pin := (pin_xz - tee_xz)
+		var back_dir := Vector2(0, 1)  # default
+		if to_pin.length() > 0.01:
+			back_dir = -to_pin.normalized()
+		var spawn := Vector3(
+			spawn_x + back_dir.x * 1.5,
+			surface_y + 3.0,
+			spawn_z + back_dir.y * 1.5
+		)
 		player.global_position = spawn
 		player.velocity = Vector3.ZERO
-		player.rotation = Vector3.ZERO
+		# Face the pin (yaw around Y)
+		if to_pin.length() > 0.01:
+			var face_yaw := atan2(-to_pin.x, -to_pin.y)  # Godot -Z is forward
+			player.rotation = Vector3(0, face_yaw, 0)
+			if "yaw" in player:
+				player.yaw = face_yaw
+		else:
+			player.rotation = Vector3.ZERO
 		print("player spawn: ", spawn)
 
 

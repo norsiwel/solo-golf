@@ -59,10 +59,30 @@ var ball_weight: float = 1.0       # BW: 1.0=normal, modified by mud/nicks
 var spin := {"backspin": 0.0, "topspin": 0.0}
 
 func _ready():
+	_setup_ball_mesh()
 	_setup_tracer()
 	_setup_ball_cam()
 	_load_placement_data()
 	_load_osm_water()
+
+
+func _setup_ball_mesh() -> void:
+	# Visible golf ball — small white sphere
+	if get_node_or_null("BallMesh"):
+		return
+	var mesh_inst := MeshInstance3D.new()
+	mesh_inst.name = "BallMesh"
+	var sphere := SphereMesh.new()
+	sphere.radius = 0.08      # ~standard golf ball, slightly enlarged for visibility
+	sphere.height = 0.16
+	sphere.radial_segments = 16
+	sphere.rings = 8
+	mesh_inst.mesh = sphere
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color(0.97, 0.97, 0.95)
+	mat.roughness = 0.4
+	mesh_inst.material_override = mat
+	add_child(mesh_inst)
 
 func _load_placement_data() -> void:
 	_placement_loaded = true
