@@ -151,17 +151,20 @@ func build_from_unity_terrain_dict(data: Dictionary) -> bool:
 	terrain_mesh_instance.mesh = mesh
 	terrain_mesh_instance.transform = Transform3D.IDENTITY
 
-	# Terrain preview shader — slope/height based coloring
-	var shader := load("res://shaders/terrain_preview.gdshader")
-	if shader:
-		var mat := ShaderMaterial.new()
-		mat.shader = shader
-		var water_h := min_h + 0.5
-		mat.set_shader_parameter("water_height", water_h)
-		mat.set_shader_parameter("terrain_min_y", min_h)
-		mat.set_shader_parameter("terrain_max_y", max_h)
-		terrain_mesh_instance.material_override = mat
-		print("TerrainGeneratorNew: shader water_height=%.2f min=%.2f max=%.2f" % [water_h, min_h, max_h])
+	# Try splatmap material first — falls back to preview shader if assets missing
+	var applied := _apply_splatmap_material(terrain_mesh_instance, position, size, min_h, max_h)
+	if not applied:
+		# Fallback: slope/height preview shader
+		var shader := load("res://shaders/terrain_preview.gdshader")
+		if shader:
+			var mat := ShaderMaterial.new()
+			mat.shader = shader
+			var water_h := min_h + 0.5
+			mat.set_shader_parameter("water_height", water_h)
+			mat.set_shader_parameter("terrain_min_y", min_h)
+			mat.set_shader_parameter("terrain_max_y", max_h)
+			terrain_mesh_instance.material_override = mat
+			print("TerrainGeneratorNew: using preview shader (no splatmap found)")
 
 	add_child(terrain_mesh_instance)
 	terrain_mesh_instance.owner = get_tree().edited_scene_root if Engine.is_editor_hint() else self
@@ -215,6 +218,82 @@ func build_from_unity_terrain_dict(data: Dictionary) -> bool:
 	# Add water plane at terrain minimum height
 	_add_water_plane(position, size, min_h, max_h)
 
+	return true
+
+
+func _apply_splatmap_material(mesh_inst: MeshInstance3D, position: Vector3, size: Vector3, min_h: float, max_h: float) -> bool:
+	# Derive the course extract path from terrain_json_path
+	# terrain_json_path = ".../<extract_path>/terrain/terrain_heights.json"
+	var terrain_dir := terrain_json_path.get_base_dir()           # .../terrain/
+	var extract_path := terrain_dir.get_base_dir() + "/"          # .../OWG-CourseName/
+
+	var splat_path   := terrain_dir + "/splat/alphamap_0.png"
+	var layers_path  := terrain_dir + "/splat/splat_layers.json"
+	var tex_dir      := extract_path + "textures/"
+
+	if not FileAccess.file_exists(splat_path):
+		push_warning("TerrainGeneratorNew: no splatmap at " + splat_path)
+		return false
+	if not FileAccess.file_exists(layers_path):
+		push_warning("TerrainGeneratorNew: no splat_layers.json at " + layers_path)
+		return false
+
+	# Load splatmap
+	var splat_img := Image.load_from_file(ProjectSettings.globalize_path(splat_path))
+	if not splat_img:
+		push_warning("TerrainGeneratorNew: failed to load splatmap image")
+		return false
+	var splat_tex := ImageTexture.create_from_image(splat_img)
+
+	# Load splat layer definitions
+	var f := FileAccess.open(layers_path, FileAccess.READ)
+	if not f:
+		return false
+	var json := JSON.new()
+	if json.parse(f.get_as_text()) != OK:
+		return false
+	var layers: Array = json.get_data()
+	f.close()
+
+	# Build shader — 4-layer splatmap with per-layer tile size
+	var shader := load("res://shaders/terrain_splatmap.gdshader")
+	if not shader:
+		# Fall back to existing terrain_shader.gdshader
+		shader = load("res://shaders/terrain_shader.gdshader")
+	if not shader:
+		push_warning("TerrainGeneratorNew: no splatmap shader found")
+		return false
+
+	var mat := ShaderMaterial.new()
+	mat.shader = shader
+	mat.set_shader_parameter("splatmap", splat_tex)
+	mat.set_shader_parameter("owg_size_x", size.x)
+	mat.set_shader_parameter("owg_size_z", size.z)
+
+	# Wire up each layer texture by index
+	var param_names := ["layer0_texture", "layer1_texture", "layer2_texture", "layer3_texture"]
+	var tile_params  := ["layer0_tile",    "layer1_tile",    "layer2_tile",    "layer3_tile"]
+	for layer in layers:
+		var idx: int = int(layer.get("index", -1))
+		if idx < 0 or idx >= param_names.size():
+			continue
+		var tex_name: String = layer.get("texture_name", "")
+		var tile_x: float    = float(layer.get("tile_size_x", 15.0))
+		# Try .png first, then .jpg
+		var tex_path := tex_dir + tex_name + ".png"
+		if not FileAccess.file_exists(tex_path):
+			tex_path = tex_dir + tex_name + ".jpg"
+		if FileAccess.file_exists(tex_path):
+			var img := Image.load_from_file(ProjectSettings.globalize_path(tex_path))
+			if img:
+				mat.set_shader_parameter(param_names[idx], ImageTexture.create_from_image(img))
+				mat.set_shader_parameter(tile_params[idx], tile_x)
+				print("TerrainGeneratorNew: layer%d = %s (tile %.1f)" % [idx, tex_name, tile_x])
+		else:
+			push_warning("TerrainGeneratorNew: layer%d texture not found: %s" % [idx, tex_path])
+
+	mesh_inst.material_override = mat
+	print("TerrainGeneratorNew: splatmap material applied ✓")
 	return true
 
 
