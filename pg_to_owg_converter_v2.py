@@ -51,6 +51,201 @@ def sanitize_name(name):
 
 
 # ─────────────────────────────────────────────
+#  Mesh extraction (ported from v3, v2 coord system)
+#  Exports every Unity Mesh as .obj into meshes/, returns path_id -> path map.
+# ─────────────────────────────────────────────
+
+def extract_meshes(env, output_dir):
+    mesh_dir = os.path.join(output_dir, "meshes")
+    os.makedirs(mesh_dir, exist_ok=True)
+
+    extracted = 0
+    mesh_map = {}
+
+    for obj in env.objects:
+        if obj.type.name != "Mesh":
+            continue
+        try:
+            data = obj.read()
+            obj_data = data.export()
+            if not obj_data:
+                continue
+
+            safe = sanitize_name(data.m_Name)
+            if not safe:
+                safe = f"Mesh_{obj.path_id}"
+
+            fname = f"{safe}.obj"
+            fpath = os.path.join(mesh_dir, fname)
+            if os.path.exists(fpath):
+                fname = f"{safe}_{obj.path_id}.obj"
+                fpath = os.path.join(mesh_dir, fname)
+
+            with open(fpath, "wb") as f:
+                if isinstance(obj_data, str):
+                    f.write(obj_data.encode("utf-8"))
+                else:
+                    f.write(obj_data)
+
+            mesh_map[obj.path_id] = f"meshes/{fname}"
+            extracted += 1
+        except Exception:
+            pass
+
+    print(f"  Meshes: {extracted} extracted")
+    return mesh_map
+
+
+# ─────────────────────────────────────────────
+#  Transform hierarchy helpers
+# ─────────────────────────────────────────────
+
+def _quat_rotate(qx, qy, qz, qw, vx, vy, vz):
+    cx = qy*vz - qz*vy
+    cy = qz*vx - qx*vz
+    cz = qx*vy - qy*vx
+    dx = qy*cz - qz*cy
+    dy = qz*cx - qx*cz
+    dz = qx*cy - qy*cx
+    return (vx + 2.0*qw*cx + 2.0*dx,
+            vy + 2.0*qw*cy + 2.0*dy,
+            vz + 2.0*qw*cz + 2.0*dz)
+
+
+def _quat_mul(ax, ay, az, aw, bx, by, bz, bw):
+    return (aw*bx + ax*bw + ay*bz - az*by,
+            aw*by - ax*bz + ay*bw + az*bx,
+            aw*bz + ax*by - ay*bx + az*bw,
+            aw*bw - ax*bx - ay*by - az*bz)
+
+
+# ─────────────────────────────────────────────
+#  Object placement extraction (v2 coord system: identity, no flip)
+#  Walks the Unity transform hierarchy to world-space TRS for each
+#  GameObject that has a MeshFilter, then records placement.
+# ─────────────────────────────────────────────
+
+def extract_objects(env, mesh_map):
+    print("  Extracting object placements...")
+
+    transform_map = {}
+    for obj in env.objects:
+        if obj.type.name == "Transform":
+            try:
+                transform_map[obj.path_id] = obj.read()
+            except Exception:
+                pass
+
+    def _world_trs(transform):
+        chain = []
+        current = transform
+        visited = set()
+        while current is not None:
+            tid = id(current)
+            if tid in visited:
+                break
+            visited.add(tid)
+            chain.append(current)
+            father = getattr(current, "m_Father", None)
+            if father is None:
+                break
+            try:
+                pid = getattr(father, "path_id", 0)
+                if pid == 0 or pid not in transform_map:
+                    break
+                current = transform_map[pid]
+            except Exception:
+                break
+
+        wx, wy, wz = 0.0, 0.0, 0.0
+        wrx, wry, wrz, wrw = 0.0, 0.0, 0.0, 1.0
+        wsx, wsy, wsz = 1.0, 1.0, 1.0
+
+        for t in reversed(chain):
+            lp = t.m_LocalPosition
+            lr = t.m_LocalRotation
+            ls = t.m_LocalScale
+            slx, sly, slz = lp.x * wsx, lp.y * wsy, lp.z * wsz
+            rx, ry, rz = _quat_rotate(wrx, wry, wrz, wrw, slx, sly, slz)
+            wx += rx
+            wy += ry
+            wz += rz
+            wrx, wry, wrz, wrw = _quat_mul(wrx, wry, wrz, wrw, lr.x, lr.y, lr.z, lr.w)
+            wsx *= ls.x
+            wsy *= ls.y
+            wsz *= ls.z
+
+        return wx, wy, wz, (wrx, wry, wrz, wrw), (wsx, wsy, wsz)
+
+    def _resolve_components(data):
+        components = getattr(data, "m_Component", []) or getattr(data, "m_Components", [])
+        mesh_filter = transform = None
+        for c in components:
+            c_ptr = None
+            if isinstance(c, tuple):
+                for item in c:
+                    if hasattr(item, "read") or hasattr(item, "path_id"):
+                        c_ptr = item
+                        break
+            elif isinstance(c, dict):
+                c_ptr = c.get("component")
+            elif hasattr(c, "component"):
+                c_ptr = c.component
+            else:
+                c_ptr = c
+            if not c_ptr:
+                continue
+            try:
+                c_obj = c_ptr.read()
+                ctype = type(c_obj).__name__
+                if ctype == "MeshFilter":
+                    mesh_filter = c_obj
+                elif ctype == "Transform":
+                    transform = c_obj
+            except Exception:
+                continue
+        return transform, mesh_filter
+
+    objects = []
+    for obj in env.objects:
+        if obj.type.name != "GameObject":
+            continue
+        try:
+            data = obj.read()
+            name = getattr(data, "m_Name", f"GO_{obj.path_id}")
+            transform, mesh_filter = _resolve_components(data)
+            if not mesh_filter or not transform:
+                continue
+            mesh_ptr = getattr(mesh_filter, "m_Mesh", None)
+            if not mesh_ptr:
+                continue
+            mesh_path = mesh_map.get(mesh_ptr.path_id)
+            if not mesh_path:
+                continue
+
+            wx, wy, wz, (qx, qy, qz, qw), (sx, sy, sz) = _world_trs(transform)
+
+            # Skip prefab templates parked at the origin
+            if wx == 0.0 and wy == 0.0 and wz == 0.0:
+                continue
+
+            # v2 coordinate system: keep Unity coords unchanged (identity),
+            # same convention used for terrain and tee positions.
+            objects.append({
+                "name": name,
+                "mesh": mesh_path,
+                "position": {"x": wx, "y": wy, "z": wz},
+                "rotation": {"x": qx, "y": qy, "z": qz, "w": qw},
+                "scale": {"x": sx, "y": sy, "z": sz},
+            })
+        except Exception:
+            pass
+
+    print(f"  Objects: {len(objects)} placements found")
+    return objects
+
+
+# ─────────────────────────────────────────────
 #  Heightmap extraction
 # ─────────────────────────────────────────────
 
@@ -207,10 +402,10 @@ def extract_textures(env, output_dir):
 #  Course JSON data conversion
 # ─────────────────────────────────────────────
 
-def convert_course_json(description_data, terrain_meta, output_dir):
+def convert_course_json(description_data, terrain_meta, output_dir, objects=None):
     """
     Convert PG course description JSON to OWG format.
-    Flips X coordinates from Unity (left-handed) to Godot (right-handed).
+    Keeps Unity coordinates unchanged (v2 identity system).
     """
 
     def convert_pos(pos_dict):
@@ -283,6 +478,7 @@ def convert_course_json(description_data, terrain_meta, output_dir):
         "splash_image": description_data.get("splashName", ""),
         "flag_image": description_data.get("flagName", ""),
         "offset": description_data.get("offset", 0),
+        "objects": objects if objects else [],
     }
 
     course_json_path = os.path.join(output_dir, "course.json")
@@ -398,12 +594,17 @@ def convert_course(zip_path, output_base_dir):
                 terrain_meta = {}
 
             # Step 4: Extract textures
-            print("\n[5/6] Extracting textures...")
+            print("\n[5/7] Extracting textures...")
             extract_textures(env, out_dir)
 
-            # Step 5: Convert course JSON
-            print("\n[6/6] Converting course data...")
-            convert_course_json(description_data, terrain_meta, out_dir)
+            # Step 5: Extract meshes + object placements
+            print("\n[6/7] Extracting meshes and object placements...")
+            mesh_map = extract_meshes(env, out_dir)
+            objects = extract_objects(env, mesh_map)
+
+            # Step 6: Convert course JSON
+            print("\n[7/7] Converting course data...")
+            convert_course_json(description_data, terrain_meta, out_dir, objects)
             copy_images(zf, description_data, out_dir)
 
         # Step 6: Package into output zip
