@@ -52,23 +52,56 @@ func go_to_next_hole() -> void:
 
 
 func _load_hole(hole_num: int) -> void:
-	# For now load directly from res://courses/woodys_test terrain
-	# TODO: build proper per-course hole scene from extract_path
-	var hole_scene := "res://courses/hole_%02d.tscn" % hole_num
-	if FileAccess.file_exists(hole_scene):
-		hole_loader.load_hole(hole_scene)
-	else:
-		push_warning("No hole scene for hole %d" % hole_num)
-		_on_hole_load_failed(hole_scene)
+	# Build terrain dynamically from the SELECTED course's extracted data.
+	# extract_path points at user://courses/<OWG-CourseName>/
+	var extract_path: String = _course_data.get("extract_path", "")
+	if extract_path == "":
+		var safe := str(_course_data.get("safe_name", ""))
+		if safe != "":
+			extract_path = "user://courses/" + safe + "/"
+	if extract_path == "":
+		push_error("Main: course has no extract_path — cannot build terrain")
+		_on_hole_load_failed("(no extract_path)")
+		return
+
+	var heights_json := extract_path.rstrip("/") + "/terrain/terrain_heights.json"
+	if not FileAccess.file_exists(heights_json):
+		push_error("Main: terrain_heights.json not found at " + heights_json)
+		_on_hole_load_failed(heights_json)
+		return
+
+	# Free previous hole
+	if hole_loader.has_method("unload_hole"):
+		hole_loader.unload_hole()
+	for c in current_hole_root.get_children():
+		c.queue_free()
+
+	# Build the terrain generator node at runtime
+	var TerrainGen = load("res://terrain_generator_new.gd")
+	var terrain = TerrainGen.new()
+	terrain.name = "Hole%02d" % hole_num
+	terrain.terrain_json_path = heights_json
+	terrain.extract_base_path = extract_path.rstrip("/")
+	terrain.sample_step = 4
+	terrain.generate_normals = true
+	terrain.create_collision = true
+	terrain.add_water_plane = true
+	terrain.print_debug_info = true
+	terrain.add_debug_marker_at_origin = false
+	current_hole_root.add_child(terrain)
+
+	print("Main: built terrain for hole %d from %s" % [hole_num, extract_path])
+	_on_hole_loaded(terrain)
 
 
 func _on_hole_loaded(hole_node: Node3D) -> void:
 	print("Main: hole %d loaded → %s" % [_current_hole_num, hole_node.name])
 	var player = get_node_or_null("Player")
 	if player:
-		# Wait for terrain_generator to finish building its mesh
+		# Wait for terrain_generator to finish building mesh AND collision to register
 		await get_tree().process_frame
-		await get_tree().process_frame
+		await get_tree().physics_frame
+		await get_tree().physics_frame
 		var tee_xz := Vector2.ZERO
 		var course = GameState.current_course
 		if not course.is_empty():
@@ -79,20 +112,18 @@ func _on_hole_loaded(hole_node: Node3D) -> void:
 							var p = t.get("position", {})
 							tee_xz = Vector2(p.get("x", 0.0), p.get("z", 0.0))
 					break
-		# Get actual terrain height — hole_scene exposes get_terrain_height()
-		var terrain_h := 0.0
+		# Get actual terrain height at the tee X/Z, spawn just above it
+		var spawn_x := tee_xz.x if tee_xz.x != 0.0 else 750.0
+		var spawn_z := tee_xz.y if tee_xz.y != 0.0 else 300.0
+		var surface_y := 145.0
 		if hole_node.has_method("get_terrain_height"):
-			terrain_h = hole_node.get_terrain_height(tee_xz.x, tee_xz.y)
-			print("Main: terrain height at tee = %.2fm" % terrain_h)
-		else:
-			push_warning("Main: hole has no get_terrain_height — spawning at y=0")
-		# Spawn high above tee X/Z — gravity will land us on terrain surface
-		# Terrain Y range is 117-253m, tee Y in course.json is local not world
-		var spawn := Vector3(750.0, 145.0, 300.0)  # Just above range floor (~134m)
+			surface_y = hole_node.get_terrain_height(spawn_x, spawn_z)
+			print("Main: terrain height at tee (%.0f, %.0f) = %.2fm" % [spawn_x, spawn_z, surface_y])
+		var spawn := Vector3(spawn_x, surface_y + 3.0, spawn_z)  # 3m above surface
 		player.global_position = spawn
 		player.velocity = Vector3.ZERO
 		player.rotation = Vector3.ZERO
-		print("player y: %.2f" % spawn.y)
+		print("player spawn: ", spawn)
 
 
 func _on_hole_load_failed(path: String) -> void:

@@ -74,6 +74,28 @@ var terrain_mesh_instance: MeshInstance3D
 var terrain_body: StaticBody3D
 var terrain_collision: CollisionShape3D
 
+# Stored terrain bounds for spawn/height queries
+var _min_h: float = 0.0
+var _max_h: float = 0.0
+
+
+## Query terrain height at world X/Z via downward raycast against collision.
+## Returns the surface Y, or _max_h + 5 if no hit.
+func get_terrain_height(world_x: float, world_z: float) -> float:
+	if not is_inside_tree():
+		return _max_h
+	var space := get_world_3d().direct_space_state
+	if not space:
+		return _max_h
+	var from := Vector3(world_x, _max_h + 100.0, world_z)
+	var to   := Vector3(world_x, _min_h - 100.0, world_z)
+	var query := PhysicsRayQueryParameters3D.create(from, to)
+	query.collision_mask = collision_layer
+	var result := space.intersect_ray(query)
+	if result and result.has("position"):
+		return result.position.y
+	return _max_h + 5.0
+
 
 func _ready() -> void:
 	if terrain_json_path != "":
@@ -146,6 +168,10 @@ func build_from_unity_terrain_dict(data: Dictionary) -> bool:
 		var h := float(heights[i])
 		if h < min_h: min_h = h
 		if h > max_h: max_h = h
+
+	# Store for height queries
+	_min_h = min_h
+	_max_h = max_h
 
 	var mesh: ArrayMesh = _build_terrain_mesh(position, size, width, height, heights, heights_are_normalized, x_indices, z_indices)
 
