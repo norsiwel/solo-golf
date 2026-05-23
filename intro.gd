@@ -85,7 +85,7 @@ func _load_hole(hole_num: int) -> void:
 	terrain.sample_step = 4
 	terrain.generate_normals = true
 	terrain.create_collision = true
-	terrain.add_water_plane = true
+	terrain.add_water_plane = false
 	terrain.print_debug_info = true
 	terrain.add_debug_marker_at_origin = false
 	current_hole_root.add_child(terrain)
