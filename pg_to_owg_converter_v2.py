@@ -138,6 +138,8 @@ def extract_splat_maps(terrain_data, output_dir):
             tex_obj = alpha_tex_ptr.read()
             img = tex_obj.image
             if img:
+                # Flip vertically to match heightmap orientation (Unity bottom-to-top)
+                img = Image.fromarray(np.flipud(np.array(img)))
                 out_path = os.path.join(splat_dir, f"alphamap_{i}.png")
                 img.save(out_path)
                 alpha_count += 1

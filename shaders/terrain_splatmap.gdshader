@@ -28,10 +28,9 @@ void vertex() {
 
 void fragment() {
 	// Splatmap UV — terrain origin 0,0,0, X right, Z forward
-	// Z is flipped to match Unity splatmap orientation (Unity Z = Godot -Z)
 	vec2 splat_uv = vec2(
 		clamp(world_pos.x / max(owg_size_x, 1.0), 0.0, 1.0),
-		clamp(1.0 - world_pos.z / max(owg_size_z, 1.0), 0.0, 1.0)
+		clamp(world_pos.z / max(owg_size_z, 1.0), 0.0, 1.0)
 	);
 	vec4 splat = texture(splatmap, splat_uv);
 
