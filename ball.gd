@@ -67,7 +67,7 @@ func _ready():
 
 
 func _setup_ball_mesh() -> void:
-	# Visible golf ball — small white sphere
+	# Visible golf ball — sphere with dimpled texture
 	if get_node_or_null("BallMesh"):
 		return
 	var mesh_inst := MeshInstance3D.new()
@@ -75,12 +75,18 @@ func _setup_ball_mesh() -> void:
 	var sphere := SphereMesh.new()
 	sphere.radius = 0.08      # ~standard golf ball, slightly enlarged for visibility
 	sphere.height = 0.16
-	sphere.radial_segments = 16
-	sphere.rings = 8
+	sphere.radial_segments = 32
+	sphere.rings = 16
 	mesh_inst.mesh = sphere
 	var mat := StandardMaterial3D.new()
-	mat.albedo_color = Color(0.97, 0.97, 0.95)
-	mat.roughness = 0.4
+	# Load the dimpled golf ball texture
+	var tex = load("res://assets/balls/ball_texture2.png")
+	if tex:
+		mat.albedo_texture = tex
+	else:
+		mat.albedo_color = Color(0.97, 0.97, 0.95)
+	mat.roughness = 0.35
+	mat.metallic = 0.0
 	mesh_inst.material_override = mat
 	add_child(mesh_inst)
 
