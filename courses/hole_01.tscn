@@ -5,6 +5,7 @@
 [node name="Hole01" type="Node3D"]
 script = ExtResource("1_terrain")
 terrain_json_path = "res://courses/practice_range_test/terrain/terrain_heights.json"
+extract_base_path = "user://courses/OWG-Practice-Range"
 flip_z = false
 flip_x = false
 swap_xz = false

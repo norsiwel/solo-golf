@@ -43,6 +43,10 @@ class_name TerrainGeneratorNew
 
 @export var terrain_json_path: String = ""
 @export var save_scene_path: String = ""
+## Explicit path to extracted course folder (user:// path).
+## Set this when loading from user:// so textures/splat can be found.
+## Leave empty to derive from terrain_json_path (res:// only).
+@export var extract_base_path: String = ""
 
 @export_group("Coordinate Fixes")
 @export var flip_z: bool = false
@@ -59,6 +63,8 @@ class_name TerrainGeneratorNew
 @export var collision_layer: int = 1
 @export var collision_mask: int = 1
 
+@export_group("Water")
+@export var add_water_plane: bool = false  # Disable until water Y is verified correct
 @export_group("Debug")
 @export var print_debug_info: bool = true
 @export var add_debug_marker_at_origin: bool = true
@@ -215,21 +221,25 @@ func build_from_unity_terrain_dict(data: Dictionary) -> bool:
 	if print_debug_info:
 		_print_debug(position, size, width, height, heights_are_normalized)
 
-	# Add water plane at terrain minimum height
-	_add_water_plane(position, size, min_h, max_h)
+	# Add water plane only if enabled
+	if add_water_plane:
+		_add_water_plane(position, size, min_h, max_h)
 
 	return true
 
 
 func _apply_splatmap_material(mesh_inst: MeshInstance3D, position: Vector3, size: Vector3, min_h: float, max_h: float) -> bool:
-	# Derive the course extract path from terrain_json_path
-	# terrain_json_path = ".../<extract_path>/terrain/terrain_heights.json"
-	var terrain_dir := terrain_json_path.get_base_dir()           # .../terrain/
-	var extract_path := terrain_dir.get_base_dir() + "/"          # .../OWG-CourseName/
+	# Use explicit extract_base_path if set, otherwise derive from terrain_json_path
+	var base: String
+	if extract_base_path != "":
+		base = extract_base_path.rstrip("/") + "/"
+	else:
+		# Derive: terrain_json_path = ".../terrain/terrain_heights.json"
+		base = terrain_json_path.get_base_dir().get_base_dir() + "/"
 
-	var splat_path   := terrain_dir + "/splat/alphamap_0.png"
-	var layers_path  := terrain_dir + "/splat/splat_layers.json"
-	var tex_dir      := extract_path + "textures/"
+	var splat_path  := base + "terrain/splat/alphamap_0.png"
+	var layers_path := base + "terrain/splat/splat_layers.json"
+	var tex_dir     := base + "textures/"
 
 	if not FileAccess.file_exists(splat_path):
 		push_warning("TerrainGeneratorNew: no splatmap at " + splat_path)
