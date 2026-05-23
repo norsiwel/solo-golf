@@ -310,4 +310,3 @@ func is_course_loaded() -> bool:
 ## Unload the current course (free memory)
 func unload_course() -> void:
 	current_course = {}
-
