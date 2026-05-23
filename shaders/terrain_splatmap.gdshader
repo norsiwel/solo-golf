@@ -1,5 +1,5 @@
 shader_type spatial;
-render_mode blend_mix, depth_draw_opaque, cull_back, diffuse_burley, specular_schlick_ggx;
+render_mode blend_mix, depth_draw_opaque, cull_disabled, diffuse_burley, specular_schlick_ggx;
 
 // Splatmap — R=layer0, G=layer1, B=layer2, A=layer3
 uniform sampler2D splatmap : source_color, hint_default_white;
